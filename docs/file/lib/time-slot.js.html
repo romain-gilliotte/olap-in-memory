@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../">
+  <title data-ice="title">lib/time-slot.js | API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/cube.js~AbstractCube.html">AbstractCube</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/cube.js~Cube.html">Cube</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/cube.js~CubeCollection.html">CubeCollection</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/dimension-group.js~DimensionGroup.html">DimensionGroup</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/dimension.js~Dimension.html">Dimension</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/time-slot.js~TimeSlot.html">TimeSlot</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">lib/time-slot.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">&quot;use strict&quot;;
+
+/**
+ * A class representing a time slot used in monitoring.
+ * This can be a given day, epidemiological week, month, quarter, ...
+ */
+export default class TimeSlot {
+
+	/**
+	 * @param  {Date} utcDate Date which we want to build the TimeSlot around 
+	 * @param  {string} periodicity One of day, week_sat, week_sun, week_mon, month, quarter, semester, year
+	 * @return {TimeSlot} The TimeSlot instance of the given periodicity containing utcDate
+	 *
+	 * @example
+	 * let ts = TimeSlot.fromDate(new Date(2010, 01, 07, 18, 34), &quot;month&quot;);
+	 * ts.value // &apos;2010-01&apos;
+	 * 
+	 * let ts2 = TimeSlot.fromDate(new Date(2010, 12, 12, 6, 21), &quot;quarter&quot;);
+	 * ts2.value // &apos;2010-Q4&apos;
+	 */
+	static fromDate(utcDate, periodicity) {
+		if (periodicity === &apos;day&apos;)
+			return new TimeSlot(utcDate.toISOString().substring(0, 10));
+
+		else if (periodicity === &apos;week_sat&apos; || periodicity === &apos;week_sun&apos; || periodicity === &apos;week_mon&apos;) {
+			// Good epoch to count week is the first inferior to searched date (among next, current and last year, in that order).
+			var year = utcDate.getUTCFullYear() + 1,
+				epoch = TimeSlot._getEpidemiologicWeekEpoch(year, periodicity);
+
+			while (utcDate.getTime() &lt; epoch.getTime())
+				epoch = TimeSlot._getEpidemiologicWeekEpoch(--year, periodicity);
+			
+			var weekNumber = Math.floor((utcDate.getTime() - epoch.getTime()) / 1000 / 60 / 60 / 24 / 7) + 1;
+			if (weekNumber &lt; 10)
+				weekNumber = &apos;0&apos; + weekNumber;
+
+			return new TimeSlot(year + &apos;-W&apos; + weekNumber + &apos;-&apos; + periodicity.substr(-3));
+		}
+
+		else if (periodicity === &apos;month&apos;)
+			return new TimeSlot(utcDate.toISOString().substring(0, 7));
+
+		else if (periodicity === &apos;quarter&apos;)
+			return new TimeSlot(
+				utcDate.getUTCFullYear().toString() +
+				&apos;-Q&apos; + (1 + Math.floor(utcDate.getUTCMonth() / 3)).toString()
+			);
+
+		else if (periodicity === &apos;semester&apos;)
+			return new TimeSlot(
+				utcDate.getUTCFullYear().toString() +
+				&apos;-S&apos; + (1 + Math.floor(utcDate.getUTCMonth() / 6)).toString()
+			)
+
+		else if (periodicity === &apos;year&apos;)
+			return new TimeSlot(utcDate.getUTCFullYear().toString());
+
+		else
+			throw new Error(&quot;Invalid periodicity&quot;);
+	}
+
+	/**
+	 * Get the date from which we should count weeks to compute the epidemiological week number.
+	 * 
+	 * @private
+	 * @todo
+	 * This function is incredibly verbose for what it does.
+	 * Probably a single divmod could give the same result but debugging was nightmarish.
+	 * 
+	 * @param  {number} year
+	 * @param  {string} periodicity
+	 * @return {Date}
+	 */
+	static _getEpidemiologicWeekEpoch(year, periodicity) {
+		var SUNDAY = 0, MONDAY = 1, TUESDAY = 2, WEDNESDAY = 3, THURSDAY = 4, FRIDAY = 5, SATURDAY = 6;
+		var firstDay = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)).getUTCDay();
+		var epoch = null;
+
+		if (periodicity === &apos;week_sun&apos;) {
+			if (firstDay === SUNDAY)
+				// Lucky us, first day of year is Sunday
+				epoch = Date.UTC(year, 0, 1, 0, 0, 0, 0);
+			else if (firstDay === MONDAY)
+				// Epidemiologic week started last day of december
+				epoch = Date.UTC(year - 1, 11, 31, 0, 0, 0, 0);
+			else if (firstDay === TUESDAY)
+				// Epidemiologic week started the previous day (still 2 day in december and 5 in january)
+				epoch = Date.UTC(year - 1, 11, 30, 0, 0, 0, 0);
+			else if (firstDay === WEDNESDAY)
+				// 3 days in december, 4 in january
+				epoch = Date.UTC(year - 1, 11, 29, 0, 0, 0, 0);
+			else if (firstDay === THURSDAY)
+				// we can&apos;t have 4 days in december, so the epoch is the 4th of january (the first sunday of the year)
+				epoch = Date.UTC(year, 0, 4, 0, 0, 0, 0);
+			else if (firstDay === FRIDAY)
+				// same as before: first sunday of the year
+				epoch = Date.UTC(year, 0, 3, 0, 0, 0, 0);
+			else if (firstDay === SATURDAY)
+				// same as before: first sunday of the year
+				epoch = Date.UTC(year, 0, 2, 0, 0, 0, 0);
+		}
+		else if (periodicity === &apos;week_sat&apos;) {
+			if (firstDay === SATURDAY)
+				// Lucky us, first day of year is Saturday
+				epoch = Date.UTC(year, 0, 1, 0, 0, 0, 0);
+			else if (firstDay === SUNDAY)
+				// Epidemiologic week started last day of december
+				epoch = Date.UTC(year - 1, 11, 31, 0, 0, 0, 0);
+			else if (firstDay === MONDAY)
+				// Epidemiologic week started the previous day (still 2 day in december and 5 in january)
+				epoch = Date.UTC(year - 1, 11, 30, 0, 0, 0, 0);
+			else if (firstDay === TUESDAY)
+				// 3 days in december, 4 in january
+				epoch = Date.UTC(year - 1, 11, 29, 0, 0, 0, 0);
+			else if (firstDay === WEDNESDAY)
+				// we can&apos;t have 4 days in december, so the epoch is the 4th of january (the first saturday of the year)
+				epoch = Date.UTC(year, 0, 4, 0, 0, 0, 0);
+			else if (firstDay === THURSDAY)
+				// same as before: first saturday of the year
+				epoch = Date.UTC(year, 0, 3, 0, 0, 0, 0);
+			else if (firstDay === FRIDAY)
+				// same as before: first saturday of the year
+				epoch = Date.UTC(year, 0, 2, 0, 0, 0, 0);
+		}
+		else if (periodicity === &apos;week_mon&apos;) {
+			if (firstDay === MONDAY)
+				// Lucky us, first day of year is Sunday
+				epoch = Date.UTC(year, 0, 1, 0, 0, 0, 0);
+			else if (firstDay === TUESDAY)
+				// Epidemiologic week started last day of december
+				epoch = Date.UTC(year - 1, 11, 31, 0, 0, 0, 0);
+			else if (firstDay === WEDNESDAY)
+				// Epidemiologic week started the previous day (still 2 day in december and 5 in january)
+				epoch = Date.UTC(year - 1, 11, 30, 0, 0, 0, 0);
+			else if (firstDay === THURSDAY)
+				// 3 days in december, 4 in january
+				epoch = Date.UTC(year - 1, 11, 29, 0, 0, 0, 0);
+			else if (firstDay === FRIDAY)
+				// we can&apos;t have 4 days in december, so the epoch is the 4th of january (the first monday of the year)
+				epoch = Date.UTC(year, 0, 4, 0, 0, 0, 0);
+			else if (firstDay === SATURDAY)
+				// same as before: first monday of the year
+				epoch = Date.UTC(year, 0, 3, 0, 0, 0, 0);
+			else if (firstDay === SUNDAY)
+				// same as before: first monday of the year
+				epoch = Date.UTC(year, 0, 2, 0, 0, 0, 0);
+		}
+		else
+			throw new Error(&quot;Invalid day&quot;);
+
+		return new Date(epoch);
+	};
+
+	/**
+	 * Constructs a TimeSlot instance from a time slot value.
+	 * The periodicity will be automatically computed.
+	 * 
+	 * @param  {string} value A valid TimeSlot value (those can be found calling the `value` getter).
+	 */
+	constructor(value) {
+		this._value = value;
+	}
+
+	/**
+	 * The value of the TimeSlot.
+	 * This is a string that uniquely identifies this timeslot.
+	 * 
+	 * For instance: `2010`, `2010-Q1`, `2010-W07-sat`.
+	 * @type {string}
+	 */
+	get value() {
+		return this._value;
+	}
+
+	/**
+	 * The periodicity used for this timeslot.
+	 * By periodicity, we mean, the method that was used to cut time into slots.
+	 *
+	 * For instance: `year`, `quarter`, `week-sat`, ...
+	 * @type {string}
+	 */
+	get periodicity() {
+		if (!this._periodicity) {
+			if (this.value.match(/^\d{4}$/))
+				this._periodicity = &apos;year&apos;
+			
+			else if (this.value.match(/^\d{4}\-S\d$/))
+				this._periodicity = &apos;semester&apos;;
+
+			else if (this.value.match(/^\d{4}\-Q\d$/))
+				this._periodicity = &apos;quarter&apos;
+			
+			else if (this.value.match(/^\d{4}\-\d{2}$/))
+				this._periodicity = &apos;month&apos;
+			
+			else if (this.value.match(/^\d{4}\-W\d{2}-sat$/))
+				this._periodicity = &apos;week_sat&apos;
+			
+			else if (this.value.match(/^\d{4}\-W\d{2}-sun$/))
+				this._periodicity = &apos;week_sun&apos;
+			
+			else if (this.value.match(/^\d{4}\-W\d{2}-mon$/))
+				this._periodicity = &apos;week_mon&apos;
+			
+			else if (this.value.match(/^\d{4}\-\d{2}\-\d{2}$/))
+				this._periodicity = &apos;day&apos;
+		}
+
+		return this._periodicity;
+	}
+
+	/**
+	 * The date where this instance of TimeSlot begins.
+	 * 
+	 * @type {Date}
+	 * @example
+	 * var t = new TimeSlot(&apos;2012-01&apos;);
+	 * t.firstDate.toUTCString(); // 2012-01-01T00:00:00Z
+	 */
+	get firstDate() {
+		if (this.periodicity === &apos;day&apos;)
+			return new Date(this.value + &apos;T00:00:00Z&apos;);
+
+		else if (this.periodicity === &apos;week_sat&apos; || this.periodicity === &apos;week_sun&apos; || this.periodicity === &apos;week_mon&apos;)
+			return new Date(
+				TimeSlot._getEpidemiologicWeekEpoch(this.value.substring(0, 4), this.periodicity).getTime() + 
+				(this.value.substring(6, 8) - 1) * 7 * 24 * 60 * 60 * 1000 // week numbering starts with 1
+			);
+
+		else if (this.periodicity === &apos;month&apos;)
+			return new Date(this.value + &apos;-01T00:00:00Z&apos;);
+
+		else if (this.periodicity === &apos;quarter&apos;) {
+			var month = (this.value.substring(6, 7) - 1) * 3 + 1;
+			if (month &lt; 10)
+				month = &apos;0&apos; + month;
+
+			return new Date(this.value.substring(0, 5) + month + &apos;-01T00:00:00Z&apos;);
+		}
+		else if (this.periodicity === &apos;semester&apos;) {
+			var month2 = (this.value.substring(6, 7) - 1) * 6 + 1;
+			if (month2 &lt; 10)
+				month2 = &apos;0&apos; + month2;
+
+			return new Date(this.value.substring(0, 5) + month2 + &apos;-01T00:00:00Z&apos;);
+		}
+		else if (this.periodicity === &apos;year&apos;)
+			return new Date(this.value + &apos;-01-01T00:00:00Z&apos;);
+	}
+
+	/**
+	 * The date where this instance of TimeSlot ends.
+	 * 
+	 * @type {Date}
+	 * @example
+	 * var t = new TimeSlot(&apos;2012-01&apos;);
+	 * t.firstDate.toUTCString(); // 2012-01-31T00:00:00Z
+	 */
+	get lastDate() {
+		if (this.periodicity === &apos;day&apos;)
+			// last day is current day
+			return this.firstDate;
+
+		else if (this.periodicity === &apos;week_sat&apos; || this.periodicity === &apos;week_sun&apos; || this.periodicity === &apos;week_mon&apos;) {
+			// last day is last day of the week according to epoch
+			return new Date(this.firstDate.getTime() + 6 * 24 * 60 * 60 * 1000);
+		}
+
+		else if (this.periodicity === &apos;month&apos;) {
+			var monthDate = this.firstDate;
+			monthDate.setUTCMonth(monthDate.getUTCMonth() + 1); // add one month.
+			monthDate.setUTCDate(0); // go to last day of previous month.
+			return monthDate;
+		}
+
+		else if (this.periodicity === &apos;quarter&apos;) {
+			var quarterDate = this.firstDate;
+			quarterDate.setUTCMonth(quarterDate.getUTCMonth() + 3); // add three month.
+			quarterDate.setUTCDate(0); // go to last day of previous month.
+			return quarterDate;
+		}
+
+		else if (this.periodicity === &apos;semester&apos;) {
+			var semesterDate = this.firstDate;
+			semesterDate.setUTCMonth(semesterDate.getUTCMonth() + 6); // add six month.
+			semesterDate.setUTCDate(0); // go to last day of previous month.
+			return semesterDate;
+		}
+
+		else if (this.periodicity === &apos;year&apos;)
+			return new Date(this.value + &apos;-12-31T00:00:00Z&apos;);
+	}
+
+	/**
+	 * Creates a TimeSlot instance with a longer periodicity that contains this one.
+	 * 
+	 * @param  {string} newPeriodicity The desired periodicity
+	 * @return {TimeSlot} A new TimeSlot instance.
+	 * 
+	 * @example
+	 * let t  = new TimeSlot(&apos;2010-07&apos;),
+	 *     t2 = t.toUpperSlot(&apos;quarter&apos;);
+	 *
+	 * t2.value; // 2010-Q3
+	 */
+	toUpperSlot(newPeriodicity) {
+		// Raise when we make invalid conversions
+		if (TimeSlot._upperSlots[this.periodicity].indexOf(newPeriodicity) === -1)
+			throw new Error(&apos;Cannot convert &apos; + this.periodicity + &apos; to &apos; + newPeriodicity);
+
+		// For days, months, quarters, semesters, we can assume that getting the slot from any date works
+		var upperSlotDate = this.firstDate;
+		
+		// if it&apos;s a week, we need to be a bit more cautious.
+		// the month/quarter/year is not that of the first or last day, but that of the middle day of the week
+		// (which depend on the kind of week, but adding 3 days to the beginning gives the good date).
+		if (this.periodicity === &apos;week_sat&apos; || this.periodicity === &apos;week_sun&apos; || this.periodicity === &apos;week_mon&apos;)
+			upperSlotDate = new Date(upperSlotDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+		return TimeSlot.fromDate(upperSlotDate, newPeriodicity);
+	}
+
+	/**
+	 * Creates a TimeSlot instance of the same periodicity than the current once, but which follows it
+	 * 
+	 * @return {TimeSlot}
+	 * @example
+	 * var ts = new TimeSlot(&apos;2010&apos;);
+	 * ts.next().value // 2011
+	 *
+	 * var ts2 = new TimeSlot(&apos;2010-W52-sat&apos;);
+	 * ts.next().value // 2011-W01-sat
+	 */
+	next() {
+		var date = this.lastDate;
+		date.setUTCDate(date.getUTCDate() + 1);
+		return TimeSlot.fromDate(date, this.periodicity);
+	}
+};
+
+/**
+ * Static member documenting which periodicity contains the others.
+ *
+ * @private
+ * @type {Object}
+ */
+TimeSlot._upperSlots = {
+	&apos;day&apos;: [&apos;week_sat&apos;, &apos;week_sun&apos;, &apos;week_mon&apos;, &apos;month&apos;, &apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
+	&apos;week_sat&apos;: [&apos;month&apos;, &apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
+	&apos;week_sun&apos;: [&apos;month&apos;, &apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
+	&apos;week_mon&apos;: [&apos;month&apos;, &apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
+	&apos;month&apos;: [&apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
+	&apos;quarter&apos;: [&apos;semester&apos;, &apos;year&apos;],
+	&apos;semester&apos;: [&apos;year&apos;],
+	&apos;year&apos;: []
+};</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

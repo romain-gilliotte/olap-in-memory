@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../">
+  <title data-ice="title">lib/cube.js | API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/cube.js~AbstractCube.html">AbstractCube</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/cube.js~Cube.html">Cube</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/cube.js~CubeCollection.html">CubeCollection</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/dimension-group.js~DimensionGroup.html">DimensionGroup</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/dimension.js~Dimension.html">Dimension</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/time-slot.js~TimeSlot.html">TimeSlot</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">lib/cube.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">&quot;use strict&quot;;
+
+import Dimension from &quot;./dimension&quot;
+import DimensionGroup from &quot;./dimension-group&quot;
+
+
+class AbstractCube {
+
+	constructor(id) {
+		this._id = id;
+	}
+
+	get id() {
+		return this._id;
+	}
+
+	get dimensions() {
+	}
+
+	get dimensionGroups() {
+	}
+
+	query(dimensionIds, filter, withTotals) {
+	}
+
+
+}
+
+
+/**
+ * This class represents an [OLAP Cube](https://en.wikipedia.org/wiki/OLAP_cube)
+ */
+export class Cube extends AbstractCube {
+
+	/**
+	 * Create a cube from the result of the serialize() method.
+	 * 
+	 * @param {Object} obj Object retrieved by calling the serialize method on a Cube instance.
+	 * @return {Cube}
+	 * 
+	 * @example
+	 * let c   = new Cube(...),
+	 *     str = JSON.stringify(c.serialize()),
+	 *     obj = JSON.parse(str),
+	 *     c2  = Cube.fromSerialization(obj);
+	 */
+	static fromSerialization(obj) {
+		return new Cube(obj.id, obj.dimensions, obj.dimensionGroups, obj.data);
+	}
+
+	get dimensions() {
+		return this._dimensions;
+	}
+
+	get dimensionGroups() {
+		return this._dimensionGroups;
+	}
+
+	/**
+	 * Build a cube from it&apos;s components
+	 * 
+	 * @param {string} id A unique identifier for this cube across the application.
+	 * @param {Array.&lt;Dimension&gt;} dimensions The list of dimensions that this cube is using
+	 * @param {Array.&lt;DimensionGroup&gt;} dimensionGroups The list of dimension groups that this cube is using
+	 * @param {Array.&lt;number&gt;} data Data contained in the cube. The size of this array must be the product of the number of elements in the dimension.
+	 * 
+	 * @example
+	 * var time = new Dimension(&apos;year&apos;, [&apos;2013&apos;, &apos;2014&apos;, &apos;2015&apos;], &apos;sum&apos;),
+	 *     location = new Dimension(&apos;location&apos;, [&apos;shopA&apos;, &apos;shopB&apos;], &apos;sum&apos;);
+	 * 
+	 * var c = new Cube(&apos;sells&apos;, [time, location], [], [10, 20, 30, 15, 43, 60]);
+	 */
+	constructor(id, dimensions, dimensionGroups, data) {
+		super(id)
+
+		// Check size.
+		var dataSize = 1;
+		dimensions.forEach(function(dimension) { dataSize *= dimension.items.length; });
+		if (data.length !== dataSize)
+			throw new Error(&apos;Invalid data size&apos;);
+
+		this._dimensions = dimensions;
+		this._dimensionGroups = dimensionGroups;
+		this._data = data;
+
+		// Index dimensions and dimensionGroups by id
+		this._dimensionsById = {};
+		this._dimensionGroupsById = {};
+		this._dimensions.forEach(function(d) { this._dimensionsById[d.id] = d; }, this);
+		this._dimensionGroups.forEach(function(d) { this._dimensionGroupsById[d.id] = d; }, this);
+	}
+
+	/**
+	 * Query this cube splitting the result by the provided dimension ids and filters.
+	 *
+	 * @param {Array.&lt;number&gt;} dimensionIds Dimension to distribute the result
+	 * @param {Object.&lt;string, Array.&lt;string&gt;&gt;} filter Elements that should be included by dimension. Missing dimensions are not filtered.
+	 * @param {boolean} [withTotals=false] Include an additional &quot;total&quot; key at every level
+	 * @return {Object|number} An nested object which contain total value in each dimensionElement.
+	 *
+	 * @example
+	 * var c = new Cube(...);
+	 * 
+	 * c.query();
+	 * // 178
+	 * 
+	 * c.query([&apos;year&apos;]);
+	 * // {2013: 25, 2014: 63, 2015: 90}
+	 * 
+	 * c.query([&apos;year&apos;, &apos;location&apos;]);
+	 * // {2013: {shopA: 10, shopB: 20}, 2014: {shopA: 30, shopB: 15}, 2015: {shopA: 43, shopB: 60}}
+	 * 
+	 * c.query([&apos;year&apos;, &apos;location&apos;], {year: [&apos;2013&apos;, &apos;2014&apos;]}, true);
+	 * // {2013: {shopA: 10, shopB: 20, _total: 30}, 2014: {shopA: 30, shopB: 15, _total: 45}, _total: 75}
+	 */
+	query(dimensionIds, filter, withTotals) {
+		// End condition
+		if (dimensionIds.length == 0)
+			return this._query_total(filter);
+		
+		var dimensionId = dimensionIds.shift();
+
+		// search dimension
+		var dimension = this._dimensionsById[dimensionId] || this._dimensionGroupsById[dimensionId];
+
+		// Build tree
+		var result = {};
+		var numDimensionItems = dimension.items.length;
+		var contributions = 0;
+		for (var dimensionItemId = 0; dimensionItemId &lt; numDimensionItems; ++dimensionItemId) {
+			var dimensionItem = dimension.items[dimensionItemId];
+
+			// Intersect main filter with branch filter (branch filter is only one item, so it&apos;s easy to compute).
+			var oldFilter = filter[dimensionId];
+			if (!oldFilter || oldFilter.indexOf(dimensionItem) !== -1)
+				filter[dimensionId] = [dimensionItem];
+			else
+				// Either lines do the same. Continuing is a bit faster.
+				// filter[dimensionId] = [];
+				continue;
+			
+			// Compute branch of the result tree.
+			result[dimensionItem] = this.query(dimensionIds, filter);
+
+			// Remove if empty
+			if (result[dimensionItem] === undefined)
+				delete result[dimensionItem];
+			else
+				++contributions;
+
+			// Restore filter to its former value
+			if (oldFilter === undefined)
+				delete filter[dimensionId];
+			else
+				filter[dimensionId] = oldFilter;
+		}
+
+		if (withTotals)
+			result._total = this.query(dimensionIds, filter);
+
+		dimensionIds.unshift(dimensionId);
+
+		return contributions ? result : undefined;
+	}
+
+
+	/**
+	 * Retrieve the total value matching a given filter. 
+	 * 
+	 * @private
+	 * @param {Object.&lt;string, Array.&lt;string&gt;&gt;} filter Elements that should be included by dimension. Missing dimensions are not filtered.
+	 * @return {number} total value matching the provided filter.
+	 * 
+	 * @example
+	 * let cube = Cube.fromSerialization(...);
+	 * let result = cube._query_total({year: [&apos;2014&apos;], &quot;bc4b0c3f-ee9d-4507-87ad-6eaea9102cd9&quot;: [&quot;2d31a636-1739-4b77-98a5-bf9b7a080626&quot;]})
+	 * result // 2321
+	 */
+	_query_total(filter) {
+		// rewrite the filter so that it contains only dimensions.
+		filter = this._remove_dimension_groups(filter);
+		filter = this._rewrite_as_indexes(filter);
+		try {
+			return this._query_rec(filter, 0);
+		}
+		catch (e) {
+			return e.message;
+		}
+	}
+
+	/**
+	 * Retrieve the total value matching given indexes and read offset.
+	 * 
+	 * @private
+	 * @todo Would be faster to use push/pop instead of shift/unshift into the indexes.
+	 * 
+	 * @param  {Array.&lt;Array.&lt;number&gt;&gt;} allIndexes Indexes to explore by partition.
+	 * @param  {number} [offset=0] Offset when reading from the data (used to recurse).
+	 * @return {number|undefined} Total value extracted from the cube.
+	 *
+	 * @example
+	 * var c = new Cube(&apos;sells&apos;, [time, location], [], [0, 1, 2, 3, 4, 5, 6]);
+	 * c._query_rec([], 0); // 0
+	 * c._query_rec([], 2); // 2
+	 *
+	 * c._query_rec([[1, 2]], 0); // 3
+	 * c._query_rec([[0], [0]], 5); // 5
+	 */
+	_query_rec(allIndexes, offset) {
+		if (allIndexes.length == 0)
+			return this._data[offset] == -2147483648 ? undefined : this._data[offset];
+
+		var dimension  = this._dimensions[this._dimensions.length - allIndexes.length],
+			indexes    = allIndexes.shift(),
+			numIndexes = indexes.length;
+
+		var result, tmp, contributions = 0;
+		
+		// Compute offset at this level.
+		offset *= dimension.items.length;
+
+		// Aggregate
+		if (dimension.aggregation == &apos;sum&apos;) {
+			result = 0;
+			for (var i = 0; i &lt; numIndexes; ++i) {
+				tmp = this._query_rec(allIndexes, offset + indexes[i])
+				if (tmp !== undefined) {
+					++contributions;
+					result += tmp
+				}
+			}
+		}
+		else if (dimension.aggregation == &apos;average&apos;) {
+			result = 0;
+			for (var i = 0; i &lt; numIndexes; ++i) {
+				tmp = this._query_rec(allIndexes, offset + indexes[i])
+				if (tmp !== undefined) {
+					++contributions;
+					result += tmp
+				}
+			}
+			result /= contributions;
+		}
+		else if (dimension.aggregation == &apos;highest&apos;) {
+			result = -Number.MAX_VALUE;
+			for (var i = 0; i &lt; numIndexes; ++i) {
+				tmp = this._query_rec(allIndexes, offset + indexes[i]);
+				if (tmp !== undefined &amp;&amp; tmp &gt; result) {
+					++contributions;
+					result = tmp;
+				}
+			}
+		}
+		else if (dimension.aggregation == &apos;lowest&apos;) {
+			result = Number.MAX_VALUE;
+			for (var i = 0; i &lt; numIndexes; ++i) {
+				tmp = this._query_rec(allIndexes, offset + indexes[i])
+				if (tmp !== undefined &amp;&amp; tmp &lt; result) {
+					++contributions;
+					result = tmp;
+				}
+			}
+		}
+		else if (dimension.aggregation == &apos;last&apos;) {
+			for (var i = numIndexes - 1; i &gt;= 0; --i) {
+				tmp = this._query_rec(allIndexes, offset + indexes[i])
+				if (tmp !== undefined) {
+					result = tmp;
+					++contributions;
+					break; // first defined value is OK for us.
+				}
+			}
+		}
+
+		else if (dimension.aggregation == &apos;none&apos;) {
+			for (var i = 0; i &lt; numIndexes; ++i) {
+				tmp = this._query_rec(allIndexes, offset + indexes[i])
+				if (tmp !== undefined) {
+					result = tmp;
+					++contributions;
+				}
+			}
+
+			if (contributions &gt; 1)
+				throw new Error(&apos;AGGREGATION_FORBIDDEN&apos;);
+		}
+
+		else
+			throw new Error(&apos;INVALID_AGGREGATION_MODE&apos;);
+
+		if (contributions == 0)
+			result = undefined;
+
+		allIndexes.unshift(indexes)
+
+		return result;
+	}
+
+	/**
+	 * When querying the cube with _query_total(), we only support
+	 * using dimensions (and not dimensionGroups).
+	 * 
+	 * This rewrites any filter so that they use dimensions.
+	 */
+	_remove_dimension_groups(oldFilters) {
+		var newFilters = {};
+
+		for (var dimensionId in oldFilters) {
+			var dimension = this._dimensionsById[dimensionId],
+				oldFilter = oldFilters[dimensionId];
+
+			// if the dimension exists, we have nothing to do.
+			if (dimension) {
+				// Insersect our new filter with the existing one.
+				if (!newFilters[dimension.id])
+					newFilters[dimension.id] = oldFilter;
+				else
+					newFilters[dimension.id] = oldFilter.filter(function(e) {
+						return newFilters[dimension.id].indexOf(e) !== -1;
+					});
+			}
+			// the dimension does not exists.
+			else {
+				var dimensionGroup = this._dimensionGroupsById[dimensionId];
+
+				// if it&apos;s a group, replace it.
+				if (dimensionGroup) {
+					// Build new filter by concatenating elements.
+					var newFilter = [];
+					oldFilter.forEach(function(v) { Array.prototype.push.apply(newFilter, dimensionGroup.mapping[v]); });
+					newFilter.sort();
+					
+					// If there are duplicates, remove them.
+					var i = newFilter.length - 2;
+					while (i &gt; 0) {
+						if (newFilter[i] == newFilter[i + 1])
+							newFilter.splice(i, 1);
+						--i
+					}
+
+					// Insersect our new filter with the existing one.
+					if (!newFilters[dimensionGroup.childDimension])
+						newFilters[dimensionGroup.childDimension] = newFilter;
+					else
+						newFilters[dimensionGroup.childDimension] = newFilter.filter(function(e) {
+							return newFilters[dimensionGroup.childDimension].indexOf(e) !== -1;
+						});
+				}
+				// if it&apos;s not a dimension nor a dimensionGroup, raise.
+				else
+					throw new Error(&apos;Invalid dimension in filter: &apos; + dimensionId);
+			}
+		}
+
+		return newFilters;
+	}
+
+	_rewrite_as_indexes(filter) {
+		// Rewrite the filter again in the form of integers.
+		// We don&apos;t want to rewrite it into the _query_rec function, because it is
+		// more efficient to do it only once here, instead of many times on the rec function.
+		return this._dimensions.map(function(dimension) {
+			var i, result, size;
+
+			// No filter =&gt; filter is range(0, dimension.items.length)
+			if (!filter[dimension.id]) {
+				size = dimension.items.length;
+				result = new Int32Array(size);
+				for (i = 0; i &lt; size; ++i)
+					result[i] = i;
+			}
+			// Yes filter =&gt; map strings to ids in the real query.
+			else {
+				// Now we need to map our list of strings to indexes.
+				size = filter[dimension.id].length;
+				result = new Int32Array(size);
+				for (i = 0; i &lt; size; ++i) {
+					result[i] = dimension.items.indexOf(filter[dimension.id][i]);
+					if (result[i] === -1)
+						throw new Error(&apos;Dimension item &quot;&apos; + filter[dimension.id][i] + &apos;&quot; was not found.&apos;);
+				}
+			}
+
+			return result;
+		});
+	}
+
+	serialize() {
+		return {
+			id: this._id,
+			dimensions: this._dimensions,
+			dimensionGroups: this._dimensionGroups,
+			data: this._data
+		};
+	}
+}
+
+
+/**
+ * A cube collection is a container that contains all cubes from the variables of a given project
+ * 
+ * If there is a need to implement queries across multiple cubes, it can be implemented here.
+ */
+export class CubeCollection extends AbstractCube {
+
+	constructor(id, cubes) {
+		super(id);
+
+		this._cubes = cubes;
+	}
+
+	serialize() {
+		return this._cubes.map(function(cube) { return cube.serialize(); });
+	}
+
+}
+
+</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>
