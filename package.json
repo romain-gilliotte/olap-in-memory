@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "author": "Romain Gilliotte",
   "license": "ISC",
-  "description": "A naive implementation of in-memory OLAP cubes for NodeJS and the browser.",
+  "description": "An implementation of in-memory OLAP cubes for NodeJS and the browser.",
   "main": "dist/olap.js",
   "module": "lib/index.js",
   
