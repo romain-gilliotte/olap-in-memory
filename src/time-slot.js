@@ -1,49 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <base data-ice="baseUrl" href="../../">
-  <title data-ice="title">lib/time-slot.js | API Document</title>
-  <link type="text/css" rel="stylesheet" href="css/style.css">
-  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
-  <script src="script/prettify/prettify.js"></script>
-  
-  
-  <script src="script/manual.js"></script>
-</head>
-<body class="layout-container" data-ice="rootContainer">
-
-<header>
-  <a href="./">Home</a>
-  
-  <a href="identifiers.html">Reference</a>
-  <a href="source.html">Source</a>
-  
-  
-  <div class="search-box">
-  <span>
-    <img src="./image/search.png">
-    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
-  </span>
-    <ul class="search-result"></ul>
-  </div>
-</header>
-
-<nav class="navigation" data-ice="nav"><div>
-  <ul>
-    
-  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/cube.js~AbstractCube.html">AbstractCube</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/cube.js~Cube.html">Cube</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/cube.js~CubeCollection.html">CubeCollection</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/dimension-group.js~DimensionGroup.html">DimensionGroup</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/dimension.js~Dimension.html">Dimension</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/lib/time-slot.js~TimeSlot.html">TimeSlot</a></span></span></li>
-</ul>
-</div>
-</nav>
-
-<div class="content" data-ice="content"><h1 data-ice="title">lib/time-slot.js</h1>
-<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">&quot;use strict&quot;;
 
 /**
  * A class representing a time slot used in monitoring.
@@ -52,66 +6,90 @@
 export default class TimeSlot {
 
 	/**
-	 * @param  {Date} utcDate Date which we want to build the TimeSlot around 
+	 * @param  {Date} utcDate Date which we want to build the TimeSlot around
 	 * @param  {string} periodicity One of day, week_sat, week_sun, week_mon, month, quarter, semester, year
 	 * @return {TimeSlot} The TimeSlot instance of the given periodicity containing utcDate
 	 *
 	 * @example
-	 * let ts = TimeSlot.fromDate(new Date(2010, 01, 07, 18, 34), &quot;month&quot;);
-	 * ts.value // &apos;2010-01&apos;
-	 * 
-	 * let ts2 = TimeSlot.fromDate(new Date(2010, 12, 12, 6, 21), &quot;quarter&quot;);
-	 * ts2.value // &apos;2010-Q4&apos;
+	 * let ts = TimeSlot.fromDate(new Date(2010, 01, 07, 18, 34), "month");
+	 * ts.value // '2010-01'
+	 *
+	 * let ts2 = TimeSlot.fromDate(new Date(2010, 12, 12, 6, 21), "quarter");
+	 * ts2.value // '2010-Q4'
 	 */
 	static fromDate(utcDate, periodicity) {
-		if (periodicity === &apos;day&apos;)
+
+		if (periodicity === 'day')
 			return new TimeSlot(utcDate.toISOString().substring(0, 10));
 
-		else if (periodicity === &apos;week_sat&apos; || periodicity === &apos;week_sun&apos; || periodicity === &apos;week_mon&apos;) {
+		else if (periodicity === 'month_week_sat' || periodicity === 'month_week_sun' || periodicity === 'month_week_mon') {
+			var prefix = utcDate.toISOString().substring(0, 8);
+
+			// if no sunday happened in the month OR month start with sunday, week number is one.
+			var firstDayOfMonth = new Date(Date.UTC(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), 1)).getUTCDay();
+
+			var firstWeekLength;
+			if (periodicity === 'month_week_sat')
+				firstWeekLength = 7 - ((firstDayOfMonth + 1) % 7);
+			else if (periodicity === 'month_week_sun')
+				firstWeekLength = 7 - firstDayOfMonth; // 1 if month start on saturday, 2 if friday, 7 if sunday
+			else
+				firstWeekLength = 7 - ((firstDayOfMonth - 1 + 7) % 7);
+
+			if (utcDate.getUTCDate() <= firstWeekLength) {
+				return new TimeSlot(prefix + 'W1-' + periodicity.substr(-3));
+			}
+			else {
+				var weekNumber = Math.floor((utcDate.getUTCDate() - 1 - firstWeekLength) / 7) + 2;
+				return new TimeSlot(prefix + 'W' + weekNumber + '-' + periodicity.substr(-3));
+			}
+		}
+
+		else if (periodicity === 'week_sat' || periodicity === 'week_sun' || periodicity === 'week_mon') {
 			// Good epoch to count week is the first inferior to searched date (among next, current and last year, in that order).
 			var year = utcDate.getUTCFullYear() + 1,
 				epoch = TimeSlot._getEpidemiologicWeekEpoch(year, periodicity);
 
-			while (utcDate.getTime() &lt; epoch.getTime())
+			while (utcDate.getTime() < epoch.getTime())
 				epoch = TimeSlot._getEpidemiologicWeekEpoch(--year, periodicity);
-			
-			var weekNumber = Math.floor((utcDate.getTime() - epoch.getTime()) / 1000 / 60 / 60 / 24 / 7) + 1;
-			if (weekNumber &lt; 10)
-				weekNumber = &apos;0&apos; + weekNumber;
 
-			return new TimeSlot(year + &apos;-W&apos; + weekNumber + &apos;-&apos; + periodicity.substr(-3));
+			var weekNumber = Math.floor((utcDate.getTime() - epoch.getTime()) / 1000 / 60 / 60 / 24 / 7) + 1;
+			if (weekNumber < 10)
+				weekNumber = '0' + weekNumber;
+
+			return new TimeSlot(year + '-W' + weekNumber + '-' + periodicity.substr(-3));
 		}
 
-		else if (periodicity === &apos;month&apos;)
+		else if (periodicity === 'month')
 			return new TimeSlot(utcDate.toISOString().substring(0, 7));
 
-		else if (periodicity === &apos;quarter&apos;)
+		else if (periodicity === 'quarter')
 			return new TimeSlot(
 				utcDate.getUTCFullYear().toString() +
-				&apos;-Q&apos; + (1 + Math.floor(utcDate.getUTCMonth() / 3)).toString()
+				'-Q' + (1 + Math.floor(utcDate.getUTCMonth() / 3)).toString()
 			);
 
-		else if (periodicity === &apos;semester&apos;)
+		else if (periodicity === 'semester')
 			return new TimeSlot(
 				utcDate.getUTCFullYear().toString() +
-				&apos;-S&apos; + (1 + Math.floor(utcDate.getUTCMonth() / 6)).toString()
+				'-S' + (1 + Math.floor(utcDate.getUTCMonth() / 6)).toString()
 			)
 
-		else if (periodicity === &apos;year&apos;)
+		else if (periodicity === 'year')
 			return new TimeSlot(utcDate.getUTCFullYear().toString());
 
 		else
-			throw new Error(&quot;Invalid periodicity&quot;);
+			throw new Error("Invalid periodicity");
 	}
 
 	/**
 	 * Get the date from which we should count weeks to compute the epidemiological week number.
-	 * 
+	 *
 	 * @private
 	 * @todo
 	 * This function is incredibly verbose for what it does.
 	 * Probably a single divmod could give the same result but debugging was nightmarish.
-	 * 
+	 *
 	 * @param  {number} year
 	 * @param  {string} periodicity
 	 * @return {Date}
@@ -121,7 +99,7 @@ export default class TimeSlot {
 		var firstDay = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)).getUTCDay();
 		var epoch = null;
 
-		if (periodicity === &apos;week_sun&apos;) {
+		if (periodicity === 'week_sun') {
 			if (firstDay === SUNDAY)
 				// Lucky us, first day of year is Sunday
 				epoch = Date.UTC(year, 0, 1, 0, 0, 0, 0);
@@ -135,7 +113,7 @@ export default class TimeSlot {
 				// 3 days in december, 4 in january
 				epoch = Date.UTC(year - 1, 11, 29, 0, 0, 0, 0);
 			else if (firstDay === THURSDAY)
-				// we can&apos;t have 4 days in december, so the epoch is the 4th of january (the first sunday of the year)
+				// we can't have 4 days in december, so the epoch is the 4th of january (the first sunday of the year)
 				epoch = Date.UTC(year, 0, 4, 0, 0, 0, 0);
 			else if (firstDay === FRIDAY)
 				// same as before: first sunday of the year
@@ -144,7 +122,7 @@ export default class TimeSlot {
 				// same as before: first sunday of the year
 				epoch = Date.UTC(year, 0, 2, 0, 0, 0, 0);
 		}
-		else if (periodicity === &apos;week_sat&apos;) {
+		else if (periodicity === 'week_sat') {
 			if (firstDay === SATURDAY)
 				// Lucky us, first day of year is Saturday
 				epoch = Date.UTC(year, 0, 1, 0, 0, 0, 0);
@@ -158,7 +136,7 @@ export default class TimeSlot {
 				// 3 days in december, 4 in january
 				epoch = Date.UTC(year - 1, 11, 29, 0, 0, 0, 0);
 			else if (firstDay === WEDNESDAY)
-				// we can&apos;t have 4 days in december, so the epoch is the 4th of january (the first saturday of the year)
+				// we can't have 4 days in december, so the epoch is the 4th of january (the first saturday of the year)
 				epoch = Date.UTC(year, 0, 4, 0, 0, 0, 0);
 			else if (firstDay === THURSDAY)
 				// same as before: first saturday of the year
@@ -167,7 +145,7 @@ export default class TimeSlot {
 				// same as before: first saturday of the year
 				epoch = Date.UTC(year, 0, 2, 0, 0, 0, 0);
 		}
-		else if (periodicity === &apos;week_mon&apos;) {
+		else if (periodicity === 'week_mon') {
 			if (firstDay === MONDAY)
 				// Lucky us, first day of year is Sunday
 				epoch = Date.UTC(year, 0, 1, 0, 0, 0, 0);
@@ -181,7 +159,7 @@ export default class TimeSlot {
 				// 3 days in december, 4 in january
 				epoch = Date.UTC(year - 1, 11, 29, 0, 0, 0, 0);
 			else if (firstDay === FRIDAY)
-				// we can&apos;t have 4 days in december, so the epoch is the 4th of january (the first monday of the year)
+				// we can't have 4 days in december, so the epoch is the 4th of january (the first monday of the year)
 				epoch = Date.UTC(year, 0, 4, 0, 0, 0, 0);
 			else if (firstDay === SATURDAY)
 				// same as before: first monday of the year
@@ -191,7 +169,7 @@ export default class TimeSlot {
 				epoch = Date.UTC(year, 0, 2, 0, 0, 0, 0);
 		}
 		else
-			throw new Error(&quot;Invalid day&quot;);
+			throw new Error("Invalid day");
 
 		return new Date(epoch);
 	};
@@ -199,7 +177,7 @@ export default class TimeSlot {
 	/**
 	 * Constructs a TimeSlot instance from a time slot value.
 	 * The periodicity will be automatically computed.
-	 * 
+	 *
 	 * @param  {string} value A valid TimeSlot value (those can be found calling the `value` getter).
 	 */
 	constructor(value) {
@@ -209,7 +187,7 @@ export default class TimeSlot {
 	/**
 	 * The value of the TimeSlot.
 	 * This is a string that uniquely identifies this timeslot.
-	 * 
+	 *
 	 * For instance: `2010`, `2010-Q1`, `2010-W07-sat`.
 	 * @type {string}
 	 */
@@ -227,28 +205,37 @@ export default class TimeSlot {
 	get periodicity() {
 		if (!this._periodicity) {
 			if (this.value.match(/^\d{4}$/))
-				this._periodicity = &apos;year&apos;
-			
+				this._periodicity = 'year';
+
 			else if (this.value.match(/^\d{4}\-S\d$/))
-				this._periodicity = &apos;semester&apos;;
+				this._periodicity = 'semester';
 
 			else if (this.value.match(/^\d{4}\-Q\d$/))
-				this._periodicity = &apos;quarter&apos;
-			
+				this._periodicity = 'quarter';
+
 			else if (this.value.match(/^\d{4}\-\d{2}$/))
-				this._periodicity = &apos;month&apos;
-			
+				this._periodicity = 'month';
+
 			else if (this.value.match(/^\d{4}\-W\d{2}-sat$/))
-				this._periodicity = &apos;week_sat&apos;
-			
+				this._periodicity = 'week_sat';
+
 			else if (this.value.match(/^\d{4}\-W\d{2}-sun$/))
-				this._periodicity = &apos;week_sun&apos;
-			
+				this._periodicity = 'week_sun';
+
 			else if (this.value.match(/^\d{4}\-W\d{2}-mon$/))
-				this._periodicity = &apos;week_mon&apos;
-			
+				this._periodicity = 'week_mon';
+
+			else if (this.value.match(/^\d{4}\-\d{2}\-W\d{1}-sat$/))
+				this._periodicity = 'month_week_sat';
+
+			else if (this.value.match(/^\d{4}\-\d{2}\-W\d{1}-sun$/))
+				this._periodicity = 'month_week_sun';
+
+			else if (this.value.match(/^\d{4}\-\d{2}\-W\d{1}-mon$/))
+				this._periodicity = 'month_week_mon';
+
 			else if (this.value.match(/^\d{4}\-\d{2}\-\d{2}$/))
-				this._periodicity = &apos;day&apos;
+				this._periodicity = 'day';
 		}
 
 		return this._periodicity;
@@ -256,110 +243,162 @@ export default class TimeSlot {
 
 	/**
 	 * The date where this instance of TimeSlot begins.
-	 * 
+	 *
 	 * @type {Date}
 	 * @example
-	 * var t = new TimeSlot(&apos;2012-01&apos;);
+	 * var t = new TimeSlot('2012-01');
 	 * t.firstDate.toUTCString(); // 2012-01-01T00:00:00Z
 	 */
 	get firstDate() {
-		if (this.periodicity === &apos;day&apos;)
-			return new Date(this.value + &apos;T00:00:00Z&apos;);
+		if (this.periodicity === 'day')
+			return new Date(this.value + 'T00:00:00Z');
 
-		else if (this.periodicity === &apos;week_sat&apos; || this.periodicity === &apos;week_sun&apos; || this.periodicity === &apos;week_mon&apos;)
+		else if (this.periodicity === 'month_week_sat' || this.periodicity === 'month_week_sun' || this.periodicity === 'month_week_mon') {
+			var weekNumber = 1 * this.value.substr(9, 1);
+
+			var firstDayOfMonth = new Date(this.value.substring(0, 7) + '-01T00:00:00Z').getUTCDay();
+			if (weekNumber === 1)
+				return new Date(Date.UTC(this.value.substring(0, 4), this.value.substring(5, 7) - 1, 1));
+
+			else {
+				var firstWeekLength;
+				if (this.periodicity === 'month_week_sat')
+					firstWeekLength = 7 - ((firstDayOfMonth + 1) % 7);
+				else if (this.periodicity === 'month_week_sun')
+					firstWeekLength = 7 - firstDayOfMonth; // 1 if month start on saturday, 2 if friday, 7 if sunday
+				else
+					firstWeekLength = 7 - ((firstDayOfMonth - 1 + 7) % 7);
+
+				return new Date(Date.UTC(
+					this.value.substring(0, 4),
+					this.value.substring(5, 7) - 1,
+					1 + firstWeekLength + (weekNumber - 2) * 7
+				));
+			}
+		}
+
+		else if (this.periodicity === 'week_sat' || this.periodicity === 'week_sun' || this.periodicity === 'week_mon')
 			return new Date(
-				TimeSlot._getEpidemiologicWeekEpoch(this.value.substring(0, 4), this.periodicity).getTime() + 
+				TimeSlot._getEpidemiologicWeekEpoch(this.value.substring(0, 4), this.periodicity).getTime() +
 				(this.value.substring(6, 8) - 1) * 7 * 24 * 60 * 60 * 1000 // week numbering starts with 1
 			);
 
-		else if (this.periodicity === &apos;month&apos;)
-			return new Date(this.value + &apos;-01T00:00:00Z&apos;);
+		else if (this.periodicity === 'month')
+			return new Date(this.value + '-01T00:00:00Z');
 
-		else if (this.periodicity === &apos;quarter&apos;) {
+		else if (this.periodicity === 'quarter') {
 			var month = (this.value.substring(6, 7) - 1) * 3 + 1;
-			if (month &lt; 10)
-				month = &apos;0&apos; + month;
+			if (month < 10)
+				month = '0' + month;
 
-			return new Date(this.value.substring(0, 5) + month + &apos;-01T00:00:00Z&apos;);
+			return new Date(this.value.substring(0, 5) + month + '-01T00:00:00Z');
 		}
-		else if (this.periodicity === &apos;semester&apos;) {
+		else if (this.periodicity === 'semester') {
 			var month2 = (this.value.substring(6, 7) - 1) * 6 + 1;
-			if (month2 &lt; 10)
-				month2 = &apos;0&apos; + month2;
+			if (month2 < 10)
+				month2 = '0' + month2;
 
-			return new Date(this.value.substring(0, 5) + month2 + &apos;-01T00:00:00Z&apos;);
+			return new Date(this.value.substring(0, 5) + month2 + '-01T00:00:00Z');
 		}
-		else if (this.periodicity === &apos;year&apos;)
-			return new Date(this.value + &apos;-01-01T00:00:00Z&apos;);
+		else if (this.periodicity === 'year')
+			return new Date(this.value + '-01-01T00:00:00Z');
 	}
 
 	/**
 	 * The date where this instance of TimeSlot ends.
-	 * 
+	 *
 	 * @type {Date}
 	 * @example
-	 * var t = new TimeSlot(&apos;2012-01&apos;);
+	 * var t = new TimeSlot('2012-01');
 	 * t.firstDate.toUTCString(); // 2012-01-31T00:00:00Z
 	 */
 	get lastDate() {
-		if (this.periodicity === &apos;day&apos;)
+		if (this.periodicity === 'day')
 			// last day is current day
 			return this.firstDate;
 
-		else if (this.periodicity === &apos;week_sat&apos; || this.periodicity === &apos;week_sun&apos; || this.periodicity === &apos;week_mon&apos;) {
+		else if (this.periodicity === 'month_week_sat' || this.periodicity === 'month_week_sun' || this.periodicity === 'month_week_mon') {
+			var weekNumber = this.value.substr(9, 1);
+
+			var firstDayOfMonth = new Date(this.value.substring(0, 7) + '-01T00:00:00Z').getUTCDay();
+			var firstWeekLength;
+			if (this.periodicity === 'month_week_sat')
+				firstWeekLength = 7 - ((firstDayOfMonth + 1) % 7);
+			else if (this.periodicity === 'month_week_sun')
+				firstWeekLength = 7 - firstDayOfMonth; // 1 if month start on saturday, 2 if friday, 7 if sunday
+			else
+				firstWeekLength = 7 - ((firstDayOfMonth - 1 + 7) % 7);
+
+			if (weekNumber === 1)
+				return new Date(Date.UTC(this.value.substring(0, 4), this.value.substring(5, 7) - 1, firstWeekLength));
+			else {
+				var res = new Date(Date.UTC(
+					this.value.substring(0, 4),
+					this.value.substring(5, 7) - 1,
+					1 + 6 + firstWeekLength + (weekNumber - 2) * 7
+				));
+
+				if (res.getUTCMonth() !== this.value.substring(5, 7) - 1)
+					res.setUTCDate(0); // go to last day of previous month.
+
+				return res;
+			}
+		}
+
+		else if (this.periodicity === 'week_sat' || this.periodicity === 'week_sun' || this.periodicity === 'week_mon') {
 			// last day is last day of the week according to epoch
 			return new Date(this.firstDate.getTime() + 6 * 24 * 60 * 60 * 1000);
 		}
 
-		else if (this.periodicity === &apos;month&apos;) {
+		else if (this.periodicity === 'month') {
 			var monthDate = this.firstDate;
 			monthDate.setUTCMonth(monthDate.getUTCMonth() + 1); // add one month.
 			monthDate.setUTCDate(0); // go to last day of previous month.
 			return monthDate;
 		}
 
-		else if (this.periodicity === &apos;quarter&apos;) {
+		else if (this.periodicity === 'quarter') {
 			var quarterDate = this.firstDate;
 			quarterDate.setUTCMonth(quarterDate.getUTCMonth() + 3); // add three month.
 			quarterDate.setUTCDate(0); // go to last day of previous month.
 			return quarterDate;
 		}
 
-		else if (this.periodicity === &apos;semester&apos;) {
+		else if (this.periodicity === 'semester') {
 			var semesterDate = this.firstDate;
 			semesterDate.setUTCMonth(semesterDate.getUTCMonth() + 6); // add six month.
 			semesterDate.setUTCDate(0); // go to last day of previous month.
 			return semesterDate;
 		}
 
-		else if (this.periodicity === &apos;year&apos;)
-			return new Date(this.value + &apos;-12-31T00:00:00Z&apos;);
+		else if (this.periodicity === 'year')
+			return new Date(this.value + '-12-31T00:00:00Z');
 	}
 
 	/**
 	 * Creates a TimeSlot instance with a longer periodicity that contains this one.
-	 * 
+	 *
 	 * @param  {string} newPeriodicity The desired periodicity
 	 * @return {TimeSlot} A new TimeSlot instance.
-	 * 
+	 *
 	 * @example
-	 * let t  = new TimeSlot(&apos;2010-07&apos;),
-	 *     t2 = t.toUpperSlot(&apos;quarter&apos;);
+	 * let t  = new TimeSlot('2010-07'),
+	 *     t2 = t.toUpperSlot('quarter');
 	 *
 	 * t2.value; // 2010-Q3
 	 */
 	toUpperSlot(newPeriodicity) {
 		// Raise when we make invalid conversions
 		if (TimeSlot._upperSlots[this.periodicity].indexOf(newPeriodicity) === -1)
-			throw new Error(&apos;Cannot convert &apos; + this.periodicity + &apos; to &apos; + newPeriodicity);
+			throw new Error('Cannot convert ' + this.periodicity + ' to ' + newPeriodicity);
 
 		// For days, months, quarters, semesters, we can assume that getting the slot from any date works
 		var upperSlotDate = this.firstDate;
-		
-		// if it&apos;s a week, we need to be a bit more cautious.
+
+		// if it's a week, we need to be a bit more cautious.
 		// the month/quarter/year is not that of the first or last day, but that of the middle day of the week
 		// (which depend on the kind of week, but adding 3 days to the beginning gives the good date).
-		if (this.periodicity === &apos;week_sat&apos; || this.periodicity === &apos;week_sun&apos; || this.periodicity === &apos;week_mon&apos;)
+		if (this.periodicity === 'week_sat' || this.periodicity === 'week_sun' || this.periodicity === 'week_mon')
 			upperSlotDate = new Date(upperSlotDate.getTime() + 3 * 24 * 60 * 60 * 1000);
 
 		return TimeSlot.fromDate(upperSlotDate, newPeriodicity);
@@ -367,13 +406,13 @@ export default class TimeSlot {
 
 	/**
 	 * Creates a TimeSlot instance of the same periodicity than the current once, but which follows it
-	 * 
+	 *
 	 * @return {TimeSlot}
 	 * @example
-	 * var ts = new TimeSlot(&apos;2010&apos;);
+	 * var ts = new TimeSlot('2010');
 	 * ts.next().value // 2011
 	 *
-	 * var ts2 = new TimeSlot(&apos;2010-W52-sat&apos;);
+	 * var ts2 = new TimeSlot('2010-W52-sat');
 	 * ts.next().value // 2011-W01-sat
 	 */
 	next() {
@@ -390,28 +429,17 @@ export default class TimeSlot {
  * @type {Object}
  */
 TimeSlot._upperSlots = {
-	&apos;day&apos;: [&apos;week_sat&apos;, &apos;week_sun&apos;, &apos;week_mon&apos;, &apos;month&apos;, &apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
-	&apos;week_sat&apos;: [&apos;month&apos;, &apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
-	&apos;week_sun&apos;: [&apos;month&apos;, &apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
-	&apos;week_mon&apos;: [&apos;month&apos;, &apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
-	&apos;month&apos;: [&apos;quarter&apos;, &apos;semester&apos;, &apos;year&apos;],
-	&apos;quarter&apos;: [&apos;semester&apos;, &apos;year&apos;],
-	&apos;semester&apos;: [&apos;year&apos;],
-	&apos;year&apos;: []
-};</code></pre>
+	'day': ['month_week_sat', 'month_week_sun', 'month_week_mon', 'week_sat', 'week_sun', 'week_mon', 'month', 'quarter', 'semester', 'year'],
+	'month_week_sat': ['week_sat', 'month', 'quarter', 'semester', 'year'],
+	'month_week_sun': ['week_sun', 'month', 'quarter', 'semester', 'year'],
+	'month_week_mon': ['week_mon', 'month', 'quarter', 'semester', 'year'],
+	'week_sat': ['month', 'quarter', 'semester', 'year'],
+	'week_sun': ['month', 'quarter', 'semester', 'year'],
+	'week_mon': ['month', 'quarter', 'semester', 'year'],
+	'month': ['quarter', 'semester', 'year'],
+	'quarter': ['semester', 'year'],
+	'semester': ['year'],
+	'year': []
+};
 
-</div>
-
-<footer class="footer">
-  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
-</footer>
-
-<script src="script/search_index.js"></script>
-<script src="script/search.js"></script>
-<script src="script/pretty-print.js"></script>
-<script src="script/inherited-summary.js"></script>
-<script src="script/test-summary.js"></script>
-<script src="script/inner-link.js"></script>
-<script src="script/patch-for-local.js"></script>
-</body>
-</html>
+module.exports = TimeSlot;
