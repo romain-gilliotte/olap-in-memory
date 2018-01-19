@@ -7,12 +7,30 @@ export default class Cube {
 		return this.dimensions.reduce((m, d) => m * d.numItems, 1);
 	}
 
-	constructor(dimensions) {
-		// FIXME check that dimensions are valid.
+	get dimensionIds() {
+		return this.dimensions.map(d => d.id);
+	}
 
+	get storedMeasureIds() {
+		return Object.keys(this.storedMeasures);
+	}
+
+	get computedMeasureIds() {
+		return Object.keys(this.computedMeasures);
+	}
+
+	constructor(dimensions) {
 		this.dimensions = dimensions;
 		this.storedMeasures = {};
 		this.computedMeasures = {};
+	}
+
+	getDimension(dimensionId) {
+		return this.dimensions.find(d => d.id === dimensionId);
+	}
+
+	getDimensionIndex(dimensionId) {
+		return this.dimensions.findIndex(d => d.id === dimensionId);
 	}
 
 	createComputedMeasure(measureId, formula) {
@@ -53,24 +71,21 @@ export default class Cube {
 			return Array.from(this.storedMeasures[measureId]);
 
 		else if (this.computedMeasures[measureId] !== undefined) {
-			// Cache prereqs.
-			const
-				storedMeasuresIds = Object.keys(this.storedMeasures),
-				numStoredMeasures = storedMeasuresIds.length,
-				numValues = this.storeSize;
-
 			// Create function to compute
 			const fn = new Function(
-				...storedMeasuresIds,
+				...this.storedMeasureIds,
 				'return ' + this.computedMeasures[measureId]
 			);
 
 			// Fill result array
-			const result = new Array(numValues);
-			const params = new Array(numStoredMeasures);
-			for (let i = 0; i < numValues; ++i) {
-				for (let j = 0; j < numStoredMeasures; ++j)
-					params[j] = this.storedMeasures[storedMeasuresIds[j]][i];
+			const result = new Array(this.storeSize);
+			const params = new Array(this.storedMeasureIds.length);
+			for (let i = 0; i < this.storeSize; ++i) {
+				let j = 0;
+				for (let storedMeasureId in this.storedMeasures) {
+					params[j] = this.storedMeasures[storedMeasureId][i];
+					j++;
+				}
 
 				result[i] = fn(...params);
 			}
@@ -83,16 +98,15 @@ export default class Cube {
 	}
 
 	setFlatArray(measureId, value) {
-		const length = this.storeSize;
 		const store = this.storedMeasures[measureId];
 
 		if (store === undefined)
 			throw new Error('setFlatArray can only be called on stored measures');
 
-		if (length !== value.length)
+		if (this.storeSize !== value.length)
 			throw new Error('value length is invalid');
 
-		for (let i = 0; i < length; ++i)
+		for (let i = 0; i < this.storeSize; ++i)
 			store[i] = value[i];
 	}
 
@@ -159,7 +173,59 @@ export default class Cube {
 	}
 
 	setNestedObject(measureId, value) {
+		value = [value];
 
+		for (let i = 0; i < this.dimensions.length; ++i) {
+			let newValue = new Array(value.length * this.dimensions[i].numItems);
+
+			for (let j = 0; j < newValue.length; ++j) {
+				let chunkIndex = Math.floor(j / this.dimensions[i].numItems),
+					dimItemId = this.dimensions[i].items[j % this.dimensions[i].numItems].id;
+
+				newValue[j] = value[chunkIndex][dimItemId];
+			}
+
+			value = newValue;
+		}
+
+		this.setFlatArray(measureId, value);
+	}
+
+	reorderDimensions(dimensionIds) {
+		// FIXME the variable naming in this function is very unclear
+
+		const
+			numDimensions = this.dimensions.length,
+			dimensionsIndexes = dimensionIds.map(dimId => this.dimensionIds.indexOf(dimId)),
+			dimensions = dimensionsIndexes.map(dimIndex => this.dimensions[dimIndex]),
+			newCube = new Cube(dimensions);
+
+		Object.assign(newCube.computedMeasures, this.computedMeasures);
+
+		for (let storedMeasureId in this.storedMeasures)
+			newCube.createStoredMeasure(storedMeasureId);
+
+		const newDimensionIndex = new Array(numDimensions);
+		for (let newIndex = 0; newIndex < this.storeSize; ++newIndex) {
+			// Decompose new index into dimensions indexes
+			let newIndexCopy = newIndex;
+			for (let i = numDimensions - 1; i >= 0; --i) {
+				newDimensionIndex[i] = newIndexCopy % newCube.dimensions[i].numItems;
+				newIndexCopy = Math.floor(newIndexCopy / newCube.dimensions[i].numItems);
+			}
+
+			// Compute what the old index was
+			let oldIndex = 0;
+			for (let i = 0; i < numDimensions; ++i) {
+				let oldDimIndex = dimensionsIndexes[i];
+				oldIndex = oldIndex * this.dimensions[i].numItems + newDimensionIndex[oldDimIndex];
+			}
+
+			for (let storedMeasureId in this.storedMeasures)
+				newCube.storedMeasures[storedMeasureId][newIndex] = this.storedMeasures[storedMeasureId][oldIndex];
+		}
+
+		return newCube;
 	}
 
 	slice(dimensionId, value) {
@@ -257,7 +323,9 @@ export default class Cube {
 
 	removeDimension(dimensionId, opByMeasure={}) {
 		// Retrieve dimension that we want to change
-		let dimIndex = this.dimensions.findIndex(d => d.id === dimensionId || d.hasGroup(dimensionId));
+		let dimensionToRemove = this.getDimension(dimensionId),
+			dimIndex = this.dimensions.indexOf(dimensionToRemove);
+
 		if (dimIndex === -1)
 			throw new Error('No such dimension or group.');
 
@@ -286,7 +354,7 @@ export default class Cube {
 					for (let j = 0; j < this.dimensions.length; ++j) {
 						let offset = do {
 							if (j < dimIndex) newDimensionIndex[j];
-							else if (j == dimIndex) method == 'first' ? 0 : this.dimensions[dimIndex].numItems - 1;
+							else if (j == dimIndex) method == 'first' ? 0 : dimensionToRemove.numItems - 1;
 							else newDimensionIndex[j - 1];
 						};
 
@@ -302,7 +370,7 @@ export default class Cube {
 						else 0
 					};
 
-					for (let i = 0; i < this.dimensions[dimIndex].numItems; ++i) {
+					for (let i = 0; i < dimensionToRemove.numItems; ++i) {
 						let oldIndex = 0;
 						for (let j = 0; j < this.dimensions.length; ++j) {
 							let offset = do {
@@ -322,7 +390,7 @@ export default class Cube {
 					}
 
 					if (method == 'average')
-						value /= this.dimensions[dimIndex].numItems;
+						value /= dimensionToRemove.numItems;
 				}
 				else
 					throw new Error('invalid method');
@@ -344,17 +412,6 @@ export default class Cube {
 
 	}
 
-	/**
-	 * Create a new cube that contains
-	 * - the union of the measures
-	 * - the intersection of the dimensions
-	 * - the intersection of the dimensions items
-	 *
-	 * This is useful when creating computed measures.
-	 */
-	compose(otherCube, opByMeasureDimension={default:{}}) {
-
-	}
 
 	/**
 	 * Create a new cube that contains
@@ -368,7 +425,51 @@ export default class Cube {
 
 	}
 
+	/**
+	 * Create a new cube that contains
+	 * - the union of the measures
+	 * - the intersection of the dimensions
+	 * - the intersection of the dimensions items
+	 *
+	 * This is useful when we want to create computed measures from different sources.
+	 * For instance, composing a cube with sells by day, and number of open hour per week,
+	 * to compute average sell by opening hour per week.
+	 */
+	compose(otherCube, opByMeasureDimension={default:{}}) {
+		// Remove extra dimensions from both cubes.
+		let dimIdsToRemove;
+
+		let cube1 = this;
+		dimIdsToRemove = this.dimensionIds.filter(id => !otherCube.dimensionIds.has(id));
+		for (let dimensionId of dimIdsToRemove)
+			cube1 = cube1.removeDimension(
+				dimensionId,
+				opByMeasureDimension[dimensionId] || opByMeasureDimension['default']
+			);
+
+		let cube2 = otherCube;
+		dimIdsToRemove = otherCube.dimensionIds.filter(id => !this.dimensionIds.has(id));
+		for (let dimensionId of dimIdsToRemove)
+			cube2 = cube2.removeDimension(
+				dimensionId,
+				opByMeasureDimension[dimensionId] || opByMeasureDimension['default']
+			);
+
+		// Create new dimension list for our cube
+		let newCube = new Cube(cube1.dimensions);
+
+		// Copy stored measures from first cube to the other.
+		for (let measureId in cube1.storedMeasures) {
+			newCube.createStoredMeasure(measureId);
+			newCube.setFlatArray(measureId, cube1.storedMeasures[measureId]);
+		}
+
+		// Copy stored measures from second cube to the other
+		cube2 = cube2.reorder(newCube.dimensionIds);
+		for (let measureId in cube2.storedMeasures) {
+			newCube.createStoredMeasure(measureId);
+			newCube.setFlatArray(measureId, cube2.storedMeasures[measureId]);
+		}
+	}
+
 }
-
-
-
