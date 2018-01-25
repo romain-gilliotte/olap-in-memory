@@ -14,55 +14,52 @@ describe("filtering cubes", function() {
 	describe("slice", function() {
 
 		it('should remove cities', function() {
-			const parisCube = cube.slice('city', 'paris');
+			const parisCube = cube.slice('location', 'city', 'paris');
 
 			assert.deepEqual(parisCube.getNestedArray('antennas'), [1, 2]);
 			assert.equal(parisCube.dimensions.length, 1);
-			assert.equal(parisCube.dimensions[0].id, 'season');
+			assert.equal(parisCube.dimensions[0].id, 'period');
 		});
 
 		it('should remove seasons', function() {
-			const winterCube = cube.slice('season', 'winter');
+			const winterCube = cube.slice('period', 'season', 'winter');
 
 			assert.deepEqual(winterCube.getNestedArray('antennas'), [2, 8, 32]);
 			assert.equal(winterCube.dimensions.length, 1);
-			assert.equal(winterCube.dimensions[0].id, 'city');
+			assert.equal(winterCube.dimensions[0].id, 'location');
 		});
 
 		it('should remove both cities and seasons', function() {
-			const tolWinCube = cube.slice('season', 'winter').slice('city', 'toledo');
+			const tolWinCube = cube.slice('period', 'season', 'winter').slice('location', 'city', 'toledo');
 
 			assert.deepEqual(tolWinCube.getNestedArray('antennas'), 8);
 			assert.equal(tolWinCube.dimensions.length, 0);
 		});
 
-		it('should raise an error if a group is specified', function() {
-			assert.throws(() => cube.slice('continent', 'europe'));
-		});
 	});
 
 	describe("dice", function() {
 
 		it('should dice on cities', function() {
-			const parTolCube = cube.dice('city', ['paris', 'toledo']);
+			const parTolCube = cube.dice('location', 'city', ['paris', 'toledo']);
 
 			assert.deepEqual(parTolCube.getNestedArray('antennas'), [[1, 2], [4, 8]]);
 		});
 
 		it('should dice on cities conserving order', function() {
-			const parTolCube = cube.dice('city', ['toledo', 'paris']);
+			const parTolCube = cube.dice('location', 'city', ['toledo', 'paris']);
 
 			assert.deepEqual(parTolCube.getNestedArray('antennas'), [[1, 2], [4, 8]]);
 		});
 
 		it('should dice on continents', function() {
-			const parTolCube = cube.dice('continent', ['europe']);
+			const parTolCube = cube.dice('location', 'continent', ['europe']);
 
 			assert.deepEqual(parTolCube.getNestedArray('antennas'), [[1, 2], [4, 8]]);
 		});
 
 		it('should filter the other dimension', function() {
-			const winterCube = cube.dice('season', ['winter']);
+			const winterCube = cube.dice('period', 'season', ['winter']);
 
 			assert.deepEqual(winterCube.getNestedArray('antennas'), [[2], [8], [32]]);
 		});

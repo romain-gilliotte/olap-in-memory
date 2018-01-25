@@ -1,5 +1,5 @@
 
-import {Dimension} from './dimension';
+import Dimension from './dimension';
 
 export default class Cube {
 
@@ -160,8 +160,8 @@ export default class Cube {
 			for (let j = 0; j < newValues.length; ++j) {
 				newValues[j] = {};
 				let k = 0;
-				for (let dimensionItem of this.dimensions[i].items) {
-					newValues[j][dimensionItem.id] = values[j * chunkSize + k];
+				for (let item of this.dimensions[i].getItems()) {
+					newValues[j][item] = values[j * chunkSize + k];
 					k++;
 				}
 			}
@@ -176,13 +176,14 @@ export default class Cube {
 		value = [value];
 
 		for (let i = 0; i < this.dimensions.length; ++i) {
-			let newValue = new Array(value.length * this.dimensions[i].numItems);
+			let dimItems = this.dimensions[i].getItems(),
+				newValue = new Array(value.length * this.dimensions[i].numItems);
 
 			for (let j = 0; j < newValue.length; ++j) {
-				let chunkIndex = Math.floor(j / this.dimensions[i].numItems),
-					dimItemId = this.dimensions[i].items[j % this.dimensions[i].numItems].id;
+				let chunkIndex = Math.floor(j / dimItems.length),
+					dimItem = dimItems[j % dimItems.length];
 
-				newValue[j] = value[chunkIndex][dimItemId];
+				newValue[j] = value[chunkIndex][dimItem];
 			}
 
 			value = newValue;
@@ -228,53 +229,35 @@ export default class Cube {
 		return newCube;
 	}
 
-	slice(dimensionId, value) {
-		let dimIndex = this.dimensions.findIndex(d => d.id === dimensionId);
+	slice(dimensionId, attribute, value) {
+		let dimIndex = this.getDimensionIndex(dimensionId);
 		if (dimIndex === -1)
 			throw new Error('No such dimension.');
 
-		const newCube = this.dice(dimensionId, [value]); // dice only one value
+		if (this.dimensions[dimIndex].rootAttribute !== attribute)
+			throw new Error('Slice only allowed on root attribute.');
+
+		const newCube = this.dice(dimensionId, attribute, [value]); // dice only one value
 		newCube.dimensions.splice(dimIndex, 1); // remove extra dimension
 		return newCube;
 	}
 
-	dice(dimensionId, values, reorder=false) {
+	dice(dimensionId, attribute, values, reorder=false) {
 		// Retrieve dimension that we want to change
-		let dimIndex = this.dimensions.findIndex(d => d.id === dimensionId || d.hasGroup(dimensionId));
+		let dimIndex = this.getDimensionIndex(dimensionId);
 		if (dimIndex === -1)
-			throw new Error('No such dimension or group.');
+			throw new Error('No such dimension.');
 
-		// Compute index mapping for this dimension so that: oldIndex = itemIndexes[newIndex]
-		let itemIndexes;
-		if (this.dimensions[dimIndex].id === dimensionId) {
-			// we found the dimension directly
-			if (reorder)
-				itemIndexes = values.map(value => {
-					let itemIndex = this.dimensions[dimIndex].items.findIndex(i => i.id === value);
-					if (itemIndex === -1)
-						throw new Error('No such item');
-					return itemIndex;
-				});
-			else
-				itemIndexes = this.dimensions[dimIndex].items
-					.map((item, index) => values.indexOf(item.id) !== -1 ? index : null)
-					.filter(i => i !== null);
-		}
-		else {
-			// Dice by group value
-			if (reorder)
-				throw new Error('Reordering is not allowed when using groups'); // because it does not make sense.
-			else
-				itemIndexes = this.dimensions[dimIndex].items
-					.map((item, index) => values.indexOf(item.getParentItem(dimensionId).id) !== -1 ? index : null)
-					.filter(i => i !== null);
-		}
+		let oldDimension = this.dimensions[dimIndex],
+			newDimension = oldDimension.dice(attribute, values, reorder);
 
 		const newDimensions = this.dimensions.slice();
-		newDimensions[dimIndex] = new Dimension(
-			newDimensions[dimIndex].id,
-			itemIndexes.map(i => newDimensions[dimIndex].items[i])
-		);
+		newDimensions[dimIndex] = newDimension;
+
+		let itemIndexes = newDimension
+			.getItems()
+			.map(item => oldDimension.getItems().indexOf(item))
+			.filter(index => index !== -1);
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
@@ -312,6 +295,25 @@ export default class Cube {
 		}
 
 		return newCube;
+	}
+
+	keepDimensions(dimensionIds, opByMeasureDimension={'default': {}}) {
+		return this.removeDimensions(
+			this.dimensionIds.filter(dimId => dimensionIds.indexOf(dimId) === -1),
+			opByMeasureDimension
+		);
+	}
+
+	removeDimensions(dimensionIds, opByMeasureDimension={'default': {}}) {
+		let cube = this;
+
+		for (let dimensionId in dimensionIds)
+			cube = cube.removeDimension(
+				dimensionId,
+				opByMeasureDimension[dimensionId] || opByMeasureDimension['default']
+			);
+
+		return cube;
 	}
 
 	addDimension(dimension) {
@@ -408,10 +410,75 @@ export default class Cube {
 	 * Aggregate a dimension by group values.
 	 * ie: minutes by hour, or cities by region.
 	 */
-	drillUp(groupId, opByMeasureDimension={}) {
+	drillUp(dimensionId, attribute, opByMeasure={}) {
+		const STRANGE_VALUE = 28763;
 
+		const
+			dimIndex = this.getDimensionIndex(dimensionId),
+			oldDimension = this.dimensions[dimIndex],
+			newDimension = oldDimension.drillUp(attribute);
+
+		const newDimensions = this.dimensions.slice();
+		newDimensions.splice(dimIndex, 1, newDimension);
+
+		const newCube = new Cube(newDimensions);
+		Object.assign(newCube.computedMeasures, this.computedMeasures);
+
+		let oldDimensionIndex = new Array(this.dimensions.length);
+
+		for (let storedMeasureId in this.storedMeasures) {
+			let oldStore = this.storedMeasures[storedMeasureId],
+				newStore = new oldStore.constructor(newCube.storeSize),
+				contributions = new Array(newCube.storeSize);
+
+			newStore.fill(STRANGE_VALUE);
+			contributions.fill(0);
+
+			let method = opByMeasure[storedMeasureId] || opByMeasure.default || 'sum';
+
+			for (let oldIndex = 0; oldIndex < oldStore.length; ++oldIndex) {
+				// Decompose old index into dimensions indexes
+				let oldIndexCopy = oldIndex;
+				for (let i = oldDimensionIndex.length - 1; i >= 0; --i) {
+					oldDimensionIndex[i] = oldIndexCopy % this.dimensions[i].numItems;
+					oldIndexCopy = Math.floor(oldIndexCopy / this.dimensions[i].numItems);
+				}
+
+				let newIndex = 0;
+				for (let j = 0; j < newCube.dimensions.length; ++j) {
+					let offset = do {
+						if (j == dimIndex) this.dimensions[j].getChildIndex(attribute, oldDimensionIndex[j])
+						else oldDimensionIndex[j];
+					};
+
+					newIndex = newIndex * newCube.dimensions[j].numItems + offset;
+				}
+
+				if (newStore[newIndex] == STRANGE_VALUE)
+					newStore[newIndex] = oldStore[oldIndex];
+				else {
+					if (method == 'last')
+						newStore[newIndex] = oldStore[oldIndex];
+					else if (method == 'highest')
+						newStore[newIndex] = newStore[newIndex] < oldStore[oldIndex] ? oldStore[oldIndex] : newStore[newIndex];
+					else if (method == 'lowest')
+						newStore[newIndex] = newStore[newIndex] < oldStore[oldIndex] ? newStore[newIndex] : oldStore[oldIndex];
+					else
+						newStore[newIndex] += oldStore[oldIndex];
+				}
+
+				contributions[newIndex] += 1;
+			}
+
+			if (method === 'average')
+				for (let newIndex = 0; newIndex < newStore.length; ++newIndex)
+					newStore[newIndex] /= contributions[newIndex];
+
+			newCube.storedMeasures[storedMeasureId] = newStore;
+		}
+
+		return newCube;
 	}
-
 
 	/**
 	 * Create a new cube that contains
@@ -419,9 +486,11 @@ export default class Cube {
 	 * - the intersection of the dimensions
 	 * - the union of the dimensions items
 	 *
+	 * Cubes will drillUp if necessary so that the dimensions are compatible.
+	 *
 	 * This is useful when joining many cubes that have the same structure.
 	 */
-	merge(otherCube, opByMeasureDimension={default:{}}) {
+	merge(otherCube, defaultValue=0, opByMeasureDimension={default:{}}) {
 
 	}
 
@@ -431,45 +500,48 @@ export default class Cube {
 	 * - the intersection of the dimensions
 	 * - the intersection of the dimensions items
 	 *
+	 * Cubes will drillUp if necessary so that the dimensions are compatible.
+	 *
 	 * This is useful when we want to create computed measures from different sources.
 	 * For instance, composing a cube with sells by day, and number of open hour per week,
 	 * to compute average sell by opening hour per week.
 	 */
 	compose(otherCube, opByMeasureDimension={default:{}}) {
-		// Remove extra dimensions from both cubes.
-		let dimIdsToRemove;
+		let dimensionIds = this.dimensionIds.filter(dimId => otherCube.dimensionIds.indexOf(dimId) !== -1),
+			cube1 = this.keepDimensions(dimensionIds, opByMeasureDimension),
+			cube2 = otherCube.keepDimensions(dimensionIds, opByMeasureDimension).reorderDimensions(dimensionIds);
 
-		let cube1 = this;
-		dimIdsToRemove = this.dimensionIds.filter(id => !otherCube.dimensionIds.has(id));
-		for (let dimensionId of dimIdsToRemove)
-			cube1 = cube1.removeDimension(
-				dimensionId,
-				opByMeasureDimension[dimensionId] || opByMeasureDimension['default']
-			);
+		for (let i = 0; i < dimensionIds.length; ++i) {
+			let dimensionId = dimensionIds[i],
+				dimension1 = cube1.getDimension(dimensionId),
+				dimension2 = cube2.getDimension(dimensionId);
 
-		let cube2 = otherCube;
-		dimIdsToRemove = otherCube.dimensionIds.filter(id => !this.dimensionIds.has(id));
-		for (let dimensionId of dimIdsToRemove)
-			cube2 = cube2.removeDimension(
-				dimensionId,
-				opByMeasureDimension[dimensionId] || opByMeasureDimension['default']
-			);
+			// Drill-up one of the cubes so that their dimensions have the same rootAttribute
+			if (dimension1.rootAttribute !== dimension2.rootAttribute) {
+				if (dimension2.attributes.indexOf(dimension1.rootAttribute) !== -1)
+					cube2 = cube2.drillUp(dimensionId, dimension1.rootAttribute, opByMeasureDimension[dimensionId]);
+				else if (dimension1.attributes.indexOf(dimension2.rootAttribute) !== -1)
+					cube1 = cube1.drillUp(dimensionId, dimension2.rootAttribute, opByMeasureDimension[dimensionId]);
+				else
+					throw new Error('A dimension is not compatible: ' + dimensionId);
+			}
 
-		// Create new dimension list for our cube
+			// Update the dimensions
+			dimension1 = cube1.getDimension(dimensionId);
+			dimension2 = cube2.getDimension(dimensionId);
+
+			// Intersect them
+			let commonItems = dimension1.getItems().filter(i => dimension2.getItems().indexOf(i) !== -1);
+			cube1 = cube1.dice(dimensionId, dimension1.rootAttribute, commonItems, false);
+			cube2 = cube2.dice(dimensionId, dimension2.rootAttribute, commonItems, true);
+		}
+
+		// At this point, cube1 and cube2 should have exactly the same format, we can merge them.
 		let newCube = new Cube(cube1.dimensions);
-
-		// Copy stored measures from first cube to the other.
-		for (let measureId in cube1.storedMeasures) {
-			newCube.createStoredMeasure(measureId);
-			newCube.setFlatArray(measureId, cube1.storedMeasures[measureId]);
-		}
-
-		// Copy stored measures from second cube to the other
-		cube2 = cube2.reorder(newCube.dimensionIds);
-		for (let measureId in cube2.storedMeasures) {
-			newCube.createStoredMeasure(measureId);
-			newCube.setFlatArray(measureId, cube2.storedMeasures[measureId]);
-		}
+		Object.assign(newCube.computedMeasures, cube1.computedMeasures, cube2.computedMeasures)
+		Object.assign(newCube.storedMeasures, cube1.storedMeasures, cube2.storedMeasures)
+		return newCube;
 	}
 
 }
+

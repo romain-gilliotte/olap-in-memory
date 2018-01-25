@@ -14,13 +14,9 @@ describe("cube serialize", function() {
 	});
 
 	describe("serialization", function() {
-
-
 	});
 
 	describe("deserialization", function() {
-
-
 	});
 
 });

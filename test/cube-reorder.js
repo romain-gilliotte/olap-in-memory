@@ -15,7 +15,7 @@ describe("Reordering dimensions and items", function() {
 	describe("reorderDimensions", function() {
 
 		it('should inverse the dimensions', function() {
-			const inversed = cube.reorderDimensions(['season', 'city']);
+			const inversed = cube.reorderDimensions(['period', 'location']);
 
 			assert.deepEqual(inversed.getNestedArray('antennas'), [[1, 4, 16], [2, 8, 32]]);
 		});
@@ -25,13 +25,13 @@ describe("Reordering dimensions and items", function() {
 	describe("dice", function() {
 
 		it('should dice on cities reversed', function() {
-			const parTolCube = cube.dice('city', ['toledo', 'paris'], true);
+			const parTolCube = cube.dice('location', 'city', ['toledo', 'paris'], true);
 
 			assert.deepEqual(parTolCube.getNestedArray('antennas'), [[4, 8], [1, 2]]);
 		});
 
 		it('should not allow reordering on continents', function() {
-			assert.throws(() => cube.dice('continent', ['europe'], true));
+			assert.throws(() => cube.dice('location', 'continent', ['europe'], true));
 		});
 
 	});

@@ -11,46 +11,46 @@ describe("aggregating cubes", function() {
 		cube = createTestCube(true, true);
 	});
 
-	describe("aggregate", function() {
+	describe("removeDimension", function() {
 
 		it('should sum cities', function() {
-			const cube2 = cube.removeDimension('city');
+			const cube2 = cube.removeDimension('location');
 
 			assert.deepEqual(cube2.getNestedArray('antennas'), [21, 42]);
 		});
 
 		it('should sum seasons', function() {
-			const cube2 = cube.removeDimension('season');
+			const cube2 = cube.removeDimension('period');
 
 			assert.deepEqual(cube2.getNestedArray('antennas'), [3, 12, 48]);
 		});
 
 		it('should average cities', function() {
-			const cube2 = cube.removeDimension('city', {antennas: 'average'});
+			const cube2 = cube.removeDimension('location', {antennas: 'average'});
 
 			assert.deepEqual(cube2.getNestedArray('antennas'), [21/3, 42/3]);
 		});
 
 		it('should highest cities', function() {
-			const cube2 = cube.removeDimension('city', {antennas: 'highest'});
+			const cube2 = cube.removeDimension('location', {antennas: 'highest'});
 
 			assert.deepEqual(cube2.getNestedArray('antennas'), [16, 32]);
 		});
 
 		it('should lowest cities', function() {
-			const cube2 = cube.removeDimension('city', {antennas: 'lowest'});
+			const cube2 = cube.removeDimension('location', {antennas: 'lowest'});
 
 			assert.deepEqual(cube2.getNestedArray('antennas'), [1, 2]);
 		});
 
 		it('should first cities', function() {
-			const cube2 = cube.removeDimension('city', {antennas: 'first'});
+			const cube2 = cube.removeDimension('location', {antennas: 'first'});
 
 			assert.deepEqual(cube2.getNestedArray('antennas'), [1, 2]);
 		});
 
 		it('should last cities', function() {
-			const cube2 = cube.removeDimension('city', {antennas: 'last'});
+			const cube2 = cube.removeDimension('location', {antennas: 'last'});
 
 			assert.deepEqual(cube2.getNestedArray('antennas'), [16, 32]);
 		});
@@ -59,8 +59,8 @@ describe("aggregating cubes", function() {
 
 	describe("drillUp", function() {
 
-		it('should sum cities', function() {
-			const antennas2 = cube.drillUp('continent');
+		it('should sum cities by continent', function() {
+			const antennas2 = cube.drillUp('location', 'continent');
 
 			assert.deepEqual(
 				antennas2.getNestedArray('antennas'),

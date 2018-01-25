@@ -1,27 +1,15 @@
 
 import Cube from '../../src/cube';
-import {Dimension, StaticDimensionItem} from '../../src/dimension';
+import Dimension from '../../src/dimension';
 
 export default (createMesures=true, fill=true) => {
-	const cube = new Cube(
-		[
-			new Dimension(
-				'city',
-				[
-					new StaticDimensionItem('paris', {'continent': 'europe', 'size': 'megalopolis'}),
-					new StaticDimensionItem('toledo', {'continent': 'europe', 'size': 'town'}),
-					new StaticDimensionItem('tokyo', {'continent': 'asia', 'size': 'megalopolis'})
-				]
-			),
-			new Dimension(
-				'season',
-				[
-					new StaticDimensionItem('summer'),
-					new StaticDimensionItem('winter')
-				]
-			)
-		]
-	);
+	const period = new Dimension('period', 'season', ['summer', 'winter']);
+	const location = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
+	location.addChildAttribute('city', 'country', {'paris': 'france', 'toledo': 'spain', 'tokyo': 'japan'});
+	location.addChildAttribute('city', 'continent', {'paris': 'europe', 'toledo': 'europe', 'tokyo': 'asia'});
+	location.addChildAttribute('city', 'citySize', {'paris': 'big', 'toledo': 'small', 'tokyo': 'big'});
+
+	const cube = new Cube([location, period]);
 
 	// Create measures
 	if (createMesures) {

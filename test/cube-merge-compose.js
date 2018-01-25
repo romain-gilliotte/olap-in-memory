@@ -1,20 +1,15 @@
 import chai from "chai";
 const assert = chai.assert;
 
-import createTestCube from './helpers/create-test-cube';
+import Cube from '../src/cube';
+import Dimension from '../src/dimension';
 
 describe('merging cubes', function() {
-
-	let cube1, cube2;
-
-	beforeEach(function() {
-		cube1 = createTestCube(false, false);
-		cube2 = createTestCube(false, false);
-	});
 
 	describe('merge', function() {
 
 		it('should merge simple cubes', function() {
+
 
 		});
 
@@ -23,11 +18,26 @@ describe('merging cubes', function() {
 	describe('compose', function() {
 
 		it('should compose simple cubes', function() {
-			cube1.removeDimension('season');
-			
+			const period = new Dimension('period', 'season', ['summer', 'winter']);
+			const location = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
 
+			const cube1 = new Cube([location, period]);
+			cube1.createStoredMeasure('antennas', 0);
+			cube1.setNestedArray('antennas', [[1, 2], [4, 8], [16, 32]]);
 
+			const cube2 = new Cube([location, period]);
+			cube2.createStoredMeasure('routers', 0);
+			cube2.setNestedArray('routers', [[3, 2], [4, 9], [16, 32]]);
+
+			const newCube = cube1.compose(cube2);
+			assert.deepEqual(newCube.dimensionIds, ['location', 'period']);
+			assert.deepEqual(newCube.getNestedArray('routers'), [[3, 2], [4, 9], [16, 32]]);
+			assert.deepEqual(newCube.getNestedArray('antennas'), [[1, 2], [4, 8], [16, 32]]);
 		});
+
+		it('should also work with more complicated situation', function() {
+
+		})
 
 	});
 
