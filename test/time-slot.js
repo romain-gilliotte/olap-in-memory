@@ -1,5 +1,5 @@
-import assert from 'assert';
-import TimeSlot from '../src/time-slot';
+const assert = require('chai').assert;
+const TimeSlot = require('../src/time-slot');
 
 
 describe("TimeSlot", () => {

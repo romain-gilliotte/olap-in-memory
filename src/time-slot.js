@@ -3,7 +3,7 @@
  * A class representing a time slot used in monitoring.
  * This can be a given day, epidemiological week, month, quarter, ...
  */
-export default class TimeSlot {
+class TimeSlot {
 
 	/**
 	 * @param  {Date} utcDate Date which we want to build the TimeSlot around

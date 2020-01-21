@@ -1,23 +1,21 @@
-import chai from "chai";
-const assert = chai.assert;
+const assert = require('chai').assert;
+const Cube = require('../src/cube');
+const Dimension = require('../src/dimension');
 
-import Cube from '../src/cube';
-import Dimension from '../src/dimension';
+describe('merging cubes', function () {
 
-describe('merging cubes', function() {
+	describe('merge', function () {
 
-	describe('merge', function() {
-
-		it('should merge simple cubes', function() {
+		it('should merge simple cubes', function () {
 
 
 		});
 
 	});
 
-	describe('compose', function() {
+	describe('compose', function () {
 
-		it('should compose simple cubes', function() {
+		it('should compose simple cubes', function () {
 			const period = new Dimension('period', 'season', ['summer', 'winter']);
 			const location = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
 
@@ -35,7 +33,7 @@ describe('merging cubes', function() {
 			assert.deepEqual(newCube.getNestedArray('antennas'), [[1, 2], [4, 8], [16, 32]]);
 		});
 
-		it('should also work with more complicated situation', function() {
+		it('should also work with more complicated situation', function () {
 
 		})
 

@@ -1,5 +1,5 @@
 
-export default class Dimension {
+class Dimension {
 
 	get numItems() {
 		return this._attributeItems[this._rootAttribute].length;
@@ -48,7 +48,7 @@ export default class Dimension {
 	 * @param {[type]} newAttribute  ie: "city"
 	 * @param {[type]} mapping       ie: {"12345": "paris", "54321": "paris"}
 	 */
-	addChildAttribute(parentAttribute, childAttribute, mapping, defaultValue=null) {
+	addChildAttribute(parentAttribute, childAttribute, mapping, defaultValue = null) {
 		let newItems = [],
 			newMappings = new Array(this.numItems);
 
@@ -85,7 +85,7 @@ export default class Dimension {
 		this._attributeMappings[childAttribute] = newMappings;
 	}
 
-	getItems(attribute=null) {
+	getItems(attribute = null) {
 		return this._attributeItems[attribute || this._rootAttribute];
 	}
 
@@ -96,7 +96,7 @@ export default class Dimension {
 			newMapping = this._attributeMappings[newAttribute],
 			newDimension = new Dimension(this.id, newAttribute, newItems);
 
-		ol:for (let childAttribute of this.attributes) {
+		ol: for (let childAttribute of this.attributes) {
 			if (childAttribute === newAttribute)
 				continue; // Skip current one.
 
@@ -123,7 +123,7 @@ export default class Dimension {
 		return newDimension;
 	}
 
-	dice(attribute, items, reorder=false) {
+	dice(attribute, items, reorder = false) {
 		let oldItems = this._attributeItems[this._rootAttribute],
 			newItems = null;
 
@@ -175,3 +175,5 @@ export default class Dimension {
 	}
 
 }
+
+module.exports = Dimension;

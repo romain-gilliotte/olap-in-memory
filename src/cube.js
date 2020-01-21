@@ -1,7 +1,6 @@
 
-import Dimension from './dimension';
 
-export default class Cube {
+class Cube {
 
 	get storeSize() {
 		return this.dimensions.reduce((m, d) => m * d.numItems, 1);
@@ -40,15 +39,14 @@ export default class Cube {
 		this.computedMeasures[measureId] = formula;
 	}
 
-	createStoredMeasure(measureId, defaultValue=0, type='int32') {
+	createStoredMeasure(measureId, defaultValue = 0, type = 'int32') {
 		if (this.storedMeasures[measureId] !== undefined || this.computedMeasures[measureId] !== undefined)
 			throw new Error('This measure already exists');
 
-		let store = do {
-			if (!type || type == 'int32') new Int32Array(this.storeSize);
-			else if (type == 'uint32') new UInt32Array(this.storeSize);
-			else throw new Error('Invalid type');
-		};
+		let store;
+		if (!type || type == 'int32') store = new Int32Array(this.storeSize);
+		else if (type == 'uint32') store = new UInt32Array(this.storeSize);
+		else throw new Error('Invalid type');
 
 		store.fill(defaultValue);
 
@@ -242,7 +240,7 @@ export default class Cube {
 		return newCube;
 	}
 
-	dice(dimensionId, attribute, values, reorder=false) {
+	dice(dimensionId, attribute, values, reorder = false) {
 		// Retrieve dimension that we want to change
 		let dimIndex = this.getDimensionIndex(dimensionId);
 		if (dimIndex === -1)
@@ -279,10 +277,9 @@ export default class Cube {
 				// Compute index where to find this data in old store
 				let oldIndex = 0;
 				for (let i = 0; i < this.dimensions.length; ++i) {
-					let offset = do {
-						if (i == dimIndex) itemIndexes[newDimensionIndex[i]];
-						else newDimensionIndex[i];
-					}
+					let offset;
+					if (i == dimIndex) offset = itemIndexes[newDimensionIndex[i]];
+					else offset = newDimensionIndex[i];
 
 					oldIndex = oldIndex * this.dimensions[i].numItems + offset;
 				}
@@ -297,14 +294,14 @@ export default class Cube {
 		return newCube;
 	}
 
-	keepDimensions(dimensionIds, opByMeasureDimension={'default': {}}) {
+	keepDimensions(dimensionIds, opByMeasureDimension = { 'default': {} }) {
 		return this.removeDimensions(
 			this.dimensionIds.filter(dimId => dimensionIds.indexOf(dimId) === -1),
 			opByMeasureDimension
 		);
 	}
 
-	removeDimensions(dimensionIds, opByMeasureDimension={'default': {}}) {
+	removeDimensions(dimensionIds, opByMeasureDimension = { 'default': {} }) {
 		let cube = this;
 
 		for (let dimensionId in dimensionIds)
@@ -323,7 +320,7 @@ export default class Cube {
 		this.dimensions.push(dimension);
 	}
 
-	removeDimension(dimensionId, opByMeasure={}) {
+	removeDimension(dimensionId, opByMeasure = {}) {
 		// Retrieve dimension that we want to change
 		let dimensionToRemove = this.getDimension(dimensionId),
 			dimIndex = this.dimensions.indexOf(dimensionToRemove);
@@ -354,11 +351,10 @@ export default class Cube {
 				if (method == 'first' || method == 'last') {
 					let oldIndex = 0;
 					for (let j = 0; j < this.dimensions.length; ++j) {
-						let offset = do {
-							if (j < dimIndex) newDimensionIndex[j];
-							else if (j == dimIndex) method == 'first' ? 0 : dimensionToRemove.numItems - 1;
-							else newDimensionIndex[j - 1];
-						};
+						let offset;
+						if (j < dimIndex) offset = newDimensionIndex[j];
+						else if (j == dimIndex) offset = method == 'first' ? 0 : dimensionToRemove.numItems - 1;
+						else offset = newDimensionIndex[j - 1];
 
 						oldIndex = oldIndex * this.dimensions[j].numItems + offset;
 					}
@@ -366,29 +362,24 @@ export default class Cube {
 					value = oldStore[oldIndex];
 				}
 				else if (method == 'sum' || method == 'average' || method == 'highest' || method == 'lowest') {
-					value = do {
-						if (method == 'highest') -Number.MAX_VALUE
-						else if (method == 'lowest') Number.MAX_VALUE
-						else 0
-					};
+					if (method == 'highest') value = -Number.MAX_VALUE
+					else if (method == 'lowest') value = Number.MAX_VALUE
+					else value = 0
 
 					for (let i = 0; i < dimensionToRemove.numItems; ++i) {
 						let oldIndex = 0;
 						for (let j = 0; j < this.dimensions.length; ++j) {
-							let offset = do {
-								if (j < dimIndex) newDimensionIndex[j];
-								else if (j == dimIndex) i;
-								else newDimensionIndex[j - 1];
-							};
+							let offset;
+							if (j < dimIndex) offset = newDimensionIndex[j];
+							else if (j == dimIndex) offset = i;
+							else offset = newDimensionIndex[j - 1];
 
 							oldIndex = oldIndex * this.dimensions[j].numItems + offset;
 						}
 
-						value = do {
-							if (method == 'highest') value < oldStore[oldIndex] ? oldStore[oldIndex] : value;
-							else if (method == 'lowest') value < oldStore[oldIndex] ? value : oldStore[oldIndex];
-							else value + oldStore[oldIndex];
-						};
+						if (method == 'highest') value = value < oldStore[oldIndex] ? oldStore[oldIndex] : value;
+						else if (method == 'lowest') value = value < oldStore[oldIndex] ? value : oldStore[oldIndex];
+						else value = value + oldStore[oldIndex];
 					}
 
 					if (method == 'average')
@@ -410,7 +401,7 @@ export default class Cube {
 	 * Aggregate a dimension by group values.
 	 * ie: minutes by hour, or cities by region.
 	 */
-	drillUp(dimensionId, attribute, opByMeasure={}) {
+	drillUp(dimensionId, attribute, opByMeasure = {}) {
 		const STRANGE_VALUE = 28763;
 
 		const
@@ -446,10 +437,9 @@ export default class Cube {
 
 				let newIndex = 0;
 				for (let j = 0; j < newCube.dimensions.length; ++j) {
-					let offset = do {
-						if (j == dimIndex) this.dimensions[j].getChildIndex(attribute, oldDimensionIndex[j])
-						else oldDimensionIndex[j];
-					};
+					let offset;
+					if (j == dimIndex) offset = this.dimensions[j].getChildIndex(attribute, oldDimensionIndex[j])
+					else offset = oldDimensionIndex[j];
 
 					newIndex = newIndex * newCube.dimensions[j].numItems + offset;
 				}
@@ -490,7 +480,7 @@ export default class Cube {
 	 *
 	 * This is useful when joining many cubes that have the same structure.
 	 */
-	merge(otherCube, defaultValue=0, opByMeasureDimension={default:{}}) {
+	merge(otherCube, defaultValue = 0, opByMeasureDimension = { default: {} }) {
 
 	}
 
@@ -506,7 +496,7 @@ export default class Cube {
 	 * For instance, composing a cube with sells by day, and number of open hour per week,
 	 * to compute average sell by opening hour per week.
 	 */
-	compose(otherCube, opByMeasureDimension={default:{}}) {
+	compose(otherCube, opByMeasureDimension = { default: {} }) {
 		let dimensionIds = this.dimensionIds.filter(dimId => otherCube.dimensionIds.indexOf(dimId) !== -1),
 			cube1 = this.keepDimensions(dimensionIds, opByMeasureDimension),
 			cube2 = otherCube.keepDimensions(dimensionIds, opByMeasureDimension).reorderDimensions(dimensionIds);
@@ -545,3 +535,4 @@ export default class Cube {
 
 }
 
+module.exports = Cube;

@@ -1,20 +1,17 @@
-import chai from "chai";
-const assert = chai.assert;
+const assert = require('chai').assert;
+const createTestCube = require('./helpers/create-test-cube');
 
-import createTestCube from './helpers/create-test-cube';
-
-
-describe("Reordering dimensions and items", function() {
+describe("Reordering dimensions and items", function () {
 
 	let cube;
 
-	beforeEach(function() {
+	beforeEach(function () {
 		cube = createTestCube(true, true);
 	});
 
-	describe("reorderDimensions", function() {
+	describe("reorderDimensions", function () {
 
-		it('should inverse the dimensions', function() {
+		it('should inverse the dimensions', function () {
 			const inversed = cube.reorderDimensions(['period', 'location']);
 
 			assert.deepEqual(inversed.getNestedArray('antennas'), [[1, 4, 16], [2, 8, 32]]);
@@ -22,15 +19,15 @@ describe("Reordering dimensions and items", function() {
 
 	});
 
-	describe("dice", function() {
+	describe("dice", function () {
 
-		it('should dice on cities reversed', function() {
+		it('should dice on cities reversed', function () {
 			const parTolCube = cube.dice('location', 'city', ['toledo', 'paris'], true);
 
 			assert.deepEqual(parTolCube.getNestedArray('antennas'), [[4, 8], [1, 2]]);
 		});
 
-		it('should not allow reordering on continents', function() {
+		it('should not allow reordering on continents', function () {
 			assert.throws(() => cube.dice('location', 'continent', ['europe'], true));
 		});
 

@@ -1,13 +1,13 @@
 
-import Cube from '../../src/cube';
-import Dimension from '../../src/dimension';
+const Cube = require('../../src/cube');
+const Dimension = require('../../src/dimension');
 
-export default (createMesures=true, fill=true) => {
+module.exports = (createMesures = true, fill = true) => {
 	const period = new Dimension('period', 'season', ['summer', 'winter']);
 	const location = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
-	location.addChildAttribute('city', 'country', {'paris': 'france', 'toledo': 'spain', 'tokyo': 'japan'});
-	location.addChildAttribute('city', 'continent', {'paris': 'europe', 'toledo': 'europe', 'tokyo': 'asia'});
-	location.addChildAttribute('city', 'citySize', {'paris': 'big', 'toledo': 'small', 'tokyo': 'big'});
+	location.addChildAttribute('city', 'country', { 'paris': 'france', 'toledo': 'spain', 'tokyo': 'japan' });
+	location.addChildAttribute('city', 'continent', { 'paris': 'europe', 'toledo': 'europe', 'tokyo': 'asia' });
+	location.addChildAttribute('city', 'citySize', { 'paris': 'big', 'toledo': 'small', 'tokyo': 'big' });
 
 	const cube = new Cube([location, period]);
 

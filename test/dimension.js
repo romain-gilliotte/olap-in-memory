@@ -1,11 +1,9 @@
-import chai from "chai";
-const assert = chai.assert;
+const assert = require('chai').assert;
+const Dimension = require('../src/dimension');
 
-import Dimension from '../src/dimension';
+describe('Dimension', function () {
 
-describe('Dimension', function() {
-
-	it('should give proper sizes', function() {
+	it('should give proper sizes', function () {
 		const dim = new Dimension(
 			'location',
 			'city',
@@ -22,14 +20,14 @@ describe('Dimension', function() {
 		dim.addChildAttribute(
 			'city',
 			'country',
-			{'madrid': 'spain', 'beirut': 'lebanon'},
+			{ 'madrid': 'spain', 'beirut': 'lebanon' },
 			'france'
 		);
 
 		dim.addChildAttribute(
 			'country',
 			'continent',
-			{'lebanon': 'asia'},
+			{ 'lebanon': 'asia' },
 			'europe'
 		);
 

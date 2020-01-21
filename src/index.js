@@ -1,5 +1,5 @@
+const Cube = require("./cube");
+const Dimension = require("./dimension");
+const TimeSlot = require("./time-slot");
 
-export Cube from "./cube";
-export Dimension from "./dimension";
-export TimeSlot from "./time-slot";
-
+module.exports = { Cube, Dimension, TimeSlot };

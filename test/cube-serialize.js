@@ -1,22 +1,18 @@
-import chai from "chai";
-const assert = chai.assert;
+const assert = require('chai').assert;
+const createTestCube = require('./helpers/create-test-cube');
 
-import createTestCube from './helpers/create-test-cube';
-
-
-
-describe("cube serialize", function() {
+describe("cube serialize", function () {
 
 	let cube;
 
-	beforeEach(function() {
+	beforeEach(function () {
 		cube = createTestCube(true, true);
 	});
 
-	describe("serialization", function() {
+	describe("serialization", function () {
 	});
 
-	describe("deserialization", function() {
+	describe("deserialization", function () {
 	});
 
 });
