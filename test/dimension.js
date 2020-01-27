@@ -50,6 +50,10 @@ describe('Dimension', function () {
 
 	});
 
+	it('should create a time dimension', () => {
+		const dim = Dimension.createTime('2009-12-17', '2010-02-23', 'week_sat');
+	})
+
 
 });
 

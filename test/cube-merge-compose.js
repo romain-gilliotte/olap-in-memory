@@ -33,7 +33,22 @@ describe('merging cubes', function () {
 			assert.deepEqual(newCube.getNestedArray('antennas'), [[1, 2], [4, 8], [16, 32]]);
 		});
 
-		it('should also work with more complicated situation', function () {
+		it('should also work when one cube is missing a dimension', function () {
+			const period = new Dimension('period', 'season', ['summer', 'winter']);
+			const location = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
+
+			const cube1 = new Cube([location, period]);
+			cube1.createStoredMeasure('antennas', 0);
+			cube1.setNestedArray('antennas', [[1, 2], [4, 8], [16, 32]]);
+
+			const cube2 = new Cube([location]);
+			cube2.createStoredMeasure('routers', 0);
+			cube2.setNestedArray('routers', [3, 4, 16]);
+
+			const newCube = cube1.compose(cube2);
+			assert.deepEqual(newCube.dimensionIds, ['location']);
+			assert.deepEqual(newCube.getNestedArray('antennas'), [3, 12, 48]);
+			assert.deepEqual(newCube.getNestedArray('routers'), [3, 4, 16]);
 
 		})
 

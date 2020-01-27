@@ -1,5 +1,7 @@
 const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
+const Dimension = require('../src/dimension');
+const Cube = require('../src/cube');
 
 describe('accessors', function () {
 
@@ -71,6 +73,32 @@ describe('accessors', function () {
 
 			assert.deepEqual(cube.getFlatArray('antennas'), [1, 2, 4, 8, 16, 32]);
 		});
+
+	});
+
+	describe('fillFrom', function () {
+
+		it('it should fill from another cube', function () {
+			const period1 = new Dimension('period', 'season', ['summer', 'winter']);
+			const location1 = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
+			const cube1 = new Cube([location1, period1]);
+			cube1.createStoredMeasure('antennas', 0);
+
+			const period2 = new Dimension('period', 'season', ['winter']);
+			const location2 = new Dimension('location', 'city', ['paris', 'tokyo']);
+			const cube2 = new Cube([location2, period2]);
+			cube2.createStoredMeasure('antennas', 0);
+			cube2.setFlatArray('antennas', [32, 53]);
+
+			cube1.hydrateFromCube(cube2);
+
+			assert.deepEqual(cube1.getNestedArray('antennas'), [[0, 32], [0, 0], [0, 53]]);
+		});
+
+		it('should also work with more complicated situation', function () {
+
+		})
+
 	});
 });
 

@@ -190,6 +190,50 @@ class Cube {
 		this.setFlatArray(measureId, value);
 	}
 
+	hydrateFromSparseNestedObject(measureId, obj, offset = 0, dimOffset = 0) {
+		if (dimOffset === this.dimensions.length) {
+			this.storedMeasures[measureId][offset] = obj;
+			return;
+		}
+
+		const dimension = this.dimensions[dimOffset];
+		for (let key in obj) {
+			const newOffset = offset * dimension.numItems + dimension.getItems().indexOf(key);
+			this.hydrateFromSparseNestedObject(measureId, obj[key], newOffset, dimOffset + 1);
+		}
+	}
+
+	hydrateFromCube(otherCube) {
+		// Remove all dimensions which are not in our cube.
+		otherCube = otherCube.keepDimensions(this.dimensionIds);
+
+		// Add missing dimensions and drill up common ones
+		this.dimensions.forEach(dimension => {
+			const otherDimension = otherCube.getDimension(dimension.id);
+
+			if (otherDimension) {
+				if (otherDimension.rootAttribute !== dimension.rootAttribute)
+					otherCube = otherCube.drillUp(dimension.id, dimension.rootAttribute);
+			} else {
+				// create missing dimension.
+				const newDimension = dimension.dice(dimension.id, dimension.rootAttribute, dimension.getItems()[0]);
+				otherCube = otherCube.addDimension(newDimension);
+			}
+		});
+
+		// Reorder dimensions to be same as us.
+		otherCube = otherCube.reorderDimensions(this.dimensionIds);
+
+		for (let measureId in this.storedMeasures) {
+			if (otherCube.storedMeasures[measureId]) {
+				this.hydrateFromSparseNestedObject(
+					measureId,
+					otherCube.getNestedObject(measureId)
+				);
+			}
+		}
+	}
+
 	reorderDimensions(dimensionIds) {
 		// FIXME the variable naming in this function is very unclear
 
@@ -304,7 +348,7 @@ class Cube {
 	removeDimensions(dimensionIds, opByMeasureDimension = { 'default': {} }) {
 		let cube = this;
 
-		for (let dimensionId in dimensionIds)
+		for (let dimensionId of dimensionIds)
 			cube = cube.removeDimension(
 				dimensionId,
 				opByMeasureDimension[dimensionId] || opByMeasureDimension['default']
@@ -403,12 +447,14 @@ class Cube {
 	 */
 	drillUp(dimensionId, attribute, opByMeasure = {}) {
 		const STRANGE_VALUE = 28763;
+		const dimIndex = this.getDimensionIndex(dimensionId);
+		const oldDimension = this.dimensions[dimIndex];
+		if (oldDimension.rootAttribute === attribute) {
+			// drilling up to current dimension will yield the same cube.
+			return this;
+		}
 
-		const
-			dimIndex = this.getDimensionIndex(dimensionId),
-			oldDimension = this.dimensions[dimIndex],
-			newDimension = oldDimension.drillUp(attribute);
-
+		const newDimension = oldDimension.drillUp(attribute);
 		const newDimensions = this.dimensions.slice();
 		newDimensions.splice(dimIndex, 1, newDimension);
 
