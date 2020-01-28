@@ -62,5 +62,19 @@ describe("filtering cubes", function () {
 			assert.deepEqual(winterCube.getNestedArray('antennas'), [[2], [8], [32]]);
 		});
 
+		it('should work dicing on non existent item', function () {
+			assert.equal(
+				cube.dice('location', 'city', ['nonexisting', 'paris']).storeSize,
+				cube.storeSize / 3
+			);
+		});
+
+		it('should work dicing on empty array', function () {
+			assert.equal(
+				cube.dice('location', 'city', []).storeSize,
+				0
+			);
+		});
+
 	});
 });

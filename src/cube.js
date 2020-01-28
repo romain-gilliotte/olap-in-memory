@@ -248,6 +248,7 @@ class Cube {
 			newCube = new Cube(dimensions);
 
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
+		Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
 
 		for (let storedMeasureId in this.storedMeasures)
 			newCube.createStoredMeasure(storedMeasureId);
@@ -307,6 +308,7 @@ class Cube {
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
+		Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
 
 		for (let storedMeasureId in this.storedMeasures) {
 			let oldStore = this.storedMeasures[storedMeasureId],
@@ -359,7 +361,7 @@ class Cube {
 
 	addDimension(dimension) {
 		if (dimension.numItems !== 1)
-			throw new Error('invalid')
+			throw new Error(`Dimension "${dimension.id}" has ${dimension.numItems}. Only dimensions with a single items can be added.`);
 
 		this.dimensions.push(dimension);
 	}
@@ -370,7 +372,7 @@ class Cube {
 			dimIndex = this.dimensions.indexOf(dimensionToRemove);
 
 		if (dimIndex === -1)
-			throw new Error('No such dimension or group.');
+			throw new Error(`No dimension named "${dimensionId}" was found.`);
 
 		const newDimensions = this.dimensions.filter(d => d.id !== dimensionId);
 		const newCube = new Cube(newDimensions);
@@ -436,6 +438,11 @@ class Cube {
 			}
 
 			newCube.storedMeasures[storedMeasureId] = newStore;
+			newCube.storedMeasuresRules[storedMeasureId] = {};
+			for (let dimIndex = 0; dimIndex < newCube.dimensions.length; ++dimIndex) {
+				const dimension = newCube.dimensions[dimIndex];
+				newCube.storedMeasuresRules[storedMeasureId][dimension.id] = this.storedMeasuresRules[storedMeasureId][dimension.id];
+			}
 		}
 
 		return newCube;
@@ -460,6 +467,7 @@ class Cube {
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
+		Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
 
 		let oldDimensionIndex = new Array(this.dimensions.length);
 
@@ -559,7 +567,7 @@ class Cube {
 				else if (dimension1.attributes.indexOf(dimension2.rootAttribute) !== -1)
 					cube1 = cube1.drillUp(dimensionId, dimension2.rootAttribute);
 				else
-					throw new Error('A dimension is not compatible: ' + dimensionId);
+					throw new Error(`The dimension ${dimensionId} is not compatible between the cubes`);
 			}
 
 			// Update the dimensions

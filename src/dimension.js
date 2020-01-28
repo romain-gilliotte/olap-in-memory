@@ -183,8 +183,17 @@ class Dimension {
 	 */
 	getChildItem(attribute, value) {
 		const valueIndex = this._attributeItems[this._rootAttribute].indexOf(value);
-		const childValueIndex = this._attributeMappings[attribute][valueIndex];
-		return this._attributeItems[attribute][childValueIndex];
+		if (valueIndex === -1) {
+			throw new Error(`No item "${value}" was found on attribute ${this._rootAttribute} of dimension ${this.id}`);
+		}
+
+		if (this._attributeMappings[attribute]) {
+			const childValueIndex = this._attributeMappings[attribute][valueIndex];
+			return this._attributeItems[attribute][childValueIndex];
+		}
+		else {
+			throw new Error(`No attribute ${attribute} was found on dimension ${this.id}`);
+		}
 	}
 
 	/**
@@ -194,7 +203,12 @@ class Dimension {
 	 * @return {[type]}           2
 	 */
 	getChildIndex(attribute, index) {
-		return this._attributeMappings[attribute][index];
+		if (this._attributeMappings[attribute]) {
+			return this._attributeMappings[attribute][index];
+		}
+		else {
+			throw new Error(`No attribute ${attribute} was found on dimension ${this.id}`);
+		}
 	}
 
 }
