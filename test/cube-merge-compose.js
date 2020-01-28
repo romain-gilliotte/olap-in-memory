@@ -20,11 +20,11 @@ describe('merging cubes', function () {
 			const location = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
 
 			const cube1 = new Cube([location, period]);
-			cube1.createStoredMeasure('antennas', 0);
+			cube1.createStoredMeasure('antennas', {}, 0);
 			cube1.setNestedArray('antennas', [[1, 2], [4, 8], [16, 32]]);
 
 			const cube2 = new Cube([location, period]);
-			cube2.createStoredMeasure('routers', 0);
+			cube2.createStoredMeasure('routers', {}, 0);
 			cube2.setNestedArray('routers', [[3, 2], [4, 9], [16, 32]]);
 
 			const newCube = cube1.compose(cube2);
@@ -38,11 +38,11 @@ describe('merging cubes', function () {
 			const location = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
 
 			const cube1 = new Cube([location, period]);
-			cube1.createStoredMeasure('antennas', 0);
+			cube1.createStoredMeasure('antennas', {}, 0);
 			cube1.setNestedArray('antennas', [[1, 2], [4, 8], [16, 32]]);
 
 			const cube2 = new Cube([location]);
-			cube2.createStoredMeasure('routers', 0);
+			cube2.createStoredMeasure('routers', {}, 0);
 			cube2.setNestedArray('routers', [3, 4, 16]);
 
 			const newCube = cube1.compose(cube2);

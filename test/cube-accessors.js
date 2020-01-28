@@ -82,12 +82,12 @@ describe('accessors', function () {
 			const period1 = new Dimension('period', 'season', ['summer', 'winter']);
 			const location1 = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
 			const cube1 = new Cube([location1, period1]);
-			cube1.createStoredMeasure('antennas', 0);
+			cube1.createStoredMeasure('antennas', {}, 0);
 
 			const period2 = new Dimension('period', 'season', ['winter']);
 			const location2 = new Dimension('location', 'city', ['paris', 'tokyo']);
 			const cube2 = new Cube([location2, period2]);
-			cube2.createStoredMeasure('antennas', 0);
+			cube2.createStoredMeasure('antennas', {}, 0);
 			cube2.setFlatArray('antennas', [32, 53]);
 
 			cube1.hydrateFromCube(cube2);

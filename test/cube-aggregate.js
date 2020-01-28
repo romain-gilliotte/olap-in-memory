@@ -1,61 +1,61 @@
 const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
+const { Cube, Dimension } = require('../src');
+// const Cube = require('../src/cube');
+
+
 
 describe("aggregating cubes", function () {
 
-	let cube;
-
-	beforeEach(function () {
-		cube = createTestCube(true, true);
-	});
-
 	describe("removeDimension", function () {
+		let cube;
 
-		it('should sum cities', function () {
-			const cube2 = cube.removeDimension('location');
+		beforeEach(function () {
+			const period = new Dimension('period', 'season', ['summer', 'winter']);
+			const location = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
 
-			assert.deepEqual(cube2.getNestedArray('antennas'), [21, 42]);
+			cube = new Cube([location, period]);
+			for (let agg of ['sum', 'average', 'highest', 'lowest', 'first', 'last']) {
+				cube.createStoredMeasure(`antennas_${agg}`, { period: agg, location: agg }, 0);
+				cube.setNestedArray(`antennas_${agg}`, [[1, 2], [4, 8], [16, 32]]);
+			}
+
+			cube = cube.removeDimension('location');
 		});
 
-		it('should sum seasons', function () {
-			const cube2 = cube.removeDimension('period');
-
-			assert.deepEqual(cube2.getNestedArray('antennas'), [3, 12, 48]);
+		it('should sum cities', function () {
+			assert.deepEqual(cube.getNestedArray('antennas_sum'), [21, 42]);
 		});
 
 		it('should average cities', function () {
-			const cube2 = cube.removeDimension('location', { antennas: 'average' });
-
-			assert.deepEqual(cube2.getNestedArray('antennas'), [21 / 3, 42 / 3]);
+			assert.deepEqual(cube.getNestedArray('antennas_average'), [21 / 3, 42 / 3]);
 		});
 
 		it('should highest cities', function () {
-			const cube2 = cube.removeDimension('location', { antennas: 'highest' });
-
-			assert.deepEqual(cube2.getNestedArray('antennas'), [16, 32]);
+			assert.deepEqual(cube.getNestedArray('antennas_highest'), [16, 32]);
 		});
 
 		it('should lowest cities', function () {
-			const cube2 = cube.removeDimension('location', { antennas: 'lowest' });
-
-			assert.deepEqual(cube2.getNestedArray('antennas'), [1, 2]);
+			assert.deepEqual(cube.getNestedArray('antennas_lowest'), [1, 2]);
 		});
 
 		it('should first cities', function () {
-			const cube2 = cube.removeDimension('location', { antennas: 'first' });
-
-			assert.deepEqual(cube2.getNestedArray('antennas'), [1, 2]);
+			assert.deepEqual(cube.getNestedArray('antennas_first'), [1, 2]);
 		});
 
 		it('should last cities', function () {
-			const cube2 = cube.removeDimension('location', { antennas: 'last' });
-
-			assert.deepEqual(cube2.getNestedArray('antennas'), [16, 32]);
+			assert.deepEqual(cube.getNestedArray('antennas_last'), [16, 32]);
 		});
 
 	});
 
 	describe("drillUp", function () {
+
+		let cube;
+
+		beforeEach(function () {
+			cube = createTestCube(true, true);
+		});
 
 		it('should sum cities by continent', function () {
 			const antennas2 = cube.drillUp('location', 'continent');

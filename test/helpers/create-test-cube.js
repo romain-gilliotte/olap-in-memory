@@ -13,8 +13,8 @@ module.exports = (createMesures = true, fill = true) => {
 
 	// Create measures
 	if (createMesures) {
-		cube.createStoredMeasure('antennas', 0);
-		cube.createStoredMeasure('routers', 0);
+		cube.createStoredMeasure('antennas', 'sum', 0);
+		cube.createStoredMeasure('routers', 'sum', 0);
 		cube.createComputedMeasure('router_by_antennas', 'routers / antennas');
 	}
 

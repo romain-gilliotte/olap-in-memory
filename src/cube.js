@@ -21,6 +21,7 @@ class Cube {
 	constructor(dimensions) {
 		this.dimensions = dimensions;
 		this.storedMeasures = {};
+		this.storedMeasuresRules = {};
 		this.computedMeasures = {};
 	}
 
@@ -39,18 +40,21 @@ class Cube {
 		this.computedMeasures[measureId] = formula;
 	}
 
-	createStoredMeasure(measureId, defaultValue = 0, type = 'int32') {
+	createStoredMeasure(measureId, aggregation = {}, defaultValue = NaN, type = 'float32') {
 		if (this.storedMeasures[measureId] !== undefined || this.computedMeasures[measureId] !== undefined)
 			throw new Error('This measure already exists');
 
 		let store;
-		if (!type || type == 'int32') store = new Int32Array(this.storeSize);
+		if (type == 'int32') store = new Int32Array(this.storeSize);
 		else if (type == 'uint32') store = new UInt32Array(this.storeSize);
+		else if (type == 'float32') store = new Float32Array(this.storeSize);
+		else if (type == 'float64') store = new Float64Array(this.storeSize);
 		else throw new Error('Invalid type');
 
 		store.fill(defaultValue);
 
 		this.storedMeasures[measureId] = store;
+		this.storedMeasuresRules[measureId] = aggregation
 	}
 
 	dropMeasure(measureId) {
@@ -338,21 +342,17 @@ class Cube {
 		return newCube;
 	}
 
-	keepDimensions(dimensionIds, opByMeasureDimension = { 'default': {} }) {
+	keepDimensions(dimensionIds) {
 		return this.removeDimensions(
-			this.dimensionIds.filter(dimId => dimensionIds.indexOf(dimId) === -1),
-			opByMeasureDimension
+			this.dimensionIds.filter(dimId => dimensionIds.indexOf(dimId) === -1)
 		);
 	}
 
-	removeDimensions(dimensionIds, opByMeasureDimension = { 'default': {} }) {
+	removeDimensions(dimensionIds) {
 		let cube = this;
 
 		for (let dimensionId of dimensionIds)
-			cube = cube.removeDimension(
-				dimensionId,
-				opByMeasureDimension[dimensionId] || opByMeasureDimension['default']
-			);
+			cube = cube.removeDimension(dimensionId);
 
 		return cube;
 	}
@@ -364,7 +364,7 @@ class Cube {
 		this.dimensions.push(dimension);
 	}
 
-	removeDimension(dimensionId, opByMeasure = {}) {
+	removeDimension(dimensionId) {
 		// Retrieve dimension that we want to change
 		let dimensionToRemove = this.getDimension(dimensionId),
 			dimIndex = this.dimensions.indexOf(dimensionToRemove);
@@ -380,7 +380,7 @@ class Cube {
 			let oldStore = this.storedMeasures[storedMeasureId],
 				newStore = new oldStore.constructor(newCube.storeSize);
 
-			let method = opByMeasure[storedMeasureId] || opByMeasure.default || 'sum';
+			let method = this.storedMeasuresRules[storedMeasureId][dimensionId] || 'sum';
 
 			let newDimensionIndex = new Array(newCube.dimensions.length);
 			for (let newIndex = 0; newIndex < newStore.length; ++newIndex) {
@@ -445,7 +445,7 @@ class Cube {
 	 * Aggregate a dimension by group values.
 	 * ie: minutes by hour, or cities by region.
 	 */
-	drillUp(dimensionId, attribute, opByMeasure = {}) {
+	drillUp(dimensionId, attribute) {
 		const STRANGE_VALUE = 28763;
 		const dimIndex = this.getDimensionIndex(dimensionId);
 		const oldDimension = this.dimensions[dimIndex];
@@ -471,7 +471,7 @@ class Cube {
 			newStore.fill(STRANGE_VALUE);
 			contributions.fill(0);
 
-			let method = opByMeasure[storedMeasureId] || opByMeasure.default || 'sum';
+			let method = this.storedMeasuresRules[storedMeasureId][dimensionId] || 'sum';
 
 			for (let oldIndex = 0; oldIndex < oldStore.length; ++oldIndex) {
 				// Decompose old index into dimensions indexes
@@ -526,7 +526,7 @@ class Cube {
 	 *
 	 * This is useful when joining many cubes that have the same structure.
 	 */
-	merge(otherCube, defaultValue = 0, opByMeasureDimension = { default: {} }) {
+	merge(otherCube, defaultValue = 0) {
 
 	}
 
@@ -542,10 +542,10 @@ class Cube {
 	 * For instance, composing a cube with sells by day, and number of open hour per week,
 	 * to compute average sell by opening hour per week.
 	 */
-	compose(otherCube, opByMeasureDimension = { default: {} }) {
+	compose(otherCube) {
 		let dimensionIds = this.dimensionIds.filter(dimId => otherCube.dimensionIds.indexOf(dimId) !== -1),
-			cube1 = this.keepDimensions(dimensionIds, opByMeasureDimension),
-			cube2 = otherCube.keepDimensions(dimensionIds, opByMeasureDimension).reorderDimensions(dimensionIds);
+			cube1 = this.keepDimensions(dimensionIds),
+			cube2 = otherCube.keepDimensions(dimensionIds).reorderDimensions(dimensionIds);
 
 		for (let i = 0; i < dimensionIds.length; ++i) {
 			let dimensionId = dimensionIds[i],
@@ -555,9 +555,9 @@ class Cube {
 			// Drill-up one of the cubes so that their dimensions have the same rootAttribute
 			if (dimension1.rootAttribute !== dimension2.rootAttribute) {
 				if (dimension2.attributes.indexOf(dimension1.rootAttribute) !== -1)
-					cube2 = cube2.drillUp(dimensionId, dimension1.rootAttribute, opByMeasureDimension[dimensionId]);
+					cube2 = cube2.drillUp(dimensionId, dimension1.rootAttribute);
 				else if (dimension1.attributes.indexOf(dimension2.rootAttribute) !== -1)
-					cube1 = cube1.drillUp(dimensionId, dimension2.rootAttribute, opByMeasureDimension[dimensionId]);
+					cube1 = cube1.drillUp(dimensionId, dimension2.rootAttribute);
 				else
 					throw new Error('A dimension is not compatible: ' + dimensionId);
 			}
