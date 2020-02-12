@@ -43,11 +43,24 @@ describe('GenericDimension', function () {
 		assert.deepEqual(dimension.attributes, ['city', 'cityNumLetters', 'country', 'continent']);
 	});
 
+	it('should compute items for all attributes', function () {
+		assert.deepEqual(dimension.getItems(), ['paris', 'toulouse', 'madrid', 'beirut']);
+		assert.deepEqual(dimension.getItems('city'), ['paris', 'toulouse', 'madrid', 'beirut']);
+		assert.deepEqual(dimension.getItems('cityNumLetters'), ['5', '8', '6']);
+	});
+
 	it('should compute child items for all attributes', function () {
 		assert.equal(dimension.getChildItem('city', 'paris'), 'paris');
 		assert.equal(dimension.getChildItem('cityNumLetters', 'madrid'), '6');
 		assert.equal(dimension.getChildItem('country', 'madrid'), 'spain');
 		assert.equal(dimension.getChildItem('continent', 'madrid'), 'europe');
+	});
+
+	it('should compute child indexes', function () {
+		assert.equal(dimension.getChildIndex('country', 0), 0);
+		assert.equal(dimension.getChildIndex('country', 1), 0);
+		assert.equal(dimension.getChildIndex('country', 2), 1);
+		assert.equal(dimension.getChildIndex('country', 3), 2);
 	});
 
 	it('should drill up', function () {
@@ -58,6 +71,7 @@ describe('GenericDimension', function () {
 		let childDim2 = dimension.drillUp('cityNumLetters');
 		assert.deepEqual(childDim2.attributes, ['cityNumLetters'])
 	});
+
 });
 
 
@@ -65,23 +79,16 @@ describe('timeDimension', function () {
 	let dimension;
 
 	before(function () {
-		dimension = new TimeDimension('day', '2010-01-01', '2010-02-28');
+		dimension = new TimeDimension('month', '2009-12', '2010-02');
 	})
 
 	it('should give proper sizes', function () {
-		assert.equal(dimension.numItems, 31 + 28);
+		assert.equal(dimension.numItems, 3);
 	});
 
 	it('should give proper attributes', function () {
-		assert.equal(dimension.rootAttribute, 'day');
+		assert.equal(dimension.rootAttribute, 'month');
 		assert.deepEqual(dimension.attributes, [
-			'day',
-			'month_week_sat',
-			'month_week_sun',
-			'month_week_mon',
-			'week_sat',
-			'week_sun',
-			'week_mon',
 			'month',
 			'quarter',
 			'semester',
@@ -89,16 +96,38 @@ describe('timeDimension', function () {
 		]);
 	});
 
+	it('should compute items for all attributes', function () {
+		assert.deepEqual(dimension.getItems(), ['2009-12', '2010-01', '2010-02']);
+		assert.deepEqual(dimension.getItems('month'), ['2009-12', '2010-01', '2010-02']);
+		assert.deepEqual(dimension.getItems('year'), ['2009', '2010']);
+	});
+
 	it('should compute child items for all attributes', function () {
-		assert.equal(dimension.getChildItem('day', '2010-01-15'), '2010-01-15');
-		assert.equal(dimension.getChildItem('month', '2010-01-15'), '2010-01');
-		assert.equal(dimension.getChildItem('year', '2010-01-15'), '2010');
+		assert.equal(dimension.getChildItem('month', '2010-01'), '2010-01');
+		assert.equal(dimension.getChildItem('year', '2010-01'), '2010');
+	});
+
+	it('should compute child indexes for all attributes', function () {
+		assert.equal(dimension.getChildIndex('month', 0), 0);
+		assert.equal(dimension.getChildIndex('month', 1), 1);
+
+		assert.equal(dimension.getChildIndex('year', 0), 0);
+		assert.equal(dimension.getChildIndex('year', 1), 1);
 	});
 
 	it('should drill up', function () {
-		let childDim = dimension.drillUp('month');
-		assert.deepEqual(childDim.attributes, ['month', 'quarter', 'semester', 'year']);
-		assert.deepEqual(childDim.getItems(), ['2010-01', '2010-02']);
+		let childDim = dimension.drillUp('quarter');
+		assert.deepEqual(childDim.attributes, ['quarter', 'semester', 'year']);
+		assert.deepEqual(childDim.getItems(), ['2009-Q4', '2010-Q1']);
 	});
 
+	it('should drill down', function () {
+		let childDim = dimension.drillDown('week_mon');
+		assert.deepEqual(childDim.attributes, ['week_mon', 'month', 'quarter', 'semester', 'year']);
+		assert.deepEqual(childDim.getItems(), [
+			'2009-W49-mon', '2009-W50-mon', '2009-W51-mon', '2009-W52-mon', '2009-W53-mon',
+			'2010-W01-mon', '2010-W02-mon', '2010-W03-mon', '2010-W04-mon',
+			'2010-W05-mon', '2010-W06-mon', '2010-W07-mon', '2010-W08-mon'
+		]);
+	});
 });

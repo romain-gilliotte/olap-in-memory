@@ -22,19 +22,25 @@ class TimeDimension extends AbstractDimension {
 
         this._start = new TimeSlot(start, rootAttribute);
         this._end = new TimeSlot(end, rootAttribute);
+        this._attributeItems = {};
+        this._attributeMappings = {};
     }
 
     getItems(attribute = null) {
-        const end = this._end.toUpperSlot(attribute || this._rootAttribute);
+        if (!this._attributeItems[attribute || this._rootAttribute]) {
+            const end = this._end.toUpperSlot(attribute || this._rootAttribute);
+            const items = [];
 
-        let period = this._start.toUpperSlot(attribute || this._rootAttribute);
-        let result = [];
-        while (period.value <= end.value) {
-            result.push(period.value);
-            period = period.next();
+            let period = this._start.toUpperSlot(attribute || this._rootAttribute);
+            while (period.value <= end.value) {
+                items.push(period.value);
+                period = period.next();
+            }
+
+            this._attributeItems[attribute || this._rootAttribute] = items;
         }
 
-        return result;
+        return this._attributeItems[attribute || this._rootAttribute];
     }
 
     drillUp(newAttribute) {
@@ -48,8 +54,8 @@ class TimeDimension extends AbstractDimension {
     drillDown(newAttribute) {
         return new TimeDimension(
             newAttribute,
-            TimeSlot.fromDate(this._start.startDate, newAttribute).value,
-            TimeSlot.fromDate(this._end.endDate, newAttribute).value
+            TimeSlot.fromDate(this._start.firstDate, newAttribute).value,
+            TimeSlot.fromDate(this._end.lastDate, newAttribute).value
         );
     }
 
@@ -80,17 +86,18 @@ class TimeDimension extends AbstractDimension {
 	 * @return {[type]}           2
 	 */
     getChildIndex(attribute, index) {
-        const value = this.getItems(this._rootAttribute)[index];
-        const childIndex = this.getItems(attribute).indexOf(value);
+        if (!this._attributeMappings[attribute]) {
+            const rootItems = this.getItems(this._rootAttribute);
+            const attributeItems = this.getItems(attribute);
 
-        if (childIndex !== -1) {
-            return childIndex;
+            this._attributeMappings[attribute] = rootItems.map(rootItem => {
+                const attributeItem = this.getChildItem(attribute, rootItem);
+                return attributeItems.indexOf(attributeItem);
+            });
         }
-        else {
-            throw new Error(`No attribute ${attribute} was found on dimension ${this.id}`);
-        }
+
+        return this._attributeMappings[attribute][index];
     }
-
 }
 
 module.exports = TimeDimension;

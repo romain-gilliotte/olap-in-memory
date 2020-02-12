@@ -1,13 +1,6 @@
+const AbstractDimension = require('./abstract');
 
-class Dimension {
-
-	get numItems() {
-		return this._attributeItems[this._rootAttribute].length;
-	}
-
-	get rootAttribute() {
-		return this._rootAttribute;
-	}
+class Dimension extends AbstractDimension {
 
 	get attributes() {
 		return Object.keys(this._attributeMappings);
@@ -21,8 +14,7 @@ class Dimension {
 	 * @param  {[type]} items       ie: ["12345", "54321"]
 	 */
 	constructor(dimensionId, rootAttribute, items) {
-		this.id = dimensionId;
-		this._rootAttribute = rootAttribute;
+		super(dimensionId, rootAttribute);
 
 		// Items for all attributes
 		// {
@@ -106,8 +98,7 @@ class Dimension {
 				mapping = {};
 
 			for (let i = 0; i < rootItems.length; ++i) {
-				let rootItem = rootItems[i],
-					childItem = childItems[childMapping[i]],
+				let childItem = childItems[childMapping[i]],
 					newItem = newItems[newMapping[i]];
 
 				// Not possible to build this attribute (no clean cut on the graph)
