@@ -1,4 +1,5 @@
 const Cube = require("./cube");
-const Dimension = require("./dimension");
+const GenericDimension = require("./dimension/generic");
+const TimeDimension = require("./dimension/time");
 
-module.exports = { Cube, Dimension };
+module.exports = { Cube, GenericDimension, TimeDimension };

@@ -6,11 +6,11 @@
   "description": "An implementation of in-memory OLAP cubes for NodeJS and the browser.",
   "main": "src/index.js",
   "dependencies": {
-    "timeslot-dag": "^0.3.0"
+    "timeslot-dag": "^0.3.3"
   },
   "devDependencies": {
     "chai": "^4.2.0",
-    "mocha": "^7.0.0",
+    "mocha": "^7.0.1",
     "nyc": "^15.0.0"
   },
   "scripts": {

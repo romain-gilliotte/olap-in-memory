@@ -1,4 +1,3 @@
-const TimeSlot = require('timeslot-dag');
 
 class Dimension {
 
@@ -12,28 +11,6 @@ class Dimension {
 
 	get attributes() {
 		return Object.keys(this._attributeMappings);
-	}
-
-	static createTime(startDate, endDate, periodicity) {
-		let period = TimeSlot.fromDate(startDate, periodicity);
-		const endPeriod = TimeSlot.fromDate(endDate, periodicity);
-
-		const rootItems = [period];
-		while (period.value !== endPeriod.value) {
-			period = period.next();
-			rootItems.push(period);
-		}
-
-		const dimension = new Dimension('time', periodicity, rootItems.map(i => i.value));
-		TimeSlot.upperSlots[periodicity].forEach(childPeriodicity => {
-			dimension.addChildAttribute(
-				periodicity,
-				childPeriodicity,
-				period => new TimeSlot(period).toUpperSlot(childPeriodicity).value
-			);
-		});
-
-		return dimension;
 	}
 
 	/**
@@ -210,7 +187,6 @@ class Dimension {
 			throw new Error(`No attribute ${attribute} was found on dimension ${this.id}`);
 		}
 	}
-
 }
 
 module.exports = Dimension;

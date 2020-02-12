@@ -1,7 +1,6 @@
 const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
-const Dimension = require('../src/dimension');
-const Cube = require('../src/cube');
+const { Cube, GenericDimension } = require('../src');
 
 describe('accessors', function () {
 
@@ -79,13 +78,13 @@ describe('accessors', function () {
 	describe('fillFrom', function () {
 
 		it('it should fill from another cube', function () {
-			const period1 = new Dimension('period', 'season', ['summer', 'winter']);
-			const location1 = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
+			const period1 = new GenericDimension('period', 'season', ['summer', 'winter']);
+			const location1 = new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo']);
 			const cube1 = new Cube([location1, period1]);
 			cube1.createStoredMeasure('antennas', {}, 0);
 
-			const period2 = new Dimension('period', 'season', ['winter']);
-			const location2 = new Dimension('location', 'city', ['paris', 'tokyo']);
+			const period2 = new GenericDimension('period', 'season', ['winter']);
+			const location2 = new GenericDimension('location', 'city', ['paris', 'tokyo']);
 			const cube2 = new Cube([location2, period2]);
 			cube2.createStoredMeasure('antennas', {}, 0);
 			cube2.setFlatArray('antennas', [32, 53]);

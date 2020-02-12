@@ -1,5 +1,4 @@
 
-
 class Cube {
 
 	get storeSize() {
@@ -522,20 +521,6 @@ class Cube {
 		}
 
 		return newCube;
-	}
-
-	/**
-	 * Create a new cube that contains
-	 * - the intersection of the measures
-	 * - the intersection of the dimensions
-	 * - the union of the dimensions items
-	 *
-	 * Cubes will drillUp if necessary so that the dimensions are compatible.
-	 *
-	 * This is useful when joining many cubes that have the same structure.
-	 */
-	merge(otherCube, defaultValue = 0) {
-
 	}
 
 	/**

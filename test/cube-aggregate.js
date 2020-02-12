@@ -1,9 +1,6 @@
 const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
-const { Cube, Dimension } = require('../src');
-// const Cube = require('../src/cube');
-
-
+const { Cube, GenericDimension } = require('../src');
 
 describe("aggregating cubes", function () {
 
@@ -11,8 +8,8 @@ describe("aggregating cubes", function () {
 		let cube;
 
 		beforeEach(function () {
-			const period = new Dimension('period', 'season', ['summer', 'winter']);
-			const location = new Dimension('location', 'city', ['paris', 'toledo', 'tokyo']);
+			const period = new GenericDimension('period', 'season', ['summer', 'winter']);
+			const location = new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo']);
 
 			cube = new Cube([location, period]);
 			for (let agg of ['sum', 'average', 'highest', 'lowest', 'first', 'last']) {
@@ -46,11 +43,29 @@ describe("aggregating cubes", function () {
 		it('should last cities', function () {
 			assert.deepEqual(cube.getNestedArray('antennas_last'), [16, 32]);
 		});
-
 	});
 
 	describe("drillUp", function () {
 
+		let cube;
+
+		beforeEach(function () {
+			cube = createTestCube(true, true);
+		});
+
+		it('should sum cities by continent', function () {
+			const antennas2 = cube.drillUp('location', 'continent');
+
+			assert.deepEqual(
+				antennas2.getNestedArray('antennas'),
+				[[5, 10], [16, 32]]
+			);
+		});
+
+	});
+
+
+	describe('drillDown', function () {
 		let cube;
 
 		beforeEach(function () {
