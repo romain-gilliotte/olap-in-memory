@@ -123,7 +123,7 @@ describe('timeDimension', function () {
 	let dimension;
 
 	before(function () {
-		dimension = new TimeDimension('month', '2009-12', '2010-02');
+		dimension = new TimeDimension('time', 'month', '2009-12', '2010-02');
 	})
 
 	it('should give proper sizes', function () {
@@ -177,7 +177,7 @@ describe('timeDimension', function () {
 
 
 	it('should intersect to dimensions with the same rootAttribute', function () {
-		const otherDimension = new TimeDimension('month', '2010-01', '2010-02');
+		const otherDimension = new TimeDimension('time', 'month', '2010-01', '2010-02');
 
 		const intersection = dimension.intersect(otherDimension);
 		assert.equal(intersection.rootAttribute, 'month');
@@ -185,7 +185,7 @@ describe('timeDimension', function () {
 	});
 
 	it('should intersect to dimensions with different rootAttribute', function () {
-		const otherDimension = new TimeDimension('quarter', '2010-Q1', '2010-Q2');
+		const otherDimension = new TimeDimension('time', 'quarter', '2010-Q1', '2010-Q2');
 
 		const intersection = dimension.intersect(otherDimension);
 		assert.equal(intersection.rootAttribute, 'quarter');
@@ -193,7 +193,7 @@ describe('timeDimension', function () {
 	});
 
 	it('should raise when intersecting dimensions with no common items', function () {
-		const otherDimension = new TimeDimension('quarter', '2010-Q3', '2010-Q4');
+		const otherDimension = new TimeDimension('time', 'quarter', '2010-Q3', '2010-Q4');
 
 		assert.throws(() => dimension.intersect(otherDimension));
 	});

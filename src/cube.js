@@ -557,28 +557,12 @@ class Cube {
 			cube2 = otherCube.keepDimensions(dimensionIds).reorderDimensions(dimensionIds);
 
 		for (let i = 0; i < dimensionIds.length; ++i) {
-			let dimensionId = dimensionIds[i],
-				dimension1 = cube1.getDimension(dimensionId),
-				dimension2 = cube2.getDimension(dimensionId);
+			const dimension1 = cube1.dimensions[i];
+			const dimension2 = cube2.dimensions[i];
+			const newDimension = dimension1.intersect(dimension2);
 
-			// Drill-up one of the cubes so that their dimensions have the same rootAttribute
-			if (dimension1.rootAttribute !== dimension2.rootAttribute) {
-				if (dimension2.attributes.indexOf(dimension1.rootAttribute) !== -1)
-					cube2 = cube2.drillUp(dimensionId, dimension1.rootAttribute);
-				else if (dimension1.attributes.indexOf(dimension2.rootAttribute) !== -1)
-					cube1 = cube1.drillUp(dimensionId, dimension2.rootAttribute);
-				else
-					throw new Error(`The dimension ${dimensionId} is not compatible between the cubes`);
-			}
-
-			// Update the dimensions
-			dimension1 = cube1.getDimension(dimensionId);
-			dimension2 = cube2.getDimension(dimensionId);
-
-			// Intersect them
-			let commonItems = dimension1.getItems().filter(i => dimension2.getItems().indexOf(i) !== -1);
-			cube1 = cube1.dice(dimensionId, dimension1.rootAttribute, commonItems, false);
-			cube2 = cube2.dice(dimensionId, dimension2.rootAttribute, commonItems, true);
+			cube1 = cube1.drillUp(newDimension.id, newDimension.rootAttribute)._dice(i, newDimension);
+			cube2 = cube2.drillUp(newDimension.id, newDimension.rootAttribute)._dice(i, newDimension);
 		}
 
 		// At this point, cube1 and cube2 should have exactly the same format, we can merge them.

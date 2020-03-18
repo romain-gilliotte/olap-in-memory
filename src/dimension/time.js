@@ -17,8 +17,8 @@ class TimeDimension extends AbstractDimension {
      * @param {string} start 
      * @param {string} end 
      */
-    constructor(rootAttribute, start, end) {
-        super('time', rootAttribute);
+    constructor(dimensionId, rootAttribute, start, end) {
+        super(dimensionId, rootAttribute);
 
         this._start = new TimeSlot(start, rootAttribute);
         this._end = new TimeSlot(end, rootAttribute);
@@ -50,6 +50,7 @@ class TimeDimension extends AbstractDimension {
 
     drillUp(newAttribute) {
         return new TimeDimension(
+            this.id,
             newAttribute,
             this._start.toUpperSlot(newAttribute).value,
             this._end.toUpperSlot(newAttribute).value
@@ -58,6 +59,7 @@ class TimeDimension extends AbstractDimension {
 
     drillDown(newAttribute) {
         return new TimeDimension(
+            this.id,
             newAttribute,
             TimeSlot.fromDate(this._start.firstDate, newAttribute).value,
             TimeSlot.fromDate(this._end.lastDate, newAttribute).value
@@ -75,6 +77,7 @@ class TimeDimension extends AbstractDimension {
 
     diceRange(attribute, start, end) {
         return new TimeDimension(
+            this.id,
             this._rootAttribute,
             new TimeSlot(start).toUpperSlot(this._rootAttribute).value,
             new TimeSlot(end).toUpperSlot(this._rootAttribute).value,
@@ -133,7 +136,7 @@ class TimeDimension extends AbstractDimension {
             this._end.toUpperSlot(rootAttribute).value :
             otherDimension._end.toUpperSlot(rootAttribute).value;
 
-        return new TimeDimension(rootAttribute, start, end);
+        return new TimeDimension(this.id, rootAttribute, start, end);
     }
 }
 
