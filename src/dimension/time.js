@@ -76,12 +76,24 @@ class TimeDimension extends AbstractDimension {
     }
 
     diceRange(attribute, start, end) {
+        const startTs = new TimeSlot(start);
+        if (startTs.periodicity !== attribute)
+            throw new Error(`${start} is not a valid slot of periodicity ${attribute}`);
+
+        const endTs = new TimeSlot(end);
+        if (endTs.periodicity !== attribute)
+            throw new Error(`${end} is not a valid slot of periodicity ${attribute}`);
+
+
+        const newStart = startTs.toUpperSlot(this._rootAttribute).value;
+        const newEnd = endTs.toUpperSlot(this._rootAttribute).value;
+
         return new TimeDimension(
             this.id,
             this._rootAttribute,
-            new TimeSlot(start).toUpperSlot(this._rootAttribute).value,
-            new TimeSlot(end).toUpperSlot(this._rootAttribute).value,
-        )
+            newStart < this._start.value ? this._start.value : newStart,
+            newEnd < this._end.value ? newEnd : this._end.value
+        );
     }
 
     /**
