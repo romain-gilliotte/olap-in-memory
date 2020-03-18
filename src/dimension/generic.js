@@ -31,6 +31,9 @@ class Dimension extends AbstractDimension {
 		// }
 		this._attributeMappings = {};
 		this._attributeMappings[rootAttribute] = items.map((item, index) => index);
+
+		if (items.length === 0)
+			throw new Error('Empty dimensions are not allowed');
 	}
 
 	/**
@@ -143,6 +146,10 @@ class Dimension extends AbstractDimension {
 		return dimension;
 	}
 
+	diceRange(attribute, start, end) {
+		throw new Error('Unsupported');
+	}
+
 	/**
 	 *
 	 * @param  {[type]} attribute eg: 'month'
@@ -177,6 +184,25 @@ class Dimension extends AbstractDimension {
 		else {
 			throw new Error(`No attribute ${attribute} was found on dimension ${this.id}`);
 		}
+	}
+
+	intersect(otherDimension) {
+		if (this.id !== otherDimension.id) {
+			throw new Error('not the same dimension');
+		}
+
+		let rootAttribute;
+		if (this.attributes.includes(otherDimension.rootAttribute))
+			rootAttribute = otherDimension.rootAttribute;
+		else if (otherDimension.attributes.includes(this.rootAttribute))
+			rootAttribute = this.rootAttribute;
+		else
+			throw new Error(`The dimensions are not compatible`);
+
+		const otherItems = otherDimension.getItems(rootAttribute);
+		const commonItems = this.getItems(rootAttribute).filter(i => otherItems.includes(i));
+
+		return this.drillUp(rootAttribute).dice(rootAttribute, commonItems);
 	}
 }
 

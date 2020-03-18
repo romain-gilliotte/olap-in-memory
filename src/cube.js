@@ -153,7 +153,6 @@ class Cube {
 			return values[0];
 
 		// numDimensions >= 1
-		const numSteps = this.dimensions.length - 1;
 		for (let i = this.dimensions.length - 1; i >= 0; --i) {
 			let chunkSize = this.dimensions[i].numItems;
 
@@ -288,6 +287,18 @@ class Cube {
 		return newCube;
 	}
 
+	diceRange(dimensionId, attribute, start, end) {
+		// Retrieve dimension that we want to change
+		let dimIndex = this.getDimensionIndex(dimensionId);
+		if (dimIndex === -1)
+			throw new Error('No such dimension.');
+
+		let oldDimension = this.dimensions[dimIndex],
+			newDimension = oldDimension.diceRange(attribute, start, end);
+
+		return this._dice(dimIndex, newDimension);
+	}
+
 	dice(dimensionId, attribute, values, reorder = false) {
 		// Retrieve dimension that we want to change
 		let dimIndex = this.getDimensionIndex(dimensionId);
@@ -297,6 +308,11 @@ class Cube {
 		let oldDimension = this.dimensions[dimIndex],
 			newDimension = oldDimension.dice(attribute, values, reorder);
 
+		return this._dice(dimIndex, newDimension);
+	}
+
+	_dice(dimIndex, newDimension) {
+		const oldDimension = this.dimensions[dimIndex];
 		const newDimensions = this.dimensions.slice();
 		newDimensions[dimIndex] = newDimension;
 

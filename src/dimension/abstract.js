@@ -37,6 +37,10 @@ class AbstractDimension {
         throw new Error('Override me');
     }
 
+    diceRange(attribute, start, end) {
+        throw new Error('Override me');
+    }
+
 	/**
 	 *
 	 * @param  {[type]} attribute eg: 'month'

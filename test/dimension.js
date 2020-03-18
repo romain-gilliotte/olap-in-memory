@@ -72,6 +72,50 @@ describe('GenericDimension', function () {
 		assert.deepEqual(childDim2.attributes, ['cityNumLetters'])
 	});
 
+	it('should intersect to dimensions with the same rootAttribute', function () {
+		const otherDimension = new GenericDimension(
+			'location',
+			'city',
+			['toulouse', 'madrid', 'amman', 'paris']
+		);
+
+		const intersection = dimension.intersect(otherDimension);
+		assert.equal(intersection.rootAttribute, 'city');
+		assert.deepEqual(intersection.getItems(), ['paris', 'toulouse', 'madrid']);
+	});
+
+	it('should intersect to dimensions with different rootAttribute', function () {
+		const otherDimension = new GenericDimension(
+			'location',
+			'country',
+			['france', 'spain', 'jordan']
+		);
+
+		const intersection = dimension.intersect(otherDimension);
+		assert.equal(intersection.rootAttribute, 'country');
+		assert.deepEqual(intersection.getItems(), ['france', 'spain']);
+	});
+
+	it('should raise when intersecting dimensions with no common items', function () {
+		const otherDimension = new GenericDimension(
+			'location',
+			'city',
+			['lyon', 'barcelona', 'narbonne']
+		);
+
+		assert.throws(() => dimension.intersect(otherDimension));
+	});
+
+	it('should raise when intersecting dimensions with no common attribute', function () {
+		const otherDimension = new GenericDimension(
+			'location',
+			'postalcode',
+			['75018', '75019']
+		);
+
+		assert.throws(() => dimension.intersect(otherDimension));
+	});
+
 });
 
 
@@ -130,4 +174,28 @@ describe('timeDimension', function () {
 			'2010-W05-mon', '2010-W06-mon', '2010-W07-mon', '2010-W08-mon'
 		]);
 	});
+
+
+	it('should intersect to dimensions with the same rootAttribute', function () {
+		const otherDimension = new TimeDimension('month', '2010-01', '2010-02');
+
+		const intersection = dimension.intersect(otherDimension);
+		assert.equal(intersection.rootAttribute, 'month');
+		assert.deepEqual(intersection.getItems(), ['2010-01', '2010-02']);
+	});
+
+	it('should intersect to dimensions with different rootAttribute', function () {
+		const otherDimension = new TimeDimension('quarter', '2010-Q1', '2010-Q2');
+
+		const intersection = dimension.intersect(otherDimension);
+		assert.equal(intersection.rootAttribute, 'quarter');
+		assert.deepEqual(intersection.getItems(), ['2010-Q1']);
+	});
+
+	it('should raise when intersecting dimensions with no common items', function () {
+		const otherDimension = new TimeDimension('quarter', '2010-Q3', '2010-Q4');
+
+		assert.throws(() => dimension.intersect(otherDimension));
+	});
+
 });

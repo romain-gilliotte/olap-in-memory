@@ -69,7 +69,7 @@ describe("filtering cubes", function () {
 			);
 		});
 
-		it('should work dicing on empty array', function () {
+		it.skip('should work dicing on empty array', function () {
 			assert.equal(
 				cube.dice('location', 'city', []).storeSize,
 				0
