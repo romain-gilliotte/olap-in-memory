@@ -567,8 +567,10 @@ class Cube {
 
 		// At this point, cube1 and cube2 should have exactly the same format, we can merge them.
 		let newCube = new Cube(cube1.dimensions);
-		Object.assign(newCube.computedMeasures, cube1.computedMeasures, cube2.computedMeasures)
-		Object.assign(newCube.storedMeasures, cube1.storedMeasures, cube2.storedMeasures)
+		Object.assign(newCube.computedMeasures, cube1.computedMeasures, cube2.computedMeasures);
+		Object.assign(newCube.storedMeasures, cube1.storedMeasures, cube2.storedMeasures);
+		Object.assign(newCube.storedMeasuresRules, cube1.storedMeasuresRules, cube2.storedMeasuresRules);
+
 		return newCube;
 	}
 
