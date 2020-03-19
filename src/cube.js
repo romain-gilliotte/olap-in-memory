@@ -58,6 +58,36 @@ class Cube {
 		this.storedMeasuresRules[measureId] = aggregation
 	}
 
+	renameMeasure(oldMeasureId, newMeasureId) {
+		const cube = new Cube(this.dimensions);
+		cube.storedMeasures = Object.assign({}, this.storedMeasures);
+		cube.storedMeasuresRules = Object.assign({}, this.storedMeasuresRules);
+		cube.computedMeasures = Object.assign({}, this.computedMeasures);
+
+		if (cube.computedMeasures[oldMeasureId]) {
+			cube.computedMeasures[newMeasureId] = cube.computedMeasures[oldMeasureId];
+			delete cube.computedMeasures[oldMeasureId];
+		}
+		else if (cube.storedMeasures[oldMeasureId]) {
+			cube.storedMeasures[newMeasureId] = cube.storedMeasures[oldMeasureId];
+			cube.storedMeasuresRules[newMeasureId] = cube.storedMeasuresRules[oldMeasureId];
+			delete cube.storedMeasures[oldMeasureId];
+			delete cube.storedMeasuresRules[oldMeasureId];
+
+			for (let measureId in cube.computedMeasures) {
+				cube.computedMeasures[measureId] = cube.computedMeasures[measureId].replace(
+					new RegExp(oldMeasureId, 'g'),
+					newMeasureId
+				);
+			}
+		}
+		else {
+			throw new Error('No such measure');
+		}
+
+		return cube;
+	}
+
 	dropMeasure(measureId) {
 		if (this.storedMeasures[measureId] !== undefined)
 			delete this.storedMeasures[measureId];
