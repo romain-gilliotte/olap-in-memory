@@ -116,6 +116,12 @@ describe('GenericDimension', function () {
 		assert.throws(() => dimension.intersect(otherDimension));
 	});
 
+	it('should work when serialized', function () {
+		const newDimension = GenericDimension.deserialize(dimension.serialize());
+
+		assert.deepEqual(dimension, newDimension);
+	});
+
 });
 
 
@@ -175,7 +181,6 @@ describe('timeDimension', function () {
 		]);
 	});
 
-
 	it('should intersect to dimensions with the same rootAttribute', function () {
 		const otherDimension = new TimeDimension('time', 'month', '2010-01', '2010-02');
 
@@ -196,6 +201,12 @@ describe('timeDimension', function () {
 		const otherDimension = new TimeDimension('time', 'quarter', '2010-Q3', '2010-Q4');
 
 		assert.throws(() => dimension.intersect(otherDimension));
+	});
+
+	it('should work when serialized', function () {
+		const newDimension = TimeDimension.deserialize(dimension.serialize());
+		assert.deepEqual(dimension.getItems(), newDimension.getItems());
+		assert.deepEqual(dimension.getItems('quarter'), newDimension.getItems('quarter'));
 	});
 
 });

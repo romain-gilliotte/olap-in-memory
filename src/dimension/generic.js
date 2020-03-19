@@ -1,6 +1,7 @@
 const AbstractDimension = require('./abstract');
+const { toBuffer, fromBuffer } = require('../serialization');
 
-class Dimension extends AbstractDimension {
+class GenericDimension extends AbstractDimension {
 
 	get attributes() {
 		return Object.keys(this._attributeMappings);
@@ -30,10 +31,28 @@ class Dimension extends AbstractDimension {
 		// 	parity: [0, 1, 0, 1] <- this._attributeMappings.parity[3 ('2012')] == 0 ('even')
 		// }
 		this._attributeMappings = {};
-		this._attributeMappings[rootAttribute] = items.map((item, index) => index);
+		this._attributeMappings[rootAttribute] = new Uint32Array(items.map((item, index) => index));
 
 		if (items.length === 0)
 			throw new Error('Empty dimensions are not allowed');
+	}
+
+	static deserialize(buffer) {
+		const data = fromBuffer(buffer);
+		const dimension = new GenericDimension(data.id, data.rootAttribute, data.attributeItems[data.rootAttribute]);
+		Object.assign(dimension._attributeItems, data.attributeItems);
+		Object.assign(dimension._attributeMappings, data.attributeMappings);
+		return dimension;
+	}
+
+	serialize() {
+		return toBuffer({
+			id: this.id,
+			rootAttribute: this.rootAttribute,
+			rootItems: this._attributeItems[this.rootAttribute],
+			attributeItems: this._attributeItems,
+			attributeMappings: this._attributeMappings
+		});
 	}
 
 	/**
@@ -45,7 +64,7 @@ class Dimension extends AbstractDimension {
 	 */
 	addChildAttribute(parentAttribute, childAttribute, mapping, defaultValue = null) {
 		let newItems = [],
-			newMappings = new Array(this.numItems);
+			newMappings = new Uint32Array(this.numItems);
 
 		let indexes = {},
 			parentItems = this._attributeItems[parentAttribute],
@@ -89,7 +108,7 @@ class Dimension extends AbstractDimension {
 			rootItems = this._attributeItems[this._rootAttribute],
 			newItems = this._attributeItems[newAttribute],
 			newMapping = this._attributeMappings[newAttribute],
-			newDimension = new Dimension(this.id, newAttribute, newItems);
+			newDimension = new GenericDimension(this.id, newAttribute, newItems);
 
 		ol: for (let childAttribute of this.attributes) {
 			if (childAttribute === newAttribute)
@@ -138,7 +157,7 @@ class Dimension extends AbstractDimension {
 				newItems = oldItems.filter(i => items.indexOf(this.getChildItem(attribute, i)) !== -1);
 		}
 
-		let dimension = new Dimension(this.id, this.rootAttribute, newItems);
+		let dimension = new GenericDimension(this.id, this.rootAttribute, newItems);
 		for (let attribute of this.attributes)
 			if (attribute !== this._rootAttribute)
 				dimension.addChildAttribute(this._rootAttribute, attribute, i => this.getChildItem(attribute, i));
@@ -206,4 +225,4 @@ class Dimension extends AbstractDimension {
 	}
 }
 
-module.exports = Dimension;
+module.exports = GenericDimension;

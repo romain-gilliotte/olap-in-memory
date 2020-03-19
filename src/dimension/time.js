@@ -1,5 +1,6 @@
 const TimeSlot = require('timeslot-dag');
 const AbstractDimension = require('./abstract');
+const { toBuffer, fromBuffer } = require('../serialization');
 
 class TimeDimension extends AbstractDimension {
 
@@ -27,6 +28,20 @@ class TimeDimension extends AbstractDimension {
 
         if (this._start.value > this._end.value)
             throw new Error('Empty dimensions are not allowed');
+    }
+
+    static deserialize(buffer) {
+        const data = fromBuffer(buffer);
+        return new TimeDimension(data.id, data.rootAttribute, data.start, data.end);
+    }
+
+    serialize() {
+        return toBuffer({
+            id: this.id,
+            rootAttribute: this.rootAttribute,
+            start: this._start.value,
+            end: this._end.value
+        });
     }
 
     getItems(attribute = null) {

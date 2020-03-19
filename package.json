@@ -1,11 +1,12 @@
 {
   "name": "olap-in-memory",
-  "version": "4.2.3",
+  "version": "4.3.0",
   "author": "Romain Gilliotte",
   "license": "ISC",
   "description": "An implementation of in-memory OLAP cubes for NodeJS and the browser.",
   "main": "src/index.js",
   "dependencies": {
+    "pako": "^1.0.11",
     "timeslot-dag": "^0.3.3"
   },
   "devDependencies": {

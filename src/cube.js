@@ -1,3 +1,5 @@
+const DimensionFactory = require('./dimension/factory');
+const { toBuffer, fromBuffer } = require('./serialization');
 
 class Cube {
 
@@ -574,6 +576,25 @@ class Cube {
 		return newCube;
 	}
 
+	serialize() {
+		return toBuffer({
+			dimensions: this.dimensions.map(dim => dim.serialize()),
+			storedMeasures: this.storedMeasures,
+			storedMeasuresRules: this.storedMeasuresRules,
+			computedMeasures: this.computedMeasures
+		});
+	}
+
+	static deserialize(buffer) {
+		const data = fromBuffer(buffer);
+		const dimensions = data.dimensions.map(dimData => DimensionFactory.deserialize(dimData));
+
+		const cube = new Cube(dimensions);
+		cube.storedMeasures = data.storedMeasures;
+		cube.storedMeasuresRules = data.storedMeasuresRules;
+		cube.computedMeasures = data.computedMeasures;
+		return cube;
+	}
 }
 
 module.exports = Cube;
