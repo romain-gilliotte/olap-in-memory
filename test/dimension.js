@@ -209,4 +209,29 @@ describe('timeDimension', function () {
 		assert.deepEqual(dimension.getItems('quarter'), newDimension.getItems('quarter'));
 	});
 
+	it('should allow dice on both start and end', function () {
+		const newDimension = dimension.diceRange('month', '2010-01', '2010-01');
+		assert.deepEqual(newDimension.getItems(), ['2010-01']);
+	});
+
+	it('should allow dice when going further with start', function () {
+		const newDimension = dimension.diceRange('month', '2000-01', '2020-01');
+		assert.deepEqual(newDimension.getItems(), ['2009-12', '2010-01', '2010-02']);
+	});
+
+	it('should allow dice when going further with end', function () {
+		const newDimension = dimension.diceRange('month', '2010-01', '2020-01');
+		assert.deepEqual(newDimension.getItems(), ['2010-01', '2010-02']);
+	});
+
+	it('should allow dice when providing only begin', function () {
+		const newDimension = dimension.diceRange('month', '2010-01', null);
+		assert.deepEqual(newDimension.getItems(), ['2010-01', '2010-02']);
+	});
+
+	it('should allow dice when providing only end', function () {
+		const newDimension = dimension.diceRange('month', null, '2010-01');
+		assert.deepEqual(newDimension.getItems(), ['2009-12', '2010-01']);
+	});
+
 });
