@@ -48,10 +48,10 @@ class TimeDimension extends AbstractDimension {
         attribute = attribute || this._rootAttribute;
 
         if (!this._attributeItems[attribute]) {
-            const end = this._end.toUpperSlot(attribute);
+            const end = this._end.toParentPeriodicity(attribute);
             const items = [];
 
-            let period = this._start.toUpperSlot(attribute);
+            let period = this._start.toParentPeriodicity(attribute);
             while (period.value <= end.value) {
                 items.push(period.value);
                 period = period.next();
@@ -67,8 +67,8 @@ class TimeDimension extends AbstractDimension {
         return new TimeDimension(
             this.id,
             newAttribute,
-            this._start.toUpperSlot(newAttribute).value,
-            this._end.toUpperSlot(newAttribute).value
+            this._start.toParentPeriodicity(newAttribute).value,
+            this._end.toParentPeriodicity(newAttribute).value
         );
     }
 
@@ -98,7 +98,7 @@ class TimeDimension extends AbstractDimension {
             if (startTs.periodicity !== attribute)
                 throw new Error(`${start} is not a valid slot of periodicity ${attribute}`);
 
-            newStart = startTs.toUpperSlot(this._rootAttribute).value;
+            newStart = startTs.toParentPeriodicity(this._rootAttribute).value;
         }
         else
             newStart = this._start.value;
@@ -110,7 +110,7 @@ class TimeDimension extends AbstractDimension {
             if (endTs.periodicity !== attribute)
                 throw new Error(`${end} is not a valid slot of periodicity ${attribute}`);
 
-            newEnd = endTs.toUpperSlot(this._rootAttribute).value;
+            newEnd = endTs.toParentPeriodicity(this._rootAttribute).value;
         }
         else
             newEnd = this._end.value;
@@ -131,7 +131,7 @@ class TimeDimension extends AbstractDimension {
      * @return {[type]}           '2010-01'
      */
     getChildItem(attribute, value) {
-        return new TimeSlot(value).toUpperSlot(attribute).value;
+        return new TimeSlot(value).toParentPeriodicity(attribute).value;
     }
 
     /**
@@ -167,13 +167,13 @@ class TimeDimension extends AbstractDimension {
         else
             throw new Error(`The dimensions are not compatible`);
 
-        const start = this._start.toUpperSlot(rootAttribute).value < otherDimension._start.toUpperSlot(rootAttribute).value ?
-            otherDimension._start.toUpperSlot(rootAttribute).value :
-            this._start.toUpperSlot(rootAttribute).value;
+        const start = this._start.toParentPeriodicity(rootAttribute).value < otherDimension._start.toParentPeriodicity(rootAttribute).value ?
+            otherDimension._start.toParentPeriodicity(rootAttribute).value :
+            this._start.toParentPeriodicity(rootAttribute).value;
 
-        const end = this._end.toUpperSlot(rootAttribute).value < otherDimension._end.toUpperSlot(rootAttribute).value ?
-            this._end.toUpperSlot(rootAttribute).value :
-            otherDimension._end.toUpperSlot(rootAttribute).value;
+        const end = this._end.toParentPeriodicity(rootAttribute).value < otherDimension._end.toParentPeriodicity(rootAttribute).value ?
+            this._end.toParentPeriodicity(rootAttribute).value :
+            otherDimension._end.toParentPeriodicity(rootAttribute).value;
 
         return new TimeDimension(this.id, rootAttribute, start, end);
     }
