@@ -7,6 +7,12 @@ class Cube {
 		return this.dimensions.reduce((m, d) => m * d.numItems, 1);
 	}
 
+	get byteLength() {
+		return Object
+			.values(this.storedMeasures)
+			.reduce((m, buffer) => m + buffer.byteLength, 0);
+	}
+
 	get dimensionIds() {
 		return this.dimensions.map(d => d.id);
 	}

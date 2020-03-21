@@ -15,6 +15,10 @@ describe('accessors', function () {
 			assert.equal(cube.storeSize, 6);
 		});
 
+		it('should have a byteLength of 48', function () {
+			assert.equal(cube.byteLength, 48);
+		});
+
 		it('should retrieve flat array', function () {
 			assert.deepEqual(cube.getFlatArray('antennas'), [1, 2, 4, 8, 16, 32]);
 		});
