@@ -274,6 +274,10 @@ class Cube {
 		}
 	}
 
+	project(dimensionIds) {
+		return this.keepDimensions(dimensionIds).reorderDimensions(dimensionIds);
+	}
+
 	reorderDimensions(dimensionIds) {
 		// FIXME the variable naming in this function is very unclear
 
