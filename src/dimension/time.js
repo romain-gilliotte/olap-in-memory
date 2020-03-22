@@ -63,6 +63,13 @@ class TimeDimension extends AbstractDimension {
         return this._attributeItems[attribute];
     }
 
+    getEntries(attribute = null, language = 'en') {
+        return this.getItems(attribute).map(item => [
+            item,
+            new TimeSlot(item).humanizeValue(language)
+        ]);
+    }
+
     drillUp(newAttribute) {
         return new TimeDimension(
             this.id,
@@ -98,19 +105,18 @@ class TimeDimension extends AbstractDimension {
             if (startTs.periodicity !== attribute)
                 throw new Error(`${start} is not a valid slot of periodicity ${attribute}`);
 
-            newStart = startTs.toParentPeriodicity(this._rootAttribute).value;
+            newStart = TimeSlot.fromDate(startTs.firstDate, this._rootAttribute).value;
         }
         else
             newStart = this._start.value;
 
 
         if (end) {
-
             const endTs = new TimeSlot(end);
             if (endTs.periodicity !== attribute)
                 throw new Error(`${end} is not a valid slot of periodicity ${attribute}`);
 
-            newEnd = endTs.toParentPeriodicity(this._rootAttribute).value;
+            newEnd = TimeSlot.fromDate(endTs.lastDate, this._rootAttribute).value;
         }
         else
             newEnd = this._end.value;

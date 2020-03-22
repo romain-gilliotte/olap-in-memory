@@ -7,7 +7,7 @@
   "main": "src/index.js",
   "dependencies": {
     "pako": "^1.0.11",
-    "timeslot-dag": "^2.0.0"
+    "timeslot-dag": "^2.0.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",

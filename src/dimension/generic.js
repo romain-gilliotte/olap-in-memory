@@ -10,11 +10,12 @@ class GenericDimension extends AbstractDimension {
 	/**
 	 * Create a simple dimension
 	 *
-	 * @param  {[type]} dimensionId ie: "location"
-	 * @param  {[type]} attribute   ie: "zipCode"
-	 * @param  {[type]} items       ie: ["12345", "54321"]
+	 * @param  {string} dimensionId ie: "location"
+	 * @param  {string} attribute   ie: "zipCode"
+	 * @param  {string[]} items       ie: ["12345", "54321"]
+	 * @param  {Record<string, string>} labels       ie: ["12345", "54321"]
 	 */
-	constructor(dimensionId, rootAttribute, items) {
+	constructor(dimensionId, rootAttribute, items, labels = null) {
 		super(dimensionId, rootAttribute);
 
 		// Items for all attributes
@@ -24,6 +25,18 @@ class GenericDimension extends AbstractDimension {
 		// }
 		this._attributeItems = {};
 		this._attributeItems[rootAttribute] = items;
+
+		this._attributeLabels = {};
+		this._attributeLabels[rootAttribute] = {};
+		items.forEach(item => {
+			if (!labels)
+				this._attributeLabels[rootAttribute][item] = item;
+			else if (typeof labels == 'function')
+				this._attributeLabels[rootAttribute][item] = labels(item);
+			else
+				this._attributeLabels[rootAttribute][item] = labels[item];
+		});
+
 
 		// Mappings from all attributes to default one
 		// {
@@ -41,7 +54,9 @@ class GenericDimension extends AbstractDimension {
 		const data = fromBuffer(buffer);
 		const dimension = new GenericDimension(data.id, data.rootAttribute, data.attributeItems[data.rootAttribute]);
 		Object.assign(dimension._attributeItems, data.attributeItems);
+		Object.assign(dimension._attributeLabels, data.attributeLabels);
 		Object.assign(dimension._attributeMappings, data.attributeMappings);
+
 		return dimension;
 	}
 
@@ -51,6 +66,7 @@ class GenericDimension extends AbstractDimension {
 			rootAttribute: this.rootAttribute,
 			rootItems: this._attributeItems[this.rootAttribute],
 			attributeItems: this._attributeItems,
+			attributeLabels: this._attributeLabels,
 			attributeMappings: this._attributeMappings
 		});
 	}
@@ -58,12 +74,14 @@ class GenericDimension extends AbstractDimension {
 	/**
 	 * Add a parent attribute based on an existing one.
 	 *
-	 * @param {[type]} baseAttribute ie: "zipCode"
-	 * @param {[type]} newAttribute  ie: "city"
-	 * @param {[type]} mapping       ie: {"12345": "paris", "54321": "paris"}
+	 * @param {string} baseAttribute ie: "zipCode"
+	 * @param {string} newAttribute   ie: "city"
+	 * @param {Record<string, string> | (string): string} mapping ie: {"12345": "paris", "54321": "paris"}
+	 * @param {Record<string, string> | (string): string} labels  ie: {'paris': "Ville de Paris"}
 	 */
-	addChildAttribute(parentAttribute, childAttribute, mapping, defaultValue = null) {
+	addChildAttribute(parentAttribute, childAttribute, mapping, labels = null) {
 		let newItems = [],
+			newLabels = {},
 			newMappings = new Uint32Array(this.numItems);
 
 		let indexes = {},
@@ -74,18 +92,20 @@ class GenericDimension extends AbstractDimension {
 			let parentIndex = parentMapping[rootIndex],
 				parentItem = parentItems[parentIndex];
 
-			let childItem;
-			if (typeof mapping == 'function')
-				childItem = mapping(parentItem) || defaultValue;
-			else
-				childItem = mapping[parentItem] || defaultValue;
-
+			let childItem = typeof mapping == 'function' ? mapping(parentItem) : mapping[parentItem];
 			if (typeof childItem !== 'string')
 				throw new Error('Mapping result must be a string.');
 
 			if (indexes[childItem] === undefined) {
 				indexes[childItem] = newItems.length;
 				newItems.push(childItem);
+
+				if (!labels)
+					newLabels[childItem] = childItem;
+				else if (typeof labels == 'function')
+					newLabels[childItem] = labels(childItem);
+				else
+					newLabels[childItem] = labels[childItem];
 			}
 
 			// childItem == asia
@@ -97,10 +117,20 @@ class GenericDimension extends AbstractDimension {
 
 		this._attributeItems[childAttribute] = newItems;
 		this._attributeMappings[childAttribute] = newMappings;
+		this._attributeLabels[childAttribute] = newLabels;
 	}
 
 	getItems(attribute = null) {
 		return this._attributeItems[attribute || this._rootAttribute];
+	}
+
+	getEntries(attribute = null, language = 'en') {
+		attribute = attribute || this._rootAttribute;
+
+		return this._attributeItems[attribute].map(item => [
+			item,
+			this._attributeLabels[attribute][item]
+		]);
 	}
 
 	drillUp(newAttribute) {
@@ -108,7 +138,8 @@ class GenericDimension extends AbstractDimension {
 			rootItems = this._attributeItems[this._rootAttribute],
 			newItems = this._attributeItems[newAttribute],
 			newMapping = this._attributeMappings[newAttribute],
-			newDimension = new GenericDimension(this.id, newAttribute, newItems);
+			newLabels = this._attributeLabels[newAttribute],
+			newDimension = new GenericDimension(this.id, newAttribute, newItems, newLabels);
 
 		ol: for (let childAttribute of this.attributes) {
 			if (childAttribute === newAttribute)
@@ -130,7 +161,7 @@ class GenericDimension extends AbstractDimension {
 				mapping[newItem] = childItem;
 			}
 
-			newDimension.addChildAttribute(newAttribute, childAttribute, mapping);
+			newDimension.addChildAttribute(newAttribute, childAttribute, mapping, this._attributeLabels[childAttribute]);
 		}
 
 		return newDimension;
@@ -157,10 +188,15 @@ class GenericDimension extends AbstractDimension {
 				newItems = oldItems.filter(i => items.indexOf(this.getChildItem(attribute, i)) !== -1);
 		}
 
-		let dimension = new GenericDimension(this.id, this.rootAttribute, newItems);
+		let dimension = new GenericDimension(this.id, this.rootAttribute, newItems, this._attributeLabels[this._rootAttribute]);
 		for (let attribute of this.attributes)
 			if (attribute !== this._rootAttribute)
-				dimension.addChildAttribute(this._rootAttribute, attribute, i => this.getChildItem(attribute, i));
+				dimension.addChildAttribute(
+					this._rootAttribute,
+					attribute,
+					i => this.getChildItem(attribute, i),
+					this._attributeLabels[attribute]
+				);
 
 		return dimension;
 	}
