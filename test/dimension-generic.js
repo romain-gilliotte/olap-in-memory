@@ -10,6 +10,7 @@ describe('GenericDimension', function () {
             'location',
             'city',
             ['paris', 'toulouse', 'madrid', 'beirut'],
+            'Location',
             item => 'city of ' + item
         );
 
@@ -120,7 +121,7 @@ describe('GenericDimension', function () {
     it('should work when serialized', function () {
         const newDimension = GenericDimension.deserialize(dimension.serialize());
 
-        assert.deepEqual(dimension, newDimension);
+        assert.deepEqual(newDimension, dimension);
     });
 
     it('should be able to humanize root attribute labels', function () {

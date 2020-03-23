@@ -24,6 +24,7 @@ const TYPED_ARRAY = 2;
 const ARRAY = 3;
 const STRING = 4;
 const OBJECT = 5;
+const NULL = 6;
 
 
 function toBuffer(obj) {
@@ -46,7 +47,11 @@ function fromBuffer(buffer) {
 function toRawBuffer(obj) {
     let result;
 
-    if (obj instanceof ArrayBuffer) {
+    if (obj === null) {
+        result = new ArrayBuffer(4);
+        new Uint32Array(result, 0, 1).set([NULL]);
+    }
+    else if (obj instanceof ArrayBuffer) {
         // We waste some space by padding the end of each arraybuffer with zeros
         // to avoid breaking alignment in the blob.
         result = new ArrayBuffer(8 + Math.ceil(obj.byteLength / 4) * 4);
@@ -123,6 +128,9 @@ function fromRawBuffer(buffer, offset = 0) {
     else if (header === STRING) {
         const payload = fromRawBuffer(buffer, offset + 4);
         return new TextDecoder().decode(payload);
+    }
+    else if (header === NULL) {
+        return null;
     }
     else if (header === OBJECT) {
         const result = {};

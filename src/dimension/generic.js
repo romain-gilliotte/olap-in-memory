@@ -9,14 +9,9 @@ class GenericDimension extends AbstractDimension {
 
 	/**
 	 * Create a simple dimension
-	 *
-	 * @param  {string} dimensionId ie: "location"
-	 * @param  {string} attribute   ie: "zipCode"
-	 * @param  {string[]} items       ie: ["12345", "54321"]
-	 * @param  {Record<string, string>} labels       ie: ["12345", "54321"]
 	 */
-	constructor(dimensionId, rootAttribute, items, labels = null) {
-		super(dimensionId, rootAttribute);
+	constructor(id, rootAttribute, items, dimensionLabel = null, itemlabels = null) {
+		super(id, dimensionLabel, rootAttribute);
 
 		// Items for all attributes
 		// {
@@ -29,12 +24,12 @@ class GenericDimension extends AbstractDimension {
 		this._attributeLabels = {};
 		this._attributeLabels[rootAttribute] = {};
 		items.forEach(item => {
-			if (!labels)
+			if (!itemlabels)
 				this._attributeLabels[rootAttribute][item] = item;
-			else if (typeof labels == 'function')
-				this._attributeLabels[rootAttribute][item] = labels(item);
+			else if (typeof itemlabels == 'function')
+				this._attributeLabels[rootAttribute][item] = itemlabels(item);
 			else
-				this._attributeLabels[rootAttribute][item] = labels[item];
+				this._attributeLabels[rootAttribute][item] = itemlabels[item];
 		});
 
 
@@ -52,7 +47,7 @@ class GenericDimension extends AbstractDimension {
 
 	static deserialize(buffer) {
 		const data = fromBuffer(buffer);
-		const dimension = new GenericDimension(data.id, data.rootAttribute, data.attributeItems[data.rootAttribute]);
+		const dimension = new GenericDimension(data.id, data.rootAttribute, data.attributeItems[data.rootAttribute], data.label);
 		Object.assign(dimension._attributeItems, data.attributeItems);
 		Object.assign(dimension._attributeLabels, data.attributeLabels);
 		Object.assign(dimension._attributeMappings, data.attributeMappings);
@@ -63,6 +58,7 @@ class GenericDimension extends AbstractDimension {
 	serialize() {
 		return toBuffer({
 			id: this.id,
+			label: this.label,
 			rootAttribute: this.rootAttribute,
 			rootItems: this._attributeItems[this.rootAttribute],
 			attributeItems: this._attributeItems,
@@ -139,7 +135,7 @@ class GenericDimension extends AbstractDimension {
 			newItems = this._attributeItems[newAttribute],
 			newMapping = this._attributeMappings[newAttribute],
 			newLabels = this._attributeLabels[newAttribute],
-			newDimension = new GenericDimension(this.id, newAttribute, newItems, newLabels);
+			newDimension = new GenericDimension(this.id, newAttribute, newItems, this.label, newLabels);
 
 		ol: for (let childAttribute of this.attributes) {
 			if (childAttribute === newAttribute)
@@ -188,7 +184,7 @@ class GenericDimension extends AbstractDimension {
 				newItems = oldItems.filter(i => items.indexOf(this.getChildItem(attribute, i)) !== -1);
 		}
 
-		let dimension = new GenericDimension(this.id, this.rootAttribute, newItems, this._attributeLabels[this._rootAttribute]);
+		let dimension = new GenericDimension(this.id, this.rootAttribute, newItems, this.label, this._attributeLabels[this._rootAttribute]);
 		for (let attribute of this.attributes)
 			if (attribute !== this._rootAttribute)
 				dimension.addChildAttribute(

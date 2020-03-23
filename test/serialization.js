@@ -12,13 +12,14 @@ describe('serialization', function () {
                 'toto': {
                     'tata': new Float32Array([666]),
                 }
-            }
+            },
+            null
         ];
+
         const payload = toBuffer(obj);
         const newObj = fromBuffer(payload)
 
         assert.deepEqual(obj, newObj);
-    })
-
+    });
 
 });

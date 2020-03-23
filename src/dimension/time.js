@@ -18,8 +18,8 @@ class TimeDimension extends AbstractDimension {
      * @param {string} start 
      * @param {string} end 
      */
-    constructor(dimensionId, rootAttribute, start, end) {
-        super(dimensionId, rootAttribute);
+    constructor(id, rootAttribute, start, end, label = null) {
+        super(id, label, rootAttribute);
 
         this._start = new TimeSlot(start, rootAttribute);
         this._end = new TimeSlot(end, rootAttribute);
@@ -32,12 +32,13 @@ class TimeDimension extends AbstractDimension {
 
     static deserialize(buffer) {
         const data = fromBuffer(buffer);
-        return new TimeDimension(data.id, data.rootAttribute, data.start, data.end);
+        return new TimeDimension(data.id, data.rootAttribute, data.start, data.end, data.label);
     }
 
     serialize() {
         return toBuffer({
             id: this.id,
+            label: this.label,
             rootAttribute: this.rootAttribute,
             start: this._start.value,
             end: this._end.value
@@ -75,7 +76,8 @@ class TimeDimension extends AbstractDimension {
             this.id,
             newAttribute,
             this._start.toParentPeriodicity(newAttribute).value,
-            this._end.toParentPeriodicity(newAttribute).value
+            this._end.toParentPeriodicity(newAttribute).value,
+            this.label
         );
     }
 
@@ -84,7 +86,8 @@ class TimeDimension extends AbstractDimension {
             this.id,
             newAttribute,
             TimeSlot.fromDate(this._start.firstDate, newAttribute).value,
-            TimeSlot.fromDate(this._end.lastDate, newAttribute).value
+            TimeSlot.fromDate(this._end.lastDate, newAttribute).value,
+            this.label
         );
     }
 
@@ -125,7 +128,8 @@ class TimeDimension extends AbstractDimension {
             this.id,
             this._rootAttribute,
             newStart < this._start.value ? this._start.value : newStart,
-            newEnd < this._end.value ? newEnd : this._end.value
+            newEnd < this._end.value ? newEnd : this._end.value,
+            this.label
         );
     }
 

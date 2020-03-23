@@ -13,15 +13,20 @@ class AbstractDimension {
         throw new Error('Override me');
     }
 
+    get label() {
+        return this._label;
+    }
+
 	/**
 	 * Create a simple dimension
 	 *
-	 * @param  {[type]} dimensionId ie: "location"
-	 * @param  {[type]} attribute   ie: "zipCode"
-	 * @param  {[type]} items       ie: ["12345", "54321"]
+	 * @param  {[type]} id         ie: "location"
+	 * @param  {[type]} attribute  ie: "zipCode"
+	 * @param  {[type]} items      ie: ["12345", "54321"]
 	 */
-    constructor(dimensionId, rootAttribute) {
-        this.id = dimensionId;
+    constructor(id, label, rootAttribute) {
+        this.id = id;
+        this._label = label;
         this._rootAttribute = rootAttribute;
     }
 
