@@ -105,12 +105,28 @@ class TimeDimension extends AbstractDimension {
     }
 
     dice(attribute, items, reorder = false) {
-        if (items.length === 1) {
+        if (items.length === 1)
             return this.diceRange(attribute, items[0], items[0]);
+
+        // if reorder is true, it means we are supposed to keep the order
+        // provided in the item list, otherwise we'll keep our chronological order.
+        if (!reorder) {
+            items = items.slice().sort();
         }
-        else {
+
+        // Check that items are ordered, have the good period, and that there are no gaps.
+        let last = new TimeSlot(items[0]);
+        if (last.periodicity !== attribute)
             throw new Error('Unsupported');
+
+        for (let i = 1; i < items.length; ++i) {
+            const current = new TimeSlot(items[i]);
+            if (current.periodicity !== attribute || current.value != last.next().value) {
+                throw new Error('Unsupported');
+            }
         }
+
+        return this.diceRange(attribute, items[0], items[items.length - 1]);
     }
 
     diceRange(attribute, start, end) {

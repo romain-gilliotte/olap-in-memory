@@ -281,7 +281,7 @@ describe("Operation between cubes", function () {
 				cube.getNestedObject('antennas'),
 				{
 					summer: { paris: 0, toledo: 0, tokyo: 0 },
-					winter: { paris: 11, toledo: 11, tokyo: 10 }
+					winter: { paris: 11, toledo: 10, tokyo: 11 }
 				}
 			);
 		});
@@ -342,6 +342,28 @@ describe("Operation between cubes", function () {
 					'2010-04': { paris: 0, toledo: 34, tokyo: 0 },
 					'2010-05': { paris: 0, toledo: 33, tokyo: 0 },
 					'2010-06': { paris: 0, toledo: 33, tokyo: 0 }
+				}
+			);
+		});
+
+		it('should allow forcing the data to fit', function () {
+			const cube = new Cube([new TimeDimension('time', 'month', '2010-02', '2010-06')]);
+			cube.createStoredMeasure('antennas', {}, 0);
+
+			const cube2 = new Cube([new TimeDimension('time', 'year', '2010', '2011')]);
+			cube2.createStoredMeasure('antennas', {}, 0);
+			cube2.setNestedObject('antennas', { '2010': 1000, '2011': 500 });
+
+			cube.hydrateFromCube(cube2);
+
+			assert.deepEqual(
+				cube.getNestedObject('antennas'),
+				{
+					'2010-02': 200,
+					'2010-03': 200,
+					'2010-04': 200,
+					'2010-05': 200,
+					'2010-06': 200
 				}
 			);
 		});

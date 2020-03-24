@@ -274,13 +274,22 @@ class Cube {
 		otherCube = otherCube.reorderDimensions(this.dimensionIds);
 
 		// Drillup/drilldown so that the attributes are the same.
-		this.dimensions.forEach(dimension => {
+		this.dimensions.forEach((dimension, dimIndex) => {
 			const otherDimension = otherCube.getDimension(dimension.id);
 
-			if (otherDimension.rootAttribute !== dimension.rootAttribute && otherDimension.attributes.includes(dimension.rootAttribute))
-				otherCube = otherCube.drillUp(dimension.id, dimension.rootAttribute);
-			else if (allowDrillDown)
-				otherCube = otherCube.drillDown(dimension.id, dimension.rootAttribute); // allow periodicity change
+			if (otherDimension.rootAttribute !== dimension.rootAttribute) {
+				if (otherDimension.attributes.includes(dimension.rootAttribute))
+					otherCube = otherCube.drillUp(dimension.id, dimension.rootAttribute);
+				else if (allowDrillDown) {
+					// when drilling down the cube which will provide data, dice it to ensure that all
+					// fields have somewhere to go.
+					// this could be a separated step.
+					const drillDim = dimension.dice(otherDimension.rootAttribute, otherDimension.getItems())
+					otherCube = otherCube._drillDown(dimIndex, drillDim);
+				}
+				else
+					throw new Error('the cubes are not compatible')
+			}
 		});
 
 		// Fill our cube
@@ -551,8 +560,15 @@ class Cube {
 			return this;
 		}
 
+		const newDimension = oldDimension.drillDown(attribute);
+		return this._drillDown(dimIndex, newDimension, useRounding)
+	}
+
+	_drillDown(dimIndex, newDimension, useRounding = true) {
+		const oldDimension = this.dimensions[dimIndex];
+		const dimensionId = oldDimension.id;
 		const newDimensions = this.dimensions.slice();
-		newDimensions[dimIndex] = oldDimension.drillDown(attribute);
+		newDimensions[dimIndex] = newDimension;
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
