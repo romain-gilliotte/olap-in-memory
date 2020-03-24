@@ -1,7 +1,7 @@
 const assert = require('chai').assert;
 const { TimeDimension } = require('../src');
 
-describe('timeDimension', function () {
+describe('TimeDimension', function () {
 	let dimension;
 
 	before(function () {

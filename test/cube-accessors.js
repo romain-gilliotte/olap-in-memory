@@ -1,8 +1,8 @@
 const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
-const { Cube, GenericDimension } = require('../src');
+const { Cube, GenericDimension, TimeDimension } = require('../src');
 
-describe('accessors', function () {
+describe('Accessors', function () {
 
 	describe('getting data', function () {
 		let cube;
@@ -58,8 +58,8 @@ describe('accessors', function () {
 		});
 
 		it('should set flat array', function () {
-			cube.setFlatArray('antennas', [1, 2, 4, 8, 16, 32]),
-				assert.deepEqual(cube.getFlatArray('antennas'), [1, 2, 4, 8, 16, 32]);
+			cube.setFlatArray('antennas', [1, 2, 4, 8, 16, 32]);
+			assert.deepEqual(cube.getFlatArray('antennas'), [1, 2, 4, 8, 16, 32]);
 		});
 
 		it('should set nested array', function () {
@@ -79,29 +79,43 @@ describe('accessors', function () {
 
 	});
 
-	describe('fillFrom', function () {
+	describe('hydrateFromSparseNestedObject', function () {
 
-		it('it should fill from another cube', function () {
-			const period1 = new GenericDimension('period', 'season', ['summer', 'winter']);
-			const location1 = new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo']);
-			const cube1 = new Cube([location1, period1]);
-			cube1.createStoredMeasure('antennas', {}, 0);
+		it('should work on a simple case', function () {
+			const cube = new Cube([
+				new GenericDimension('period', 'season', ['summer', 'winter']),
+				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
+			]);
 
-			const period2 = new GenericDimension('period', 'season', ['winter']);
-			const location2 = new GenericDimension('location', 'city', ['paris', 'tokyo']);
-			const cube2 = new Cube([location2, period2]);
-			cube2.createStoredMeasure('antennas', {}, 0);
-			cube2.setFlatArray('antennas', [32, 53]);
+			cube.createStoredMeasure('antennas', {}, 0);
+			cube.hydrateFromSparseNestedObject('antennas', { winter: { toledo: 1 } });
 
-			cube1.hydrateFromCube(cube2);
-
-			assert.deepEqual(cube1.getNestedArray('antennas'), [[0, 32], [0, 0], [0, 53]]);
+			assert.deepEqual(
+				cube.getNestedObject('antennas'),
+				{
+					summer: { paris: 0, toledo: 0, tokyo: 0 },
+					winter: { paris: 0, toledo: 1, tokyo: 0 }
+				}
+			)
 		});
 
-		it('should also work with more complicated situation', function () {
+		it('should work with data which needs ignoring', function () {
+			const cube = new Cube([
+				new GenericDimension('period', 'season', ['summer', 'winter']),
+				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
+			]);
 
-		})
+			cube.createStoredMeasure('antennas', {}, 0);
+			cube.hydrateFromSparseNestedObject('antennas', { winter: { toledo: 1, losangeles: 2 } });
 
+			assert.deepEqual(
+				cube.getNestedObject('antennas'),
+				{
+					summer: { paris: 0, toledo: 0, tokyo: 0 },
+					winter: { paris: 0, toledo: 1, tokyo: 0 }
+				}
+			)
+		});
 	});
 });
 

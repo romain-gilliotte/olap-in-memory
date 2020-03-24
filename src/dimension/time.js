@@ -21,10 +21,13 @@ class TimeDimension extends AbstractDimension {
     constructor(id, rootAttribute, start, end, label = null) {
         super(id, label, rootAttribute);
 
-        this._start = new TimeSlot(start, rootAttribute);
-        this._end = new TimeSlot(end, rootAttribute);
+        this._start = new TimeSlot(start);
+        this._end = new TimeSlot(end);
         this._attributeItems = {};
         this._attributeMappings = {};
+
+        if (this._start.periodicity !== rootAttribute || this._end.periodicity !== rootAttribute)
+            throw new Error('Periodicity does not match with provided boundaries');
 
         if (this._start.value > this._end.value)
             throw new Error('Empty dimensions are not allowed');
@@ -72,6 +75,9 @@ class TimeDimension extends AbstractDimension {
     }
 
     drillUp(newAttribute) {
+        if (newAttribute == this.rootAttribute)
+            return this;
+
         return new TimeDimension(
             this.id,
             newAttribute,
@@ -82,6 +88,13 @@ class TimeDimension extends AbstractDimension {
     }
 
     drillDown(newAttribute) {
+        if (newAttribute == this.rootAttribute)
+            return this;
+
+        if (!this._start.childPeriodicities.includes(newAttribute)) {
+            throw new Error('Invalid periodicity.');
+        }
+
         return new TimeDimension(
             this.id,
             newAttribute,

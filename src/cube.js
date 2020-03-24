@@ -238,32 +238,51 @@ class Cube {
 
 		const dimension = this.dimensions[dimOffset];
 		for (let key in obj) {
-			const newOffset = offset * dimension.numItems + dimension.getItems().indexOf(key);
-			this.hydrateFromSparseNestedObject(measureId, obj[key], newOffset, dimOffset + 1);
+			const itemOffset = dimension.getItems().indexOf(key);
+			if (itemOffset !== -1) {
+				const newOffset = offset * dimension.numItems + itemOffset;
+				this.hydrateFromSparseNestedObject(measureId, obj[key], newOffset, dimOffset + 1);
+			}
 		}
 	}
 
-	hydrateFromCube(otherCube) {
+	hydrateFromCube(otherCube, allowDrillDown = true, interpolateData = true) {
 		// Remove all dimensions which are not in our cube.
-		otherCube = otherCube.keepDimensions(this.dimensionIds);
+		const commonDimensionIds = this.dimensionIds.filter(id => otherCube.dimensionIds.includes(id));
+		otherCube = otherCube.keepDimensions(commonDimensionIds);
 
-		// Add missing dimensions and drill up common ones
+		// Add missing dimensions
 		this.dimensions.forEach(dimension => {
 			const otherDimension = otherCube.getDimension(dimension.id);
 
-			if (otherDimension) {
-				if (otherDimension.rootAttribute !== dimension.rootAttribute)
-					otherCube = otherCube.drillUp(dimension.id, dimension.rootAttribute);
-			} else {
-				// create missing dimension.
-				const newDimension = dimension.dice(dimension.id, dimension.rootAttribute, dimension.getItems()[0]);
-				otherCube = otherCube.addDimension(newDimension);
+			if (!otherDimension) {
+				const aggregation = {};
+				for (let measureId in this.storedMeasuresRules)
+					aggregation[measureId] = this.storedMeasuresRules[measureId][dimension.id];
+
+				if (interpolateData) {
+					otherCube = otherCube.addDimension(dimension, aggregation);
+				} else {
+					const newDimension = dimension.dice(dimension.id, dimension.rootAttribute, dimension.getItems()[0]);
+					otherCube = otherCube.addDimension(newDimension, aggregation);
+				}
 			}
 		});
 
-		// Reorder dimensions to be same as us.
+		// Reorder dimensions
 		otherCube = otherCube.reorderDimensions(this.dimensionIds);
 
+		// Drillup/drilldown so that the attributes are the same.
+		this.dimensions.forEach(dimension => {
+			const otherDimension = otherCube.getDimension(dimension.id);
+
+			if (otherDimension.rootAttribute !== dimension.rootAttribute && otherDimension.attributes.includes(dimension.rootAttribute))
+				otherCube = otherCube.drillUp(dimension.id, dimension.rootAttribute);
+			else if (allowDrillDown)
+				otherCube = otherCube.drillDown(dimension.id, dimension.rootAttribute); // allow periodicity change
+		});
+
+		// Fill our cube
 		for (let measureId in this.storedMeasures) {
 			if (otherCube.storedMeasures[measureId]) {
 				this.hydrateFromSparseNestedObject(
@@ -416,11 +435,30 @@ class Cube {
 		return cube;
 	}
 
-	addDimension(dimension) {
-		if (dimension.numItems !== 1)
-			throw new Error(`Dimension "${dimension.id}" has ${dimension.numItems}. Only dimensions with a single items can be added.`);
+	addDimension(dimension, aggregation = {}) {
+		const clone = new Cube([...this.dimensions]);
+		Object.assign(clone.computedMeasures, this.computedMeasures);
+		Object.assign(clone.storedMeasures, this.storedMeasures);
 
-		this.dimensions.push(dimension);
+		clone.storedMeasuresRules = JSON.parse(JSON.stringify(this.storedMeasuresRules));
+		for (let measureId in aggregation)
+			clone.storedMeasuresRules[measureId][dimension.id] = aggregation[measureId];
+
+		// If length == 1, we are done
+		if (dimension.length === 1) {
+			clone.dimensions.push(dimension);
+			return clone;
+		}
+
+		// In the general case, we'll trick the cube in thinking it is drillingDown.
+		clone.dimensions.push({ id: dimension.id, rootAttribute: 'global', drillDown: () => dimension, numItems: 1 })
+
+		// Cheat by overriding getChildIndex to make the drillDown possible
+		dimension.getChildIndex = () => 0;
+		const finalCube = clone.drillDown(dimension.id, dimension.rootAttribute, true);
+		delete dimension.getChildIndex;
+
+		return finalCube;
 	}
 
 	removeDimension(dimensionId) {
@@ -504,6 +542,85 @@ class Cube {
 
 		return newCube;
 	}
+
+	drillDown(dimensionId, attribute, useRounding = true) {
+		const dimIndex = this.getDimensionIndex(dimensionId);
+		const oldDimension = this.dimensions[dimIndex];
+		if (oldDimension.rootAttribute === attribute) {
+			return this;
+		}
+
+		const newDimensions = this.dimensions.slice();
+		newDimensions[dimIndex] = oldDimension.drillDown(attribute);
+
+		const newCube = new Cube(newDimensions);
+		Object.assign(newCube.computedMeasures, this.computedMeasures);
+		Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
+
+		let newDimensionIndex = new Uint32Array(this.dimensions.length);
+
+		for (let storedMeasureId in this.storedMeasures) {
+			const oldStore = this.storedMeasures[storedMeasureId];
+			const newToOldIndexMap = new Uint32Array(newCube.storeSize);
+			const contributions = new Uint32Array(this.storeSize);
+
+			for (let newIndex = 0; newIndex < newToOldIndexMap.length; ++newIndex) {
+				// Decompose new index into dimensions indexes
+				let newIndexCopy = newIndex;
+				for (let i = newDimensionIndex.length - 1; i >= 0; --i) {
+					newDimensionIndex[i] = newIndexCopy % newCube.dimensions[i].numItems;
+					newIndexCopy = Math.floor(newIndexCopy / newCube.dimensions[i].numItems);
+				}
+
+				// Compute corresponding old index
+				let oldIndex = 0;
+				for (let j = 0; j < this.dimensions.length; ++j) {
+					let offset;
+
+					if (j == dimIndex) offset = newCube.dimensions[j].getChildIndex(oldDimension.rootAttribute, newDimensionIndex[j])
+					else offset = newDimensionIndex[j];
+
+					oldIndex = oldIndex * this.dimensions[j].numItems + offset;
+				}
+
+				// Depending on aggregation method, copy value.
+				newToOldIndexMap[newIndex] = oldIndex;
+				contributions[oldIndex] += 1;
+			}
+
+			const method = this.storedMeasuresRules[storedMeasureId][dimensionId] || 'sum';
+			const newStore = new oldStore.constructor(newCube.storeSize);
+			const remainingContributions = contributions.slice();
+
+			for (let newIndex = 0; newIndex < newToOldIndexMap.length; ++newIndex) {
+				const oldIndex = newToOldIndexMap[newIndex];
+				if (method === 'sum') {
+					const value = oldStore[oldIndex] / contributions[oldIndex];
+
+					if (useRounding) {
+						const contributionId = contributions[oldIndex] - remainingContributions[oldIndex];
+						const amountToDistribute = Math.round((value % 1) * contributions[oldIndex]);
+
+						newStore[newIndex] = Math.floor(value);
+						if (contributionId < amountToDistribute)
+							newStore[newIndex]++;
+					}
+					else {
+						newStore[newIndex] = value;
+					}
+				}
+				else
+					newStore[newIndex] = oldStore[oldIndex];
+
+				--remainingContributions[oldIndex];
+			}
+
+			newCube.storedMeasures[storedMeasureId] = newStore;
+		}
+
+		return newCube;
+	}
+
 
 	/**
 	 * Aggregate a dimension by group values.

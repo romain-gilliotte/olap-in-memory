@@ -1,15 +1,16 @@
 const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
 
-describe("filtering cubes", function () {
+describe("Measures", function () {
 
-    let cube;
+    describe("Renaming measures", function () {
 
-    beforeEach(function () {
-        cube = createTestCube(true, true);
-    });
+        let cube;
 
-    describe("rename", function () {
+        beforeEach(function () {
+            cube = createTestCube(true, true);
+        });
+
 
         it('should throw on non existent measure', function () {
             assert.throws(() => cube.renameMeasure('missing', 'missing2'));
@@ -40,4 +41,5 @@ describe("filtering cubes", function () {
         });
 
     });
+
 });

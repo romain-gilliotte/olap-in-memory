@@ -1,7 +1,7 @@
 const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
 
-describe("filtering cubes", function () {
+describe("Filtering", function () {
 
 	let cube;
 
@@ -76,5 +76,15 @@ describe("filtering cubes", function () {
 			);
 		});
 
+		it('should dice on cities reversed', function () {
+			const parTolCube = cube.dice('location', 'city', ['toledo', 'paris'], true);
+
+			assert.deepEqual(parTolCube.getNestedArray('antennas'), [[4, 8], [1, 2]]);
+		});
+
+		it('should not allow reordering on continents', function () {
+			assert.throws(() => cube.dice('location', 'continent', ['europe'], true));
+		});
 	});
+
 });

@@ -2,7 +2,7 @@
 
 Olap in memory is a library to manipulate offline OLAP cubes.
 
-It was written as a companion library for [monitool](https://github.com/romain-gilliotte/monitool), a full-featured monitoring platform targeted at humanitarian organizations.
+It was written as a companion library for [Monitool](https://github.com/romain-gilliotte/monitool), a full-featured monitoring platform targeted at humanitarian organizations.
 
 It support:
 - Stored and computed measures
@@ -18,12 +18,17 @@ TimeslotDAG runs in both NodeJS and the browser
 $ npm install olap-in-memory
 ```
 
-# Rationale
+# Rationale behind the project
 
-Many vendors already provide solutions to implement OLAP cubes, which provide many features, and better performance on big cubes.
+Many vendors already provide solutions to implement OLAP cubes, which provide better performance.
 
+Other projects:
+- [jsHypercube](https://code.google.com/archive/p/js-hypercube/): Another offline cube system, this project is no longer maintained
+- [Data Brewery Cubes](http://cubes.databrewery.org/): Light-weight Python framework and OLAP HTTP server for easy development of reporting applications and aggregate browsing of multi-dimensionally modeled data.
 
-
+However, to implement Monitool, we needed to be able to:
+- Allow changing structure of the cubes without loosing the data which was already entered.
+- Version both the structure of the cubes and the modifications of the data they contain.
 
 # Usage
 
@@ -72,12 +77,3 @@ query.project(['time', 'employee']).getNestedObject('sales')
 // 	'2010-Q4': {'mike': 4, 'oscar', 8}
 // }
 ```
-
-# Alternatives
-
-- [jsHypercube](https://code.google.com/archive/p/js-hypercube/): Legacy project from Google Code.
-
-
-# Coming next
-
-- [ ] Add interpolation system to be able to drillDown (ie: "invent" monthly data from quarterly).
