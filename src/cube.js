@@ -1,6 +1,7 @@
 const DimensionFactory = require('./dimension/factory');
 const { toBuffer, fromBuffer } = require('./serialization');
 
+
 class Cube {
 
 	get storeSize() {
@@ -590,29 +591,30 @@ class Cube {
 
 			const method = this.storedMeasuresRules[storedMeasureId][dimensionId] || 'sum';
 			const newStore = new oldStore.constructor(newCube.storeSize);
-			const remainingContributions = contributions.slice();
+			const contributionsIds = new Uint32Array(this.storeSize);
 
 			for (let newIndex = 0; newIndex < newToOldIndexMap.length; ++newIndex) {
 				const oldIndex = newToOldIndexMap[newIndex];
 				if (method === 'sum') {
-					const value = oldStore[oldIndex] / contributions[oldIndex];
-
 					if (useRounding) {
-						const contributionId = contributions[oldIndex] - remainingContributions[oldIndex];
-						const amountToDistribute = Math.round((value % 1) * contributions[oldIndex]);
+						const value = Math.floor(oldStore[oldIndex] / contributions[oldIndex]);
+						const remainder = oldStore[oldIndex] % contributions[oldIndex];
+						const contributionId = contributionsIds[oldIndex];
+						const oneOverDistance = remainder / contributions[oldIndex];
+						const lastIsSame = Math.floor(contributionId * oneOverDistance) === Math.floor((contributionId - 1) * oneOverDistance);
 
 						newStore[newIndex] = Math.floor(value);
-						if (contributionId < amountToDistribute)
+						if (!lastIsSame)
 							newStore[newIndex]++;
 					}
 					else {
-						newStore[newIndex] = value;
+						newStore[newIndex] = oldStore[oldIndex] / contributions[oldIndex];
 					}
 				}
 				else
 					newStore[newIndex] = oldStore[oldIndex];
 
-				--remainingContributions[oldIndex];
+				contributionsIds[oldIndex]++;
 			}
 
 			newCube.storedMeasures[storedMeasureId] = newStore;
