@@ -1,6 +1,7 @@
+const merge = require('lodash.merge')
 const DimensionFactory = require('./dimension/factory');
 const { toBuffer, fromBuffer } = require('./serialization');
-
+const GenericDimension = require('./dimension/generic');
 
 class Cube {
 
@@ -184,7 +185,32 @@ class Cube {
 		this.setFlatArray(measureId, values);
 	}
 
-	getNestedObject(measureId) {
+	getNestedObject(measureId, withTotals = false) {
+		if (withTotals && this.dimensions.length) {
+			const report = {};
+
+			for (let j = 0; j < 2 ** this.dimensions.length; ++j) {
+				const dimensionIds = this.dimensions.map(dim => dim.id);
+
+				let subCube = this;
+				for (let i = 0; i < this.dimensions.length; ++i) {
+					const include = j & (1 << i);
+					if (include !== 0) {
+						subCube = subCube
+							.removeDimension(dimensionIds[i])
+							.addDimension(new GenericDimension(`total_${i}`, 'none', ['_total']))
+
+						dimensionIds[i] = `total_${i}`;
+					}
+				}
+
+				const subReport = subCube.reorderDimensions(dimensionIds).getNestedObject(measureId);
+				merge(report, subReport);
+			}
+
+			return report;
+		}
+
 		let values = this.getFlatArray(measureId);
 
 		// numDimensions == 0
