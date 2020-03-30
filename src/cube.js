@@ -682,7 +682,6 @@ class Cube {
 	 * ie: minutes by hour, or cities by region.
 	 */
 	drillUp(dimensionId, attribute) {
-		const STRANGE_VALUE = 28763;
 		const dimIndex = this.getDimensionIndex(dimensionId);
 		const oldDimension = this.dimensions[dimIndex];
 		if (oldDimension.rootAttribute === attribute) {
@@ -701,11 +700,10 @@ class Cube {
 		let oldDimensionIndex = new Array(this.dimensions.length);
 
 		for (let storedMeasureId in this.storedMeasures) {
-			let oldStore = this.storedMeasures[storedMeasureId],
-				newStore = new oldStore.constructor(newCube.storeSize),
-				contributions = new Array(newCube.storeSize);
+			const oldStore = this.storedMeasures[storedMeasureId];
+			const newStore = new oldStore.constructor(newCube.storeSize);
+			const contributions = new Uint32Array(newCube.storeSize);
 
-			newStore.fill(STRANGE_VALUE);
 			contributions.fill(0);
 
 			let method = this.storedMeasuresRules[storedMeasureId][dimensionId] || 'sum';
@@ -727,7 +725,7 @@ class Cube {
 					newIndex = newIndex * newCube.dimensions[j].numItems + offset;
 				}
 
-				if (newStore[newIndex] == STRANGE_VALUE)
+				if (contributions[newIndex] === 0)
 					newStore[newIndex] = oldStore[oldIndex];
 				else {
 					if (method == 'last')
