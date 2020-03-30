@@ -42,7 +42,7 @@ describe('GenericDimension', function () {
 
     it('should give proper attributes', function () {
         assert.equal(dimension.rootAttribute, 'city');
-        assert.deepEqual(dimension.attributes, ['city', 'cityNumLetters', 'country', 'continent']);
+        assert.sameMembers(dimension.attributes, ['city', 'cityNumLetters', 'country', 'continent', 'all']);
     });
 
     it('should compute items for all attributes', function () {
@@ -67,11 +67,11 @@ describe('GenericDimension', function () {
 
     it('should drill up', function () {
         let childDim = dimension.drillUp('country');
-        assert.deepEqual(childDim.attributes, ['country', 'continent']);
+        assert.sameMembers(childDim.attributes, ['country', 'continent', 'all']);
         assert.deepEqual(childDim.getItems(), ['france', 'spain', 'lebanon']);
 
         let childDim2 = dimension.drillUp('cityNumLetters');
-        assert.deepEqual(childDim2.attributes, ['cityNumLetters'])
+        assert.sameMembers(childDim2.attributes, ['cityNumLetters', 'all'])
     });
 
     it('should intersect to dimensions with the same rootAttribute', function () {

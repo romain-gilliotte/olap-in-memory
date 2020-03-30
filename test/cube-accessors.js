@@ -45,10 +45,10 @@ describe('Accessors', function () {
 			assert.deepEqual(
 				cube.getNestedObject('antennas', true),
 				{
-					paris: { summer: 1, winter: 2, _total: 3 },
-					toledo: { summer: 4, winter: 8, _total: 12 },
-					tokyo: { summer: 16, winter: 32, _total: 48 },
-					_total: { summer: 21, winter: 42, _total: 63 }
+					paris: { summer: 1, winter: 2, all: 3 },
+					toledo: { summer: 4, winter: 8, all: 12 },
+					tokyo: { summer: 16, winter: 32, all: 48 },
+					all: { summer: 21, winter: 42, all: 63 }
 				}
 			);
 		});

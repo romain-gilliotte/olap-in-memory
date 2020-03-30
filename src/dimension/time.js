@@ -59,12 +59,12 @@ class TimeDimension extends AbstractDimension {
 
         if (!this._attributeItems[attribute]) {
             const end = this._end.toParentPeriodicity(attribute);
-            const items = [];
-
             let period = this._start.toParentPeriodicity(attribute);
-            while (period.value <= end.value) {
-                items.push(period.value);
+
+            const items = [period.value];
+            while (period.value < end.value) {
                 period = period.next();
+                items.push(period.value);
             }
 
             this._attributeItems[attribute] = items;

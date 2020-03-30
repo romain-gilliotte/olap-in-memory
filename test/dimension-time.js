@@ -14,11 +14,12 @@ describe('TimeDimension', function () {
 
 	it('should give proper attributes', function () {
 		assert.equal(dimension.rootAttribute, 'month');
-		assert.deepEqual(dimension.attributes, [
+		assert.sameMembers(dimension.attributes, [
 			'month',
 			'quarter',
 			'semester',
-			'year'
+			'year',
+			'all'
 		]);
 	});
 
@@ -43,13 +44,13 @@ describe('TimeDimension', function () {
 
 	it('should drill up', function () {
 		let childDim = dimension.drillUp('quarter');
-		assert.deepEqual(childDim.attributes, ['quarter', 'semester', 'year']);
+		assert.sameMembers(childDim.attributes, ['quarter', 'semester', 'year', 'all']);
 		assert.deepEqual(childDim.getItems(), ['2009-Q4', '2010-Q1']);
 	});
 
 	it('should drill down', function () {
 		let childDim = dimension.drillDown('week_mon');
-		assert.deepEqual(childDim.attributes, ['week_mon', 'month', 'quarter', 'semester', 'year']);
+		assert.sameMembers(childDim.attributes, ['week_mon', 'month', 'quarter', 'semester', 'year', 'all']);
 		assert.deepEqual(childDim.getItems(), [
 			'2009-W49-mon', '2009-W50-mon', '2009-W51-mon', '2009-W52-mon', '2009-W53-mon',
 			'2010-W01-mon', '2010-W02-mon', '2010-W03-mon', '2010-W04-mon',

@@ -24,6 +24,7 @@ class GenericDimension extends AbstractDimension {
 		// }
 		this._attributeItems = {};
 		this._attributeItems[rootAttribute] = items;
+		this._attributeItems['all'] = ['all'];
 
 		this._attributeLabels = {};
 		this._attributeLabels[rootAttribute] = {};
@@ -44,6 +45,7 @@ class GenericDimension extends AbstractDimension {
 		// }
 		this._attributeMappings = {};
 		this._attributeMappings[rootAttribute] = new Uint32Array(items.map((item, index) => index));
+		this._attributeMappings['all'] = new Uint32Array(items.length); // everything points to item 0
 
 		if (items.length === 0)
 			throw new Error('Empty dimensions are not allowed');
