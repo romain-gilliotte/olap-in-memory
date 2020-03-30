@@ -12,14 +12,19 @@ class TimeDimension extends AbstractDimension {
         return [this._rootAttribute, ...TimeSlot.upperSlots[this._rootAttribute]]
     }
 
+    get isInterpolated() {
+        return this._originalRootAttribute !== this._rootAttribute
+            && !TimeSlot.upperSlots[this._originalRootAttribute].includes(this._rootAttribute);
+    }
+
     /**
      * 
      * @param {TimeSlotPeriodicity} rootAttribute 
      * @param {string} start 
      * @param {string} end 
      */
-    constructor(id, rootAttribute, start, end, label = null) {
-        super(id, label, rootAttribute);
+    constructor(id, rootAttribute, start, end, label = null, originalRootAttribute = null) {
+        super(id, label, rootAttribute, originalRootAttribute);
 
         this._start = new TimeSlot(start);
         this._end = new TimeSlot(end);
@@ -35,7 +40,7 @@ class TimeDimension extends AbstractDimension {
 
     static deserialize(buffer) {
         const data = fromBuffer(buffer);
-        return new TimeDimension(data.id, data.rootAttribute, data.start, data.end, data.label);
+        return new TimeDimension(data.id, data.rootAttribute, data.start, data.end, data.label, data.originalRootAttribute);
     }
 
     serialize() {
@@ -44,7 +49,8 @@ class TimeDimension extends AbstractDimension {
             label: this.label,
             rootAttribute: this.rootAttribute,
             start: this._start.value,
-            end: this._end.value
+            end: this._end.value,
+            originalRootAttribute: this._originalRootAttribute
         });
     }
 
@@ -83,7 +89,8 @@ class TimeDimension extends AbstractDimension {
             newAttribute,
             this._start.toParentPeriodicity(newAttribute).value,
             this._end.toParentPeriodicity(newAttribute).value,
-            this.label
+            this.label,
+            this._originalRootAttribute
         );
     }
 
@@ -100,7 +107,8 @@ class TimeDimension extends AbstractDimension {
             newAttribute,
             TimeSlot.fromDate(this._start.firstDate, newAttribute).value,
             TimeSlot.fromDate(this._end.lastDate, newAttribute).value,
-            this.label
+            this.label,
+            this._originalRootAttribute
         );
     }
 
@@ -158,7 +166,8 @@ class TimeDimension extends AbstractDimension {
             this._rootAttribute,
             newStart < this._start.value ? this._start.value : newStart,
             newEnd < this._end.value ? newEnd : this._end.value,
-            this.label
+            this.label,
+            this._originalRootAttribute
         );
     }
 
@@ -214,7 +223,7 @@ class TimeDimension extends AbstractDimension {
             this._end.toParentPeriodicity(rootAttribute).value :
             otherDimension._end.toParentPeriodicity(rootAttribute).value;
 
-        return new TimeDimension(this.id, rootAttribute, start, end);
+        return new TimeDimension(this.id, rootAttribute, start, end, this.label, this._originalRootAttribute);
     }
 }
 

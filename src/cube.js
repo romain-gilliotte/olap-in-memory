@@ -27,6 +27,10 @@ class Cube {
 		return Object.keys(this.computedMeasures);
 	}
 
+	get isInterpolated() {
+		return this.dimensions.some(dim => dim.isInterpolated);
+	}
+
 	constructor(dimensions) {
 		this.dimensions = dimensions;
 		this.storedMeasures = {};
@@ -186,7 +190,7 @@ class Cube {
 		this.setFlatArray(measureId, values);
 	}
 
-	getNestedObject(measureId, withTotals = false) {
+	getNestedObject(measureId, withTotals = false, withInterpolation = false) {
 		if (withTotals && this.dimensions.length) {
 			const report = {};
 
@@ -205,8 +209,12 @@ class Cube {
 					}
 				}
 
-				const subReport = subCube.reorderDimensions(dimensionIds).getNestedObject(measureId);
-				merge(report, subReport);
+				merge(
+					report,
+					subCube
+						.reorderDimensions(dimensionIds)
+						.getNestedObject(measureId, false, withInterpolation)
+				);
 			}
 
 			return report;
@@ -228,6 +236,8 @@ class Cube {
 				let k = 0;
 				for (let item of this.dimensions[i].getItems()) {
 					newValues[j][item] = values[j * chunkSize + k];
+					if (withInterpolation)
+						newValues[j]['_interpolated:' + item] = this.isInterpolated;
 					k++;
 				}
 			}

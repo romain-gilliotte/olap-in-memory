@@ -98,6 +98,7 @@ describe("Dimension", function () {
 		it('should inverse the dimensions', function () {
 			const inversed = cube.reorderDimensions(['period', 'location']);
 
+			assert.equal(inversed.isInterpolated, false);
 			assert.deepEqual(inversed.getNestedArray('antennas'), [[1, 4, 16], [2, 8, 32]]);
 		});
 
@@ -110,61 +111,120 @@ describe("Drilling", function () {
 
 	describe("drillUp", function () {
 
-		let cube;
+		describe('cities to continents', function () {
+			let cube, newCube;
 
-		beforeEach(function () {
-			cube = createTestCube(true, true);
+			before(function () {
+				cube = createTestCube(true, true);
+				newCube = cube.drillUp('location', 'continent');
+			});
+
+			it('Drilled up cube should not be marked as interpolated', function () {
+				assert.equal(newCube.isInterpolated, false);
+			})
+
+			it('Drilled up cube should have summed cities by continent', function () {
+				assert.deepEqual(
+					newCube.getNestedArray('antennas'),
+					[[5, 10], [16, 32]]
+				);
+			});
 		});
-
-		it('should sum cities by continent', function () {
-			const antennas2 = cube.drillUp('location', 'continent');
-
-			assert.deepEqual(
-				antennas2.getNestedArray('antennas'),
-				[[5, 10], [16, 32]]
-			);
-		});
-
 	});
 
 	describe('drillDown', function () {
 
-		it('should distribute months into days', function () {
-			const cube = new Cube([new TimeDimension('time', 'month', '2010-01', '2010-02')]);
-			cube.createStoredMeasure('measure1', { time: 'sum' }, 100);
-			cube.createStoredMeasure('measure2', { time: 'average' }, 100);
+		describe('months to days', function () {
+			let cube, newCube;
 
-			const newCube = cube.drillDown('time', 'day');
-			assert.deepEqual(
-				newCube.drillUp('time', 'month').getNestedObject('measure1'),
-				cube.getNestedObject('measure1')
-			);
+			before(function () {
+				cube = new Cube([new TimeDimension('time', 'month', '2010-01', '2010-02')]);
+				cube.createStoredMeasure('measure1', { time: 'sum' }, 100);
+				cube.createStoredMeasure('measure2', { time: 'average' }, 100);
 
-			assert.deepEqual(
-				newCube.drillUp('time', 'month').getNestedObject('measure2'),
-				cube.getNestedObject('measure2')
-			);
+				newCube = cube.drillDown('time', 'day');
+			});
+
+			it('original cube should not be marked as interpolated', function () {
+				assert.equal(cube.isInterpolated, false);
+			});
+
+			it('drilled down cube should be marked as interpolated', function () {
+				assert.equal(newCube.isInterpolated, true);
+			})
+
+			it('when drilled up again to week, cube should still be interpolated', function () {
+				assert.equal(
+					newCube.drillUp('time', 'week_mon').isInterpolated,
+					true
+				);
+			});
+
+			it('when drilled up again to month, cube should no longer be interpolated', function () {
+				assert.equal(
+					newCube.drillUp('time', 'month').isInterpolated,
+					false
+				);
+			});
+
+			it('both measures should not have changed when drilled down and up again', function () {
+				assert.deepEqual(
+					newCube.drillUp('time', 'month').getNestedObject('measure1'),
+					cube.getNestedObject('measure1')
+				);
+
+				assert.deepEqual(
+					newCube.drillUp('time', 'month').getNestedObject('measure2'),
+					cube.getNestedObject('measure2')
+				);
+			});
 		});
 
-		it('should distribute month_weeks_* into days', function () {
-			const cube = new Cube([new TimeDimension('time', 'month_week_mon', '2010-01-W1-mon', '2010-02-W1-mon')]);
-			cube.createStoredMeasure('measure1', { time: 'sum' }, 100);
-			cube.createStoredMeasure('measure2', { time: 'average' }, 100);
+		describe('months_week_mon to days', function () {
+			let cube, newCube;
 
-			const newCube = cube.drillDown('time', 'day');
+			before(function () {
+				cube = new Cube([new TimeDimension('time', 'month_week_mon', '2010-01-W1-mon', '2010-02-W1-mon')]);
+				cube.createStoredMeasure('measure1', { time: 'sum' }, 100);
+				cube.createStoredMeasure('measure2', { time: 'average' }, 100);
 
-			assert.deepEqual(
-				newCube.drillUp('time', 'month_week_mon').getNestedObject('measure1'),
-				cube.getNestedObject('measure1')
-			);
+				newCube = cube.drillDown('time', 'day');
+			});
 
-			assert.deepEqual(
-				newCube.drillUp('time', 'month_week_mon').getNestedObject('measure2'),
-				cube.getNestedObject('measure2')
-			);
+			it('original cube should not be marked as interpolated', function () {
+				assert.equal(cube.isInterpolated, false);
+			});
+
+			it('drilled down cube should be marked as interpolated', function () {
+				assert.equal(newCube.isInterpolated, true);
+			})
+
+			it('when drilled up again to week_mon, cube should no longer be interpolated', function () {
+				assert.equal(
+					newCube.drillUp('time', 'week_mon').isInterpolated,
+					false
+				);
+			});
+
+			it('when drilled up again to week_sat, cube should should be interpolated', function () {
+				assert.equal(
+					newCube.drillUp('time', 'week_sat').isInterpolated,
+					true
+				);
+			});
+
+			it('both measures should not have changed when drilled down and up again', function () {
+				assert.deepEqual(
+					newCube.drillUp('time', 'month_week_mon').getNestedObject('measure1'),
+					cube.getNestedObject('measure1')
+				);
+
+				assert.deepEqual(
+					newCube.drillUp('time', 'month_week_mon').getNestedObject('measure2'),
+					cube.getNestedObject('measure2')
+				);
+			});
 		});
-
 	});
-
 });
 
