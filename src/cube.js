@@ -60,10 +60,11 @@ class Cube {
 		else if (type == 'float64') store = new Float64Array(this.storeSize);
 		else throw new Error('Invalid type');
 
-		store.fill(defaultValue);
+		if (defaultValue !== 0)
+			store.fill(defaultValue);
 
 		this.storedMeasures[measureId] = store;
-		this.storedMeasuresRules[measureId] = aggregation
+		this.storedMeasuresRules[measureId] = aggregation;
 	}
 
 	renameMeasure(oldMeasureId, newMeasureId) {
