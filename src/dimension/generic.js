@@ -15,7 +15,7 @@ class GenericDimension extends AbstractDimension {
 	 * Create a simple dimension
 	 */
 	constructor(id, rootAttribute, items, dimensionLabel = null, itemlabels = null) {
-		super(id, dimensionLabel, rootAttribute);
+		super(id, rootAttribute, dimensionLabel);
 
 		// Items for all attributes
 		// {

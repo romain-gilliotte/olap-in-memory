@@ -24,7 +24,7 @@ class TimeDimension extends AbstractDimension {
      * @param {string} end 
      */
     constructor(id, rootAttribute, start, end, label = null, originalRootAttribute = null) {
-        super(id, label, rootAttribute, originalRootAttribute);
+        super(id, rootAttribute, label, originalRootAttribute);
 
         this._start = new TimeSlot(start);
         this._end = new TimeSlot(end);

@@ -25,13 +25,13 @@ class AbstractDimension {
 	 * Create a simple dimension
 	 *
 	 * @param  {[type]} id         ie: "location"
-	 * @param  {[type]} attribute  ie: "zipCode"
-	 * @param  {[type]} items      ie: ["12345", "54321"]
+     * @param  {[type]} attribute  ie: "zipCode"
+     * @param  {string} label
 	 */
-    constructor(id, label, rootAttribute, originalRootAttribute = null) {
+    constructor(id, rootAttribute, label = null, originalRootAttribute = null) {
         this.id = id;
-        this._label = label;
         this._rootAttribute = rootAttribute;
+        this._label = label;
         this._originalRootAttribute = originalRootAttribute || rootAttribute;
     }
 
