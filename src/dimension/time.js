@@ -125,13 +125,15 @@ class TimeDimension extends AbstractDimension {
         // Check that items are ordered, have the good period, and that there are no gaps.
         let last = new TimeSlot(items[0]);
         if (last.periodicity !== attribute)
-            throw new Error('Unsupported');
+            throw new Error('Unsupported: wrong periodicity');
 
         for (let i = 1; i < items.length; ++i) {
             const current = new TimeSlot(items[i]);
-            if (current.periodicity !== attribute || current.value != last.next().value) {
-                throw new Error('Unsupported');
+            if (current.periodicity !== attribute || current.value !== last.next().value) {
+                throw new Error('Unsupported: follow');
             }
+
+            last = current;
         }
 
         return this.diceRange(attribute, items[0], items[items.length - 1]);

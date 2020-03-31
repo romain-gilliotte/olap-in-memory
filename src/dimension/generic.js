@@ -180,8 +180,7 @@ class GenericDimension extends AbstractDimension {
 		if (this.rootAttribute === attribute) {
 			// We found the dimension directly
 			if (reorder)
-				newItems = items;
-
+				newItems = items.filter(i => oldItems.indexOf(i) !== -1);
 			else
 				newItems = oldItems.filter(i => items.indexOf(i) !== -1);
 		}

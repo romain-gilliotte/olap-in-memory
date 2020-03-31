@@ -1,7 +1,10 @@
-const merge = require('lodash.merge')
+const merge = require('lodash.merge');
 const DimensionFactory = require('./dimension/factory');
-const { toBuffer, fromBuffer } = require('./serialization');
 const CatchAllDimension = require('./dimension/catch-all');
+const { nestedArrayToFlatArray, flatArrayToNestedArray } = require('./formatter/nested-array');
+const { nestedObjectToFlatArray, flatArrayToNestedObject } = require('./formatter/nested-object');
+const { toBuffer, fromBuffer } = require('./serialization');
+const InMemoryStore = require('./store/in-memory');
 
 class Cube {
 
@@ -12,7 +15,7 @@ class Cube {
 	get byteLength() {
 		return Object
 			.values(this.storedMeasures)
-			.reduce((m, buffer) => m + buffer.byteLength, 0);
+			.reduce((m, store) => m + store.byteLength, 0);
 	}
 
 	get dimensionIds() {
@@ -34,7 +37,6 @@ class Cube {
 	constructor(dimensions) {
 		this.dimensions = dimensions;
 		this.storedMeasures = {};
-		this.storedMeasuresRules = {};
 		this.computedMeasures = {};
 	}
 
@@ -54,27 +56,15 @@ class Cube {
 	}
 
 	createStoredMeasure(measureId, aggregation = {}, defaultValue = NaN, type = 'float32') {
-		if (this.storedMeasures[measureId] !== undefined || this.computedMeasures[measureId] !== undefined)
+		if (this.storedMeasures[measureId] !== undefined)
 			throw new Error('This measure already exists');
 
-		let store;
-		if (type == 'int32') store = new Int32Array(this.storeSize);
-		else if (type == 'uint32') store = new UInt32Array(this.storeSize);
-		else if (type == 'float32') store = new Float32Array(this.storeSize);
-		else if (type == 'float64') store = new Float64Array(this.storeSize);
-		else throw new Error('Invalid type');
-
-		if (defaultValue !== 0)
-			store.fill(defaultValue);
-
-		this.storedMeasures[measureId] = store;
-		this.storedMeasuresRules[measureId] = aggregation;
+		this.storedMeasures[measureId] = new InMemoryStore(this.storeSize, aggregation, defaultValue, type);
 	}
 
 	renameMeasure(oldMeasureId, newMeasureId) {
 		const cube = new Cube(this.dimensions);
 		cube.storedMeasures = Object.assign({}, this.storedMeasures);
-		cube.storedMeasuresRules = Object.assign({}, this.storedMeasuresRules);
 		cube.computedMeasures = Object.assign({}, this.computedMeasures);
 
 		if (cube.computedMeasures[oldMeasureId]) {
@@ -83,9 +73,7 @@ class Cube {
 		}
 		else if (cube.storedMeasures[oldMeasureId]) {
 			cube.storedMeasures[newMeasureId] = cube.storedMeasures[oldMeasureId];
-			cube.storedMeasuresRules[newMeasureId] = cube.storedMeasuresRules[oldMeasureId];
 			delete cube.storedMeasures[oldMeasureId];
-			delete cube.storedMeasuresRules[oldMeasureId];
 
 			for (let measureId in cube.computedMeasures) {
 				cube.computedMeasures[measureId] = cube.computedMeasures[measureId].replace(
@@ -114,7 +102,7 @@ class Cube {
 
 	getFlatArray(measureId) {
 		if (this.storedMeasures[measureId] !== undefined)
-			return Array.from(this.storedMeasures[measureId]);
+			return this.storedMeasures[measureId].data;
 
 		else if (this.computedMeasures[measureId] !== undefined) {
 			// Create function to compute
@@ -129,7 +117,7 @@ class Cube {
 			for (let i = 0; i < this.storeSize; ++i) {
 				let j = 0;
 				for (let storedMeasureId in this.storedMeasures) {
-					params[j] = this.storedMeasures[storedMeasureId][i];
+					params[j] = this.storedMeasures[storedMeasureId].getValue(i);
 					j++;
 				}
 
@@ -143,122 +131,51 @@ class Cube {
 			throw new Error('No such measure');
 	}
 
-	setFlatArray(measureId, value) {
-		const store = this.storedMeasures[measureId];
-
-		if (store === undefined)
+	setFlatArray(measureId, values) {
+		if (this.storedMeasures[measureId]) {
+			this.storedMeasures[measureId].data = values;
+		}
+		else
 			throw new Error('setFlatArray can only be called on stored measures');
-
-		if (this.storeSize !== value.length)
-			throw new Error('value length is invalid');
-
-		for (let i = 0; i < this.storeSize; ++i)
-			store[i] = value[i];
 	}
 
 	getNestedArray(measureId) {
-		let values = this.getFlatArray(measureId);
-
-		// numDimensions == 0
-		if (this.dimensions.length === 0)
-			return values[0];
-
-		// numDimensions >= 1
-		const numSteps = this.dimensions.length - 1;
-		for (let i = this.dimensions.length - 1; i > 0; --i) {
-			let chunkSize = this.dimensions[i].numItems;
-
-			let newValues = new Array(values.length / chunkSize);
-			for (let j = 0; j < newValues.length; ++j)
-				newValues[j] = values.slice(
-					j * chunkSize,
-					j * chunkSize + chunkSize
-				);
-
-			values = newValues;
-		}
-
-		return values;
+		const array = this.getFlatArray(measureId);
+		return flatArrayToNestedArray(array, this.dimensions);
 	}
 
 	setNestedArray(measureId, values) {
-		const numSteps = this.dimensions.length - 1;
-
-		for (let i = 0; i < numSteps; ++i)
-			values = [].concat(...values);
-
-		this.setFlatArray(measureId, values);
+		const array = nestedArrayToFlatArray(values, this.dimensions);
+		this.setFlatArray(measureId, array);
 	}
 
-	getNestedObject(measureId, withTotals = false, withInterpolation = false) {
-		if (withTotals && this.dimensions.length) {
-			const report = {};
+	getNestedObject(measureId, withTotals = false) {
+		if (!withTotals || this.dimensions.length == 0)
+			return flatArrayToNestedObject(this.getFlatArray(measureId), this.dimensions);
 
-			for (let j = 0; j < 2 ** this.dimensions.length; ++j) {
-				let subCube = this;
-				for (let i = 0; i < this.dimensions.length; ++i) {
-					const include = j & (1 << i);
-					if (include !== 0)
-						subCube = subCube.drillUp(this.dimensions[i].id, 'all')
-				}
-
-				merge(report, subCube.getNestedObject(measureId, false, withInterpolation));
+		const result = {};
+		for (let j = 0; j < 2 ** this.dimensions.length; ++j) {
+			let subCube = this;
+			for (let i = 0; i < this.dimensions.length; ++i) {
+				const include = j & (1 << i);
+				if (include !== 0)
+					subCube = subCube.drillUp(this.dimensions[i].id, 'all')
 			}
 
-			return report;
+			merge(result, subCube.getNestedObject(measureId, false));
 		}
 
-		let values = this.getFlatArray(measureId);
-
-		// numDimensions == 0
-		if (this.dimensions.length === 0)
-			return values[0];
-
-		// numDimensions >= 1
-		for (let i = this.dimensions.length - 1; i >= 0; --i) {
-			let chunkSize = this.dimensions[i].numItems;
-
-			let newValues = new Array(values.length / chunkSize);
-			for (let j = 0; j < newValues.length; ++j) {
-				newValues[j] = {};
-				let k = 0;
-				for (let item of this.dimensions[i].getItems()) {
-					newValues[j][item] = values[j * chunkSize + k];
-					if (withInterpolation)
-						newValues[j][item + ':interpolated'] = this.isInterpolated;
-					k++;
-				}
-			}
-
-			values = newValues;
-		}
-
-		return values[0];
+		return result;
 	}
 
 	setNestedObject(measureId, value) {
-		value = [value];
-
-		for (let i = 0; i < this.dimensions.length; ++i) {
-			let dimItems = this.dimensions[i].getItems(),
-				newValue = new Array(value.length * this.dimensions[i].numItems);
-
-			for (let j = 0; j < newValue.length; ++j) {
-				let chunkIndex = Math.floor(j / dimItems.length),
-					dimItem = dimItems[j % dimItems.length];
-
-				newValue[j] = value[chunkIndex][dimItem];
-			}
-
-			value = newValue;
-		}
-
-		this.setFlatArray(measureId, value);
+		const array = nestedObjectToFlatArray(value, this.dimensions);
+		this.setFlatArray(measureId, array);
 	}
 
 	hydrateFromSparseNestedObject(measureId, obj, offset = 0, dimOffset = 0) {
 		if (dimOffset === this.dimensions.length) {
-			this.storedMeasures[measureId][offset] = obj;
+			this.storedMeasures[measureId].setValue(offset, obj);
 			return;
 		}
 
@@ -272,58 +189,15 @@ class Cube {
 		}
 	}
 
-	hydrateFromCube(otherCube, allowDrillDown = true, interpolateData = true) {
-		// Remove unneeded dimensions, and reorder.
-		const commonDimensionIds = this.dimensionIds.filter(id => otherCube.dimensionIds.includes(id));
-		otherCube = otherCube.project(commonDimensionIds);
-
-		// Add missing ones dimensions.
-		this.dimensions.forEach((dimension, index) => {
-			const otherDimension = otherCube.getDimension(dimension.id);
-
-			if (!otherDimension) {
-				const aggregation = {};
-				for (let measureId in this.storedMeasuresRules)
-					aggregation[measureId] = this.storedMeasuresRules[measureId][dimension.id];
-
-				if (interpolateData) {
-					otherCube = otherCube.addDimension(dimension, aggregation, index);
-				} else {
-					const newDimension = dimension.dice(dimension.id, dimension.rootAttribute, dimension.getItems()[0]);
-					otherCube = otherCube.addDimension(newDimension, aggregation, index);
-				}
-			}
-		});
-
-
-		// Drill otherCube so that it matches ours
-		this.dimensions.forEach((dimension, dimIndex) => {
-			const otherDimension = otherCube.getDimension(dimension.id);
-
-			if (otherDimension.rootAttribute !== dimension.rootAttribute) {
-				if (otherDimension.attributes.includes(dimension.rootAttribute))
-					otherCube = otherCube.drillUp(dimension.id, dimension.rootAttribute);
-				else if (allowDrillDown) {
-					// When drilling down the cube which will provide data, dice it to ensure that all
-					// fields get copied in our cube.
-					//
-					// This makes a differences when:
-					// - 'this' have month data starting from february 2010.
-					// - 'otherCube' have yearly data from 2010.
-					const drillDim = dimension.dice(otherDimension.rootAttribute, otherDimension.getItems())
-					otherCube = otherCube._drillDown(dimIndex, drillDim);
-				}
-				else
-					throw new Error('the cubes are not compatible')
-			}
-		});
+	hydrateFromCube(otherCube) {
+		const compatibleCube = otherCube.reshape(this.dimensions);
 
 		// Fill our cube. There should be more efficient way to do this...
 		for (let measureId in this.storedMeasures) {
-			if (otherCube.storedMeasures[measureId]) {
+			if (compatibleCube.storedMeasures[measureId]) {
 				this.hydrateFromSparseNestedObject(
 					measureId,
-					otherCube.getNestedObject(measureId)
+					compatibleCube.getNestedObject(measureId)
 				);
 			}
 		}
@@ -334,39 +208,12 @@ class Cube {
 	}
 
 	reorderDimensions(dimensionIds) {
-		// FIXME the variable naming in this function is very unclear
+		const newDimensions = dimensionIds.map(id => this.dimensions.find(dim => dim.id === id));
 
-		const
-			numDimensions = this.dimensions.length,
-			dimensionsIndexes = dimensionIds.map(dimId => this.dimensionIds.indexOf(dimId)),
-			dimensions = dimensionsIndexes.map(dimIndex => this.dimensions[dimIndex]),
-			newCube = new Cube(dimensions);
-
+		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
-		Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
-
-		for (let storedMeasureId in this.storedMeasures)
-			newCube.createStoredMeasure(storedMeasureId);
-
-		const newDimensionIndex = new Array(numDimensions);
-		for (let newIndex = 0; newIndex < this.storeSize; ++newIndex) {
-			// Decompose new index into dimensions indexes
-			let newIndexCopy = newIndex;
-			for (let i = numDimensions - 1; i >= 0; --i) {
-				newDimensionIndex[i] = newIndexCopy % newCube.dimensions[i].numItems;
-				newIndexCopy = Math.floor(newIndexCopy / newCube.dimensions[i].numItems);
-			}
-
-			// Compute what the old index was
-			let oldIndex = 0;
-			for (let i = 0; i < numDimensions; ++i) {
-				let oldDimIndex = dimensionsIndexes[i];
-				oldIndex = oldIndex * this.dimensions[i].numItems + newDimensionIndex[oldDimIndex];
-			}
-
-			for (let storedMeasureId in this.storedMeasures)
-				newCube.storedMeasures[storedMeasureId][newIndex] = this.storedMeasures[storedMeasureId][oldIndex];
-		}
+		for (let measureId in this.storedMeasures)
+			newCube.storedMeasures[measureId] = this.storedMeasures[measureId].reorder(this.dimensions, newDimensions);
 
 		return newCube;
 	}
@@ -385,73 +232,27 @@ class Cube {
 	}
 
 	diceRange(dimensionId, attribute, start, end) {
-		// Retrieve dimension that we want to change
-		let dimIndex = this.getDimensionIndex(dimensionId);
-		if (dimIndex === -1)
-			throw new Error('No such dimension.');
-
-		let oldDimension = this.dimensions[dimIndex],
-			newDimension = oldDimension.diceRange(attribute, start, end);
-
-		return this._dice(dimIndex, newDimension);
-	}
-
-	dice(dimensionId, attribute, values, reorder = false) {
-		// Retrieve dimension that we want to change
-		let dimIndex = this.getDimensionIndex(dimensionId);
-		if (dimIndex === -1)
-			throw new Error('No such dimension.');
-
-		let oldDimension = this.dimensions[dimIndex],
-			newDimension = oldDimension.dice(attribute, values, reorder);
-
-		return this._dice(dimIndex, newDimension);
-	}
-
-	_dice(dimIndex, newDimension) {
-		const oldDimension = this.dimensions[dimIndex];
-		const newDimensions = this.dimensions.slice();
-		newDimensions[dimIndex] = newDimension;
-
-		let itemIndexes = newDimension
-			.getItems()
-			.map(item => oldDimension.getItems().indexOf(item))
-			.filter(index => index !== -1);
+		const newDimensions = this.dimensions.map(
+			dim => dim.id === dimensionId ? dim.diceRange(attribute, start, end) : dim
+		);
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
-		Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
+		for (let measureId in this.storedMeasures)
+			newCube.storedMeasures[measureId] = this.storedMeasures[measureId].dice(this.dimensions, newDimensions);
 
-		for (let storedMeasureId in this.storedMeasures) {
-			let oldStore = this.storedMeasures[storedMeasureId],
-				newStore = new oldStore.constructor(newCube.storeSize);
+		return newCube;
+	}
 
-			let newDimensionIndex = new Array(newCube.dimensions.length);
+	dice(dimensionId, attribute, items, reorder = false) {
+		const newDimensions = this.dimensions.map(
+			dim => dim.id === dimensionId ? dim.dice(attribute, items, reorder) : dim
+		);
 
-			for (let newIndex = 0; newIndex < newStore.length; ++newIndex) {
-				// Decompose new index into dimensions indexes
-				let newIndexCopy = newIndex;
-				for (let i = newDimensionIndex.length - 1; i >= 0; --i) {
-					newDimensionIndex[i] = newIndexCopy % newCube.dimensions[i].numItems;
-					newIndexCopy = Math.floor(newIndexCopy / newCube.dimensions[i].numItems);
-				}
-
-				// Compute index where to find this data in old store
-				let oldIndex = 0;
-				for (let i = 0; i < this.dimensions.length; ++i) {
-					let offset;
-					if (i == dimIndex) offset = itemIndexes[newDimensionIndex[i]];
-					else offset = newDimensionIndex[i];
-
-					oldIndex = oldIndex * this.dimensions[i].numItems + offset;
-				}
-
-				// Copy value
-				newStore[newIndex] = oldStore[oldIndex];
-			}
-
-			newCube.storedMeasures[storedMeasureId] = newStore;
-		}
+		const newCube = new Cube(newDimensions);
+		Object.assign(newCube.computedMeasures, this.computedMeasures);
+		for (let measureId in this.storedMeasures)
+			newCube.storedMeasures[measureId] = this.storedMeasures[measureId].dice(this.dimensions, newDimensions);
 
 		return newCube;
 	}
@@ -475,21 +276,20 @@ class Cube {
 		// If index is not provided, we append the dimension
 		index = index === null ? this.dimensions.length : index;
 
-		const newDimensions = this.dimensions.slice();
-		newDimensions.splice(index, 0, new CatchAllDimension(newDimension.id, newDimension));
+		const oldDimensions = this.dimensions.slice();
+		oldDimensions.splice(index, 0, new CatchAllDimension(newDimension.id, newDimension));
 
-		const clone = new Cube(newDimensions);
-		Object.assign(clone.computedMeasures, this.computedMeasures);
-		Object.assign(clone.storedMeasures, this.storedMeasures);
-		clone.storedMeasuresRules = {};
-		for (let measureId in aggregation) {
-			clone.storedMeasuresRules[measureId] = Object.assign(
-				{ [newDimension.id]: aggregation[measureId] },
-				this.storedMeasuresRules[measureId]
+		const newDimensions = oldDimensions.slice();
+		newDimensions[index] = newDimension;
+
+		const newCube = new Cube(newDimensions);
+		Object.assign(newCube.computedMeasures, this.computedMeasures);
+		for (let measureId in this.storedMeasures)
+			newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillDown(
+				newDimension.id, oldDimensions, newDimensions, useRounding
 			);
-		}
 
-		return clone.drillDown(newDimension.id, newDimension.rootAttribute, useRounding);
+		return newCube;
 	}
 
 	removeDimension(dimensionId) {
@@ -497,167 +297,41 @@ class Cube {
 
 		const dimIndex = newCube.getDimensionIndex(dimensionId);
 		newCube.dimensions.splice(dimIndex, 1);
-		// fixme rewrite aggregation
 
 		return newCube;
 	}
 
 	drillDown(dimensionId, attribute, useRounding = true) {
-		const dimIndex = this.getDimensionIndex(dimensionId);
-		const oldDimension = this.dimensions[dimIndex];
-		if (oldDimension.rootAttribute === attribute) {
-			return this;
-		}
-
-		const newDimension = oldDimension.drillDown(attribute);
-		return this._drillDown(dimIndex, newDimension, useRounding)
-	}
-
-	_drillDown(dimIndex, newDimension, useRounding = true) {
-		const oldDimension = this.dimensions[dimIndex];
-		const dimensionId = oldDimension.id;
-		const newDimensions = this.dimensions.slice();
-		newDimensions[dimIndex] = newDimension;
+		const newDimensions = this.dimensions.map(dim =>
+			dim.id === dimensionId ? dim.drillDown(attribute) : dim
+		);
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
-		Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
-
-		let newDimensionIndex = new Uint32Array(this.dimensions.length);
-
-		for (let storedMeasureId in this.storedMeasures) {
-			const oldStore = this.storedMeasures[storedMeasureId];
-			const newToOldIndexMap = new Uint32Array(newCube.storeSize);
-			const contributions = new Uint32Array(this.storeSize);
-
-			for (let newIndex = 0; newIndex < newToOldIndexMap.length; ++newIndex) {
-				// Decompose new index into dimensions indexes
-				let newIndexCopy = newIndex;
-				for (let i = newDimensionIndex.length - 1; i >= 0; --i) {
-					newDimensionIndex[i] = newIndexCopy % newCube.dimensions[i].numItems;
-					newIndexCopy = Math.floor(newIndexCopy / newCube.dimensions[i].numItems);
-				}
-
-				// Compute corresponding old index
-				let oldIndex = 0;
-				for (let j = 0; j < this.dimensions.length; ++j) {
-					let offset;
-
-					if (j == dimIndex) offset = newCube.dimensions[j].getChildIndex(oldDimension.rootAttribute, newDimensionIndex[j])
-					else offset = newDimensionIndex[j];
-
-					oldIndex = oldIndex * this.dimensions[j].numItems + offset;
-				}
-
-				// Depending on aggregation method, copy value.
-				newToOldIndexMap[newIndex] = oldIndex;
-				contributions[oldIndex] += 1;
-			}
-
-			const method = this.storedMeasuresRules[storedMeasureId][dimensionId] || 'sum';
-			const newStore = new oldStore.constructor(newCube.storeSize);
-			const contributionsIds = new Uint32Array(this.storeSize);
-
-			for (let newIndex = 0; newIndex < newToOldIndexMap.length; ++newIndex) {
-				const oldIndex = newToOldIndexMap[newIndex];
-				if (method === 'sum') {
-					if (useRounding) {
-						const value = Math.floor(oldStore[oldIndex] / contributions[oldIndex]);
-						const remainder = oldStore[oldIndex] % contributions[oldIndex];
-						const contributionId = contributionsIds[oldIndex];
-						const oneOverDistance = remainder / contributions[oldIndex];
-						const lastIsSame = Math.floor(contributionId * oneOverDistance) === Math.floor((contributionId - 1) * oneOverDistance);
-
-						newStore[newIndex] = Math.floor(value);
-						if (!lastIsSame)
-							newStore[newIndex]++;
-					}
-					else {
-						newStore[newIndex] = oldStore[oldIndex] / contributions[oldIndex];
-					}
-				}
-				else
-					newStore[newIndex] = oldStore[oldIndex];
-
-				contributionsIds[oldIndex]++;
-			}
-
-			newCube.storedMeasures[storedMeasureId] = newStore;
+		for (let measureId in this.storedMeasures) {
+			newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillDown(
+				dimensionId, this.dimensions, newDimensions, useRounding
+			)
 		}
 
 		return newCube;
 	}
-
 
 	/**
 	 * Aggregate a dimension by group values.
 	 * ie: minutes by hour, or cities by region.
 	 */
 	drillUp(dimensionId, attribute) {
-		const dimIndex = this.getDimensionIndex(dimensionId);
-		const oldDimension = this.dimensions[dimIndex];
-		if (oldDimension.rootAttribute === attribute) {
-			// drilling up to current dimension will yield the same cube.
-			return this;
-		}
-
-		const newDimension = oldDimension.drillUp(attribute);
-		const newDimensions = this.dimensions.slice();
-		newDimensions[dimIndex] = newDimension;
+		const newDimensions = this.dimensions.map(dim =>
+			dim.id === dimensionId ? dim.drillUp(attribute) : dim
+		);
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
-		Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
-
-		let oldDimensionIndex = new Array(this.dimensions.length);
-
-		for (let storedMeasureId in this.storedMeasures) {
-			const oldStore = this.storedMeasures[storedMeasureId];
-			const newStore = new oldStore.constructor(newCube.storeSize);
-			const contributions = new Uint32Array(newCube.storeSize);
-
-			contributions.fill(0);
-
-			let method = this.storedMeasuresRules[storedMeasureId][dimensionId] || 'sum';
-
-			for (let oldIndex = 0; oldIndex < oldStore.length; ++oldIndex) {
-				// Decompose old index into dimensions indexes
-				let oldIndexCopy = oldIndex;
-				for (let i = oldDimensionIndex.length - 1; i >= 0; --i) {
-					oldDimensionIndex[i] = oldIndexCopy % this.dimensions[i].numItems;
-					oldIndexCopy = Math.floor(oldIndexCopy / this.dimensions[i].numItems);
-				}
-
-				let newIndex = 0;
-				for (let j = 0; j < newCube.dimensions.length; ++j) {
-					let offset;
-					if (j == dimIndex) offset = this.dimensions[j].getChildIndex(attribute, oldDimensionIndex[j])
-					else offset = oldDimensionIndex[j];
-
-					newIndex = newIndex * newCube.dimensions[j].numItems + offset;
-				}
-
-				if (contributions[newIndex] === 0)
-					newStore[newIndex] = oldStore[oldIndex];
-				else {
-					if (method == 'last')
-						newStore[newIndex] = oldStore[oldIndex];
-					else if (method == 'highest')
-						newStore[newIndex] = newStore[newIndex] < oldStore[oldIndex] ? oldStore[oldIndex] : newStore[newIndex];
-					else if (method == 'lowest')
-						newStore[newIndex] = newStore[newIndex] < oldStore[oldIndex] ? newStore[newIndex] : oldStore[oldIndex];
-					else if (method == 'sum' || method == 'average')
-						newStore[newIndex] += oldStore[oldIndex];
-				}
-
-				contributions[newIndex] += 1;
-			}
-
-			if (method === 'average')
-				for (let newIndex = 0; newIndex < newStore.length; ++newIndex)
-					newStore[newIndex] /= contributions[newIndex];
-
-			newCube.storedMeasures[storedMeasureId] = newStore;
+		for (let measureId in this.storedMeasures) {
+			newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillUp(
+				dimensionId, this.dimensions, newDimensions
+			);
 		}
 
 		return newCube;
@@ -676,24 +350,81 @@ class Cube {
 	 * to compute average sell by opening hour per week.
 	 */
 	compose(otherCube) {
-		let dimensionIds = this.dimensionIds.filter(dimId => otherCube.dimensionIds.indexOf(dimId) !== -1),
-			cube1 = this.keepDimensions(dimensionIds),
-			cube2 = otherCube.keepDimensions(dimensionIds).reorderDimensions(dimensionIds);
+		const newDimensions = this.dimensions
+			.map(myDimension => {
+				const otherDimension = otherCube.getDimension(myDimension.id);
+				return otherDimension ? myDimension.intersect(otherDimension) : null;
+			})
+			.filter(sharedDim => sharedDim !== null);
 
-		for (let i = 0; i < dimensionIds.length; ++i) {
-			const dimension1 = cube1.dimensions[i];
-			const dimension2 = cube2.dimensions[i];
-			const newDimension = dimension1.intersect(dimension2);
+		const cube1 = this.reshape(newDimensions);
+		const cube2 = otherCube.reshape(newDimensions);
 
-			cube1 = cube1.drillUp(newDimension.id, newDimension.rootAttribute)._dice(i, newDimension);
-			cube2 = cube2.drillUp(newDimension.id, newDimension.rootAttribute)._dice(i, newDimension);
+		Object.assign(cube1.computedMeasures, cube2.computedMeasures);
+		Object.assign(cube1.storedMeasures, cube2.storedMeasures);
+
+		return cube1;
+	}
+
+	reshape(targetDims) {
+		let newCube = this;
+
+		// Remove unneeded dimensions, and reorder.
+		newCube = this.project(
+			this.dimensionIds.filter(
+				dimId => !!targetDims.find(dim => dim.id == dimId)
+			)
+		);
+
+		// Add missing dimensions.
+		for (let dimIndex = 0; dimIndex < targetDims.length; ++dimIndex) {
+			const actualDim = newCube.dimensions[dimIndex];
+			const targetDim = targetDims[dimIndex]
+
+			if (!actualDim || actualDim.id !== targetDim.id) {
+				const aggregation = {};
+				// for (let measureId in this.storedMeasuresRules)
+				// 	aggregation[measureId] = this.storedMeasuresRules[measureId][dimension.id];
+				newCube = newCube.addDimension(targetDim, aggregation, dimIndex);
+			}
 		}
 
-		// At this point, cube1 and cube2 should have exactly the same format, we can merge them.
-		let newCube = new Cube(cube1.dimensions);
-		Object.assign(newCube.computedMeasures, cube1.computedMeasures, cube2.computedMeasures);
-		Object.assign(newCube.storedMeasures, cube1.storedMeasures, cube2.storedMeasures);
-		Object.assign(newCube.storedMeasuresRules, cube1.storedMeasuresRules, cube2.storedMeasuresRules);
+		// Drill to match root attributes
+		for (let dimIndex = 0; dimIndex < targetDims.length; ++dimIndex) {
+			const actualDim = newCube.dimensions[dimIndex];
+			const targetDim = targetDims[dimIndex];
+
+			if (actualDim.rootAttribute === targetDim.rootAttribute)
+				newCube = newCube
+					.dice(targetDim.id, targetDim.rootAttribute, targetDim.getItems(), true);
+
+			else if (actualDim.attributes.includes(targetDim.rootAttribute)) {
+				newCube = newCube
+					.dice(targetDim.id, targetDim.rootAttribute, targetDim.getItems(), true)
+					.drillUp(targetDim.id, targetDim.rootAttribute);
+			}
+			else if (targetDim.attributes.includes(actualDim.rootAttribute)) {
+				// We could simply drilldown and dice but it looses data on the edges of the cube.
+				// So instead of we do it in one step.
+				const intermediateDims = newCube.dimensions.map(dim =>
+					dim.id == targetDim.id ?
+						targetDim.dice(actualDim.rootAttribute, actualDim.getItems()) :
+						dim
+				);
+
+				const intermediateCube = new Cube(intermediateDims);
+				Object.assign(intermediateCube.computedMeasures, newCube.computedMeasures);
+				for (let measureId in newCube.storedMeasures) {
+					intermediateCube.storedMeasures[measureId] = newCube.storedMeasures[measureId].drillDown(
+						actualDim.id, newCube.dimensions, intermediateDims
+					)
+				}
+
+				newCube = intermediateCube;
+			}
+			else
+				throw new Error(`The cube dimensions '${targetDim.id}' are not compatible between them.`);
+		}
 
 		return newCube;
 	}
@@ -701,19 +432,21 @@ class Cube {
 	serialize() {
 		return toBuffer({
 			dimensions: this.dimensions.map(dim => dim.serialize()),
-			storedMeasures: this.storedMeasures,
-			storedMeasuresRules: this.storedMeasuresRules,
+			storedMeasuresKeys: Object.keys(this.storedMeasures),
+			storedMeasures: Object.values(this.storedMeasures).map(measure => measure.serialize()),
 			computedMeasures: this.computedMeasures
 		});
 	}
 
 	static deserialize(buffer) {
 		const data = fromBuffer(buffer);
-		const dimensions = data.dimensions.map(dimData => DimensionFactory.deserialize(dimData));
+		const dimensions = data.dimensions.map(data => DimensionFactory.deserialize(data));
 
 		const cube = new Cube(dimensions);
-		cube.storedMeasures = data.storedMeasures;
-		cube.storedMeasuresRules = data.storedMeasuresRules;
+		cube.storedMeasures = {};
+		data.storedMeasuresKeys.forEach((key, i) => {
+			cube.storedMeasures[key] = InMemoryStore.deserialize(data.storedMeasures[i]);
+		})
 		cube.computedMeasures = data.computedMeasures;
 		return cube;
 	}
