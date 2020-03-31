@@ -18,9 +18,8 @@ class InMemoryStore {
             this._data[i] = values[i];
     }
 
-    constructor(size, rules = {}, defaultValue = NaN, type = 'float32') {
+    constructor(size, defaultValue = NaN, type = 'float32') {
         this._size = size;
-        this._rules = rules;
         this._defaultValue = defaultValue;
         this._type = type;
 
@@ -37,7 +36,6 @@ class InMemoryStore {
     serialize() {
         return toBuffer({
             size: this._size,
-            rules: this._rules,
             defaultValue: this._defaultValue,
             type: this._type,
             data: this._data
@@ -48,7 +46,6 @@ class InMemoryStore {
         const data = fromBuffer(buffer);
         const store = new InMemoryStore(0);
         store._size = data.size;
-        store._rules = data.rules;
         store._defaultValue = data.defaultValue;
         store._type = data.type;
         store._data = data.data;
@@ -64,7 +61,7 @@ class InMemoryStore {
     }
 
     reorder(oldDimensions, newDimensions) {
-        const newStore = new InMemoryStore(this._size, this._rules, 0, this._type);
+        const newStore = new InMemoryStore(this._size, 0, this._type);
 
         const numDimensions = newDimensions.length;
         const dimensionsIndexes = newDimensions.map(newDim => oldDimensions.indexOf(newDim))
@@ -105,7 +102,7 @@ class InMemoryStore {
         });
 
         // Rewrite data vector.
-        const newStore = new InMemoryStore(newLength, this._rules, 0, this._type);
+        const newStore = new InMemoryStore(newLength, 0, this._type);
         const newDimIdx = new Uint8Array(numDimensions);
         for (let newIdx = 0; newIdx < newLength; ++newIdx) {
             // Decompose new index into dimensions indexes
@@ -128,14 +125,12 @@ class InMemoryStore {
         return newStore;
     }
 
-    drillUp(dimensionId, oldDimensions, newDimensions) {
+    drillUp(oldDimensions, newDimensions, method = 'sum') {
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
-        const newStore = new InMemoryStore(newSize, this._rules, 0, this._type);
+        const newStore = new InMemoryStore(newSize, 0, this._type);
         const contributions = new Uint16Array(newSize);
-
-        let method = this._rules[dimensionId] || 'sum';
 
         let oldDimensionIndex = new Uint16Array(numDimensions);
         for (let oldIndex = 0; oldIndex < oldSize; ++oldIndex) {
@@ -178,7 +173,7 @@ class InMemoryStore {
         return newStore;
     }
 
-    drillDown(dimensionId, oldDimensions, newDimensions, useRounding = true) {
+    drillDown(oldDimensions, newDimensions, method = 'sum', useRounding = true) {
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
@@ -209,8 +204,7 @@ class InMemoryStore {
             contributionsTotal[oldIndex] += 1;
         }
 
-        const method = this._rules[dimensionId] || 'sum';
-        const newStore = new InMemoryStore(newSize, this._rules, 0, this._type);
+        const newStore = new InMemoryStore(newSize, 0, this._type);
 
         for (let newIndex = 0; newIndex < newSize; ++newIndex) {
             const oldIndex = idxNewOld[newIndex];
