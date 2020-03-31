@@ -7,10 +7,6 @@ class GenericDimension extends AbstractDimension {
 		return Object.keys(this._attributeMappings);
 	}
 
-	get isInterpolated() {
-		return false;
-	}
-
 	/**
 	 * Create a simple dimension
 	 */
@@ -167,10 +163,6 @@ class GenericDimension extends AbstractDimension {
 		}
 
 		return newDimension;
-	}
-
-	drillDown(newAttribute) {
-		throw new Error('Unsupported');
 	}
 
 	dice(attribute, items, reorder = false) {

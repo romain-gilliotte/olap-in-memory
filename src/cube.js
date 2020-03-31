@@ -31,10 +31,6 @@ class Cube {
 		return Object.keys(this.computedMeasures);
 	}
 
-	get isInterpolated() {
-		return this.dimensions.some(dim => dim.isInterpolated);
-	}
-
 	constructor(dimensions) {
 		this.dimensions = dimensions;
 		this.storedMeasures = {};

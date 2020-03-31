@@ -98,7 +98,6 @@ describe("Dimension", function () {
 		it('should inverse the dimensions', function () {
 			const inversed = cube.reorderDimensions(['period', 'location']);
 
-			assert.equal(inversed.isInterpolated, false);
 			assert.deepEqual(inversed.getNestedArray('antennas'), [[1, 4, 16], [2, 8, 32]]);
 		});
 

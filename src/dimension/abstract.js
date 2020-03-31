@@ -17,10 +17,6 @@ class AbstractDimension {
         return this._label;
     }
 
-    get isInterpolated() {
-        throw new Error('Override me');
-    }
-
 	/**
 	 * Create a simple dimension
 	 *
@@ -28,11 +24,10 @@ class AbstractDimension {
      * @param  {[type]} attribute  ie: "zipCode"
      * @param  {string} label
 	 */
-    constructor(id, rootAttribute, label = null, originalRootAttribute = null) {
+    constructor(id, rootAttribute, label = null) {
         this.id = id;
         this._rootAttribute = rootAttribute;
         this._label = label;
-        this._originalRootAttribute = originalRootAttribute || rootAttribute;
     }
 
     getItems(attribute = null) {
@@ -40,10 +35,6 @@ class AbstractDimension {
     }
 
     drillUp(newAttribute) {
-        throw new Error('Override me');
-    }
-
-    drillDown(newAttribute) {
         throw new Error('Override me');
     }
 

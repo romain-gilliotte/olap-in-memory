@@ -14,10 +14,6 @@ describe("Drilling", function () {
                 newCube = cube.drillUp('location', 'continent');
             });
 
-            it('Drilled up cube should not be marked as interpolated', function () {
-                assert.equal(newCube.isInterpolated, false);
-            })
-
             it('Drilled up cube should have summed cities by continent', function () {
                 assert.deepEqual(
                     newCube.getNestedArray('antennas'),
@@ -38,28 +34,6 @@ describe("Drilling", function () {
                 cube.createStoredMeasure('measure2', { time: 'average' }, 100);
 
                 newCube = cube.drillDown('time', 'day');
-            });
-
-            it('original cube should not be marked as interpolated', function () {
-                assert.equal(cube.isInterpolated, false);
-            });
-
-            it('drilled down cube should be marked as interpolated', function () {
-                assert.equal(newCube.isInterpolated, true);
-            })
-
-            it('when drilled up again to week, cube should still be interpolated', function () {
-                assert.equal(
-                    newCube.drillUp('time', 'week_mon').isInterpolated,
-                    true
-                );
-            });
-
-            it('when drilled up again to month, cube should no longer be interpolated', function () {
-                assert.equal(
-                    newCube.drillUp('time', 'month').isInterpolated,
-                    false
-                );
             });
 
             it('both measures should not have changed when drilled down and up again', function () {
@@ -84,28 +58,6 @@ describe("Drilling", function () {
                 cube.createStoredMeasure('measure2', { time: 'average' }, 100);
 
                 newCube = cube.drillDown('time', 'day');
-            });
-
-            it('original cube should not be marked as interpolated', function () {
-                assert.equal(cube.isInterpolated, false);
-            });
-
-            it('drilled down cube should be marked as interpolated', function () {
-                assert.equal(newCube.isInterpolated, true);
-            })
-
-            it('when drilled up again to week_mon, cube should no longer be interpolated', function () {
-                assert.equal(
-                    newCube.drillUp('time', 'week_mon').isInterpolated,
-                    false
-                );
-            });
-
-            it('when drilled up again to week_sat, cube should should be interpolated', function () {
-                assert.equal(
-                    newCube.drillUp('time', 'week_sat').isInterpolated,
-                    true
-                );
             });
 
             it('both measures should not have changed when drilled down and up again', function () {
