@@ -110,7 +110,7 @@ describe('Accessors', function () {
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
 
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 			cube.hydrateFromSparseNestedObject('antennas', { winter: { toledo: 1 } });
 
 			assert.deepEqual(
@@ -128,7 +128,7 @@ describe('Accessors', function () {
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
 
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 			cube.hydrateFromSparseNestedObject('antennas', { winter: { toledo: 1, losangeles: 2 } });
 
 			assert.deepEqual(

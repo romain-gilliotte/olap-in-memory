@@ -1,5 +1,13 @@
 const { toBuffer, fromBuffer } = require('../serialization');
 
+const STATUS_EMPTY = 1;
+const STATUS_SET = 2;
+const STATUS_INTERPOLATED = 4;
+
+/**
+ * The data array can be millions of items.
+ * => Avoid allocations in the loops to keep things acceptably fast.
+ */
 class InMemoryStore {
 
     get byteLength() {
@@ -7,6 +15,7 @@ class InMemoryStore {
     }
 
     get data() {
+        // we should simply return the data, but it breaks the tests.
         return Array.from(this._data);
     }
 
@@ -14,14 +23,17 @@ class InMemoryStore {
         if (this._size !== values.length)
             throw new Error('value length is invalid');
 
+        this._status.fill(STATUS_SET);
         for (let i = 0; i < this._size; ++i)
             this._data[i] = values[i];
     }
 
-    constructor(size, defaultValue = NaN, type = 'float32') {
+    constructor(size, type = 'float32', defaultValue = NaN) {
         this._size = size;
         this._defaultValue = defaultValue;
         this._type = type;
+        this._status = new Int8Array(size);
+        this._status.fill(STATUS_EMPTY);
 
         if (type == 'int32') this._data = new Int32Array(size);
         else if (type == 'uint32') this._data = new UInt32Array(size);
@@ -29,8 +41,10 @@ class InMemoryStore {
         else if (type == 'float64') this._data = new Float64Array(size);
         else throw new Error('Invalid type');
 
-        if (defaultValue !== 0)
+        if (!Number.isNaN(defaultValue)) {
             this._data.fill(defaultValue);
+            this._status.fill(STATUS_SET);
+        }
     }
 
     serialize() {
@@ -56,33 +70,72 @@ class InMemoryStore {
         return this._data[index];
     }
 
-    setValue(index, value) {
+    getStatus(index) {
+        return this._status[index];
+    }
+
+    setValue(index, value, status = STATUS_SET) {
         this._data[index] = value;
+        this._status[index] = status;
+    }
+
+    load(otherStore, myDimensions, hisDimensions) {
+        const hisLength = otherStore._size;
+        const numDimensions = myDimensions.length;
+        const hisDimLengths = hisDimensions.map(dim => dim.numItems);
+        const myDimLengths = myDimensions.map(dim => dim.numItems);
+        const dimIdxHisMineMap = hisDimensions.map((hisDimension, index) => {
+            const hisItems = hisDimension.getItems();
+            const myItems = myDimensions[index].getItems();
+
+            return hisItems.map(newItem => myItems.indexOf(newItem));
+        });
+
+        const hisDimIdx = new Uint8Array(numDimensions);
+        for (let hisIdx = 0; hisIdx < hisLength; ++hisIdx) {
+            // Decompose new index into dimensions indexes
+            let hisIdxCpy = hisIdx;
+            for (let i = numDimensions - 1; i >= 0; --i) {
+                hisDimIdx[i] = hisIdxCpy % hisDimLengths[i];
+                hisIdxCpy = Math.floor(hisIdxCpy / hisDimLengths[i]);
+            }
+
+            // Compute what the old index was
+            let myIdx = 0;
+            for (let i = 0; i < numDimensions; ++i) {
+                let offset = dimIdxHisMineMap[i][hisDimIdx[i]];
+                myIdx = myIdx * myDimLengths[i] + offset;
+            }
+
+            this._status[myIdx] = otherStore._status[hisIdx];
+            this._data[myIdx] = otherStore._data[hisIdx];
+        }
     }
 
     reorder(oldDimensions, newDimensions) {
-        const newStore = new InMemoryStore(this._size, 0, this._type);
+        const newStore = new InMemoryStore(this._size, this._type, this._defaultValue);
 
         const numDimensions = newDimensions.length;
         const dimensionsIndexes = newDimensions.map(newDim => oldDimensions.indexOf(newDim))
 
         const newDimensionIndex = new Uint16Array(numDimensions);
-        for (let newIndex = 0; newIndex < this._size; ++newIndex) {
+        for (let newIdx = 0; newIdx < this._size; ++newIdx) {
             // Decompose new index into dimensions indexes
-            let newIndexCopy = newIndex;
+            let newIndexCopy = newIdx;
             for (let i = numDimensions - 1; i >= 0; --i) {
                 newDimensionIndex[i] = newIndexCopy % newDimensions[i].numItems;
                 newIndexCopy = Math.floor(newIndexCopy / newDimensions[i].numItems);
             }
 
             // Compute what the old index was
-            let oldIndex = 0;
+            let oldIdx = 0;
             for (let i = 0; i < numDimensions; ++i) {
                 let oldDimIndex = dimensionsIndexes[i];
-                oldIndex = oldIndex * oldDimensions[i].numItems + newDimensionIndex[oldDimIndex];
+                oldIdx = oldIdx * oldDimensions[i].numItems + newDimensionIndex[oldDimIndex];
             }
 
-            newStore._data[newIndex] = this._data[oldIndex];
+            newStore._status[newIdx] = this._status[oldIdx];
+            newStore._data[newIdx] = this._data[oldIdx];
         }
 
         return newStore;
@@ -102,7 +155,7 @@ class InMemoryStore {
         });
 
         // Rewrite data vector.
-        const newStore = new InMemoryStore(newLength, 0, this._type);
+        const newStore = new InMemoryStore(newLength, this._type, this._defaultValue);
         const newDimIdx = new Uint8Array(numDimensions);
         for (let newIdx = 0; newIdx < newLength; ++newIdx) {
             // Decompose new index into dimensions indexes
@@ -113,13 +166,14 @@ class InMemoryStore {
             }
 
             // Compute what the old index was
-            let oldIndex = 0;
+            let oldIdx = 0;
             for (let i = 0; i < numDimensions; ++i) {
                 let offset = dimIdxNewOldMap[i][newDimIdx[i]];
-                oldIndex = oldIndex * oldDimLength[i] + offset;
+                oldIdx = oldIdx * oldDimLength[i] + offset;
             }
 
-            newStore._data[newIdx] = this._data[oldIndex];
+            newStore._status[newIdx] = this._status[oldIdx];
+            newStore._data[newIdx] = this._data[oldIdx];
         }
 
         return newStore;
@@ -129,46 +183,49 @@ class InMemoryStore {
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
-        const newStore = new InMemoryStore(newSize, 0, this._type);
+        const newStore = new InMemoryStore(newSize, this._type, this._defaultValue);
         const contributions = new Uint16Array(newSize);
 
+        newStore._status.fill(0); // we'll OR the values from the parent buffer, so we need to init at zero.
+
         let oldDimensionIndex = new Uint16Array(numDimensions);
-        for (let oldIndex = 0; oldIndex < oldSize; ++oldIndex) {
+        for (let oldIdx = 0; oldIdx < oldSize; ++oldIdx) {
             // Decompose old index into dimensions indexes
-            let oldIndexCopy = oldIndex;
+            let oldIndexCopy = oldIdx;
             for (let i = numDimensions - 1; i >= 0; --i) {
                 oldDimensionIndex[i] = oldIndexCopy % oldDimensions[i].numItems;
                 oldIndexCopy = Math.floor(oldIndexCopy / oldDimensions[i].numItems);
             }
 
-            let newIndex = 0;
+            let newIdx = 0;
             for (let j = 0; j < numDimensions; ++j) {
                 let newAttribute = newDimensions[j].rootAttribute;
                 let offset = oldDimensions[j].getChildIndex(newAttribute, oldDimensionIndex[j]);
 
-                newIndex = newIndex * newDimensions[j].numItems + offset;
+                newIdx = newIdx * newDimensions[j].numItems + offset;
             }
 
-            let oldValue = this._data[oldIndex];
-            if (contributions[newIndex] === 0)
-                newStore._data[newIndex] = oldValue;
+            let oldValue = this._data[oldIdx];
+            if (contributions[newIdx] === 0)
+                newStore._data[newIdx] = oldValue;
             else {
                 if (method == 'last')
-                    newStore._data[newIndex] = oldValue;
+                    newStore._data[newIdx] = oldValue;
                 else if (method == 'highest')
-                    newStore._data[newIndex] = newStore._data[newIndex] < oldValue ? oldValue : newStore._data[newIndex];
+                    newStore._data[newIdx] = newStore._data[newIdx] < oldValue ? oldValue : newStore._data[newIdx];
                 else if (method == 'lowest')
-                    newStore._data[newIndex] = newStore._data[newIndex] < oldValue ? newStore._data[newIndex] : oldValue;
+                    newStore._data[newIdx] = newStore._data[newIdx] < oldValue ? newStore._data[newIdx] : oldValue;
                 else if (method == 'sum' || method == 'average')
-                    newStore._data[newIndex] += oldValue;
+                    newStore._data[newIdx] += oldValue;
             }
 
-            contributions[newIndex] += 1;
+            newStore._status[newIdx] |= this._status[oldIdx];
+            contributions[newIdx] += 1;
         }
 
         if (method === 'average')
-            for (let newIndex = 0; newIndex < newStore._data.length; ++newIndex)
-                newStore._data[newIndex] /= contributions[newIndex];
+            for (let newIdx = 0; newIdx < newStore._data.length; ++newIdx)
+                newStore._data[newIdx] /= contributions[newIdx];
 
         return newStore;
     }
@@ -182,52 +239,58 @@ class InMemoryStore {
         const contributionsIds = new Uint32Array(oldSize);
         const contributionsTotal = new Uint32Array(oldSize);
 
-        const idxNewOld = new Uint32Array(newSize); // idxNewOld[newIndex] == oldIndex
+        const idxNewOld = new Uint32Array(newSize); // idxNewOld[newIdx] == oldIdx
         const newDimensionIndex = new Uint16Array(numDimensions);
-        for (let newIndex = 0; newIndex < newSize; ++newIndex) {
+        for (let newIdx = 0; newIdx < newSize; ++newIdx) {
             // Decompose new index into dimensions indexes
-            let newIndexCopy = newIndex;
+            let newIndexCopy = newIdx;
             for (let i = numDimensions - 1; i >= 0; --i) {
                 newDimensionIndex[i] = newIndexCopy % newDimensions[i].numItems;
                 newIndexCopy = Math.floor(newIndexCopy / newDimensions[i].numItems);
             }
 
             // Compute corresponding old index
-            let oldIndex = 0;
+            let oldIdx = 0;
             for (let j = 0; j < numDimensions; ++j) {
                 let offset = newDimensions[j].getChildIndex(oldDimensions[j].rootAttribute, newDimensionIndex[j]);
-                oldIndex = oldIndex * oldDimensions[j].numItems + offset;
+                oldIdx = oldIdx * oldDimensions[j].numItems + offset;
             }
 
             // Depending on aggregation method, copy value.
-            idxNewOld[newIndex] = oldIndex;
-            contributionsTotal[oldIndex] += 1;
+            idxNewOld[newIdx] = oldIdx;
+            contributionsTotal[oldIdx] += 1;
         }
 
-        const newStore = new InMemoryStore(newSize, 0, this._type);
+        const newStore = new InMemoryStore(newSize, this._type, this._defaultValue);
 
-        for (let newIndex = 0; newIndex < newSize; ++newIndex) {
-            const oldIndex = idxNewOld[newIndex];
+        for (let newIdx = 0; newIdx < newSize; ++newIdx) {
+            const oldIdx = idxNewOld[newIdx];
+            const numContributions = contributionsTotal[oldIdx];
+
+            newStore._status[newIdx] = STATUS_SET;
+            if (numContributions > 1)
+                newStore._status[newIdx] |= STATUS_INTERPOLATED;
+
             if (method === 'sum') {
                 if (useRounding) {
-                    const value = Math.floor(this._data[oldIndex] / contributionsTotal[oldIndex]);
-                    const remainder = this._data[oldIndex] % contributionsTotal[oldIndex];
-                    const contributionId = contributionsIds[oldIndex];
-                    const oneOverDistance = remainder / contributionsTotal[oldIndex];
+                    const value = Math.floor(this._data[oldIdx] / numContributions);
+                    const remainder = this._data[oldIdx] % numContributions;
+                    const contributionId = contributionsIds[oldIdx];
+                    const oneOverDistance = remainder / numContributions;
                     const lastIsSame = Math.floor(contributionId * oneOverDistance) === Math.floor((contributionId - 1) * oneOverDistance);
 
-                    newStore._data[newIndex] = Math.floor(value);
+                    newStore._data[newIdx] = Math.floor(value);
                     if (!lastIsSame)
-                        newStore._data[newIndex]++;
+                        newStore._data[newIdx]++;
                 }
                 else {
-                    newStore._data[newIndex] = this._data[oldIndex] / contributionsTotal[oldIndex];
+                    newStore._data[newIdx] = this._data[oldIdx] / numContributions;
                 }
             }
             else
-                newStore._data[newIndex] = this._data[oldIndex];
+                newStore._data[newIdx] = this._data[oldIdx];
 
-            contributionsIds[oldIndex]++;
+            contributionsIds[oldIdx]++;
         }
 
         return newStore;

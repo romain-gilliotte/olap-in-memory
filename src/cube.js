@@ -53,11 +53,11 @@ class Cube {
 		this.computedMeasures[measureId] = formula;
 	}
 
-	createStoredMeasure(measureId, rules = {}, defaultValue = NaN, type = 'float32') {
+	createStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = NaN) {
 		if (this.storedMeasures[measureId] !== undefined)
 			throw new Error('This measure already exists');
 
-		this.storedMeasures[measureId] = new InMemoryStore(this.storeSize, defaultValue, type);
+		this.storedMeasures[measureId] = new InMemoryStore(this.storeSize, type, defaultValue);
 		this.storedMeasuresRules[measureId] = rules;
 	}
 
@@ -194,15 +194,13 @@ class Cube {
 	hydrateFromCube(otherCube) {
 		const compatibleCube = otherCube.reshape(this.dimensions);
 
-		// Fill our cube. There should be more efficient way to do this...
-		for (let measureId in this.storedMeasures) {
-			if (compatibleCube.storedMeasures[measureId]) {
-				this.hydrateFromSparseNestedObject(
-					measureId,
-					compatibleCube.getNestedObject(measureId)
+		for (let measureId in this.storedMeasures)
+			if (compatibleCube.storedMeasures[measureId])
+				this.storedMeasures[measureId].load(
+					compatibleCube.storedMeasures[measureId],
+					this.dimensions,
+					compatibleCube.dimensions
 				);
-			}
-		}
 	}
 
 	project(dimensionIds) {

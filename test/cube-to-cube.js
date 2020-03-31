@@ -134,13 +134,13 @@ describe("Operation between cubes", function () {
 				new GenericDimension('period', 'season', ['summer', 'winter']),
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 
 			const cube2 = new Cube([
 				new GenericDimension('period', 'season', ['winter']),
 				new GenericDimension('location', 'city', ['paris', 'tokyo'])
 			]);
-			cube2.createStoredMeasure('otherMeasure', {}, 666);
+			cube2.createStoredMeasure('otherMeasure', {}, 'float32', 666);
 			cube.hydrateFromCube(cube2);
 
 			assert.deepEqual(
@@ -157,14 +157,14 @@ describe("Operation between cubes", function () {
 				new GenericDimension('period', 'season', ['summer', 'winter']),
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 
 			const cube2 = new Cube([
 				new GenericDimension('period', 'season', ['winter']),
 				new GenericDimension('location', 'city', ['paris', 'tokyo'])
 			]);
-			cube2.createStoredMeasure('antennas', {}, 666);
-			cube2.createStoredMeasure('otherMeasure', {}, 888);
+			cube2.createStoredMeasure('antennas', {}, 'float32', 666);
+			cube2.createStoredMeasure('otherMeasure', {}, 'float32', 888);
 
 			cube.hydrateFromCube(cube2);
 
@@ -182,13 +182,13 @@ describe("Operation between cubes", function () {
 				new GenericDimension('period', 'season', ['summer', 'winter']),
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 
 			const cube2 = new Cube([
 				new GenericDimension('period', 'season', ['winter']),
 				new GenericDimension('location', 'city', ['paris', 'tokyo'])
 			]);
-			cube2.createStoredMeasure('antennas', {}, 0);
+			cube2.createStoredMeasure('antennas', {}, 'float32', 0);
 			cube2.setNestedObject('antennas', { winter: { paris: 32, tokyo: 53 } });
 
 			cube.hydrateFromCube(cube2);
@@ -207,14 +207,14 @@ describe("Operation between cubes", function () {
 				new GenericDimension('period', 'season', ['summer', 'winter']),
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 
 			const cube2 = new Cube([
 				new GenericDimension('period', 'season', ['winter']),
 				new GenericDimension('location', 'city', ['tokyo', 'losangeles', 'paris'])
 			]);
 
-			cube2.createStoredMeasure('antennas', {}, 0);
+			cube2.createStoredMeasure('antennas', {}, 'float32', 0);
 			cube2.setNestedObject('antennas', { winter: { tokyo: 1, losangeles: 2, paris: 3 } });
 
 			cube.hydrateFromCube(cube2);
@@ -233,7 +233,7 @@ describe("Operation between cubes", function () {
 				new GenericDimension('period', 'season', ['summer', 'winter']),
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 
 			const cube2 = new Cube([
 				new GenericDimension('period', 'season', ['winter']),
@@ -241,7 +241,7 @@ describe("Operation between cubes", function () {
 				new GenericDimension('location', 'city', ['paris', 'tokyo'])
 			]);
 
-			cube2.createStoredMeasure('antennas', {}, 0);
+			cube2.createStoredMeasure('antennas', {}, 'float32', 0);
 			cube2.setNestedObject('antennas', {
 				winter: {
 					a: { paris: 1, tokyo: 2 },
@@ -266,13 +266,13 @@ describe("Operation between cubes", function () {
 				new GenericDimension('period', 'season', ['summer', 'winter']),
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 
 			const cube2 = new Cube([
 				new GenericDimension('period', 'season', ['winter']),
 			]);
 
-			cube2.createStoredMeasure('antennas', {}, 0);
+			cube2.createStoredMeasure('antennas', {}, 'float32', 0);
 			cube2.setNestedObject('antennas', { winter: 32 });
 
 			cube.hydrateFromCube(cube2);
@@ -292,13 +292,13 @@ describe("Operation between cubes", function () {
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
 
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 
 			const cube2 = new Cube([
 				new TimeDimension('time', 'month', '2010-04', '2010-06'),
 				new GenericDimension('location', 'city', ['toledo'])
 			])
-			cube2.createStoredMeasure('antennas', {}, 0);
+			cube2.createStoredMeasure('antennas', {}, 'float32', 0);
 			cube2.setNestedObject('antennas', {
 				'2010-04': { toledo: 1 },
 				'2010-05': { toledo: 2 },
@@ -322,13 +322,13 @@ describe("Operation between cubes", function () {
 				new TimeDimension('time', 'month', '2010-01', '2010-06'),
 				new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo'])
 			]);
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 
 			const cube2 = new Cube([
 				new TimeDimension('time', 'quarter', '2010-Q2', '2010-Q2'),
 				new GenericDimension('location', 'city', ['toledo'])
 			])
-			cube2.createStoredMeasure('antennas', {}, 0);
+			cube2.createStoredMeasure('antennas', {}, 'float32', 0);
 			cube2.setNestedObject('antennas', { '2010-Q2': { toledo: 100 } });
 
 			cube.hydrateFromCube(cube2);
@@ -348,10 +348,10 @@ describe("Operation between cubes", function () {
 
 		it('should allow forcing the data to fit', function () {
 			const cube = new Cube([new TimeDimension('time', 'month', '2010-02', '2010-06')]);
-			cube.createStoredMeasure('antennas', {}, 0);
+			cube.createStoredMeasure('antennas', {}, 'float32', 0);
 
 			const cube2 = new Cube([new TimeDimension('time', 'year', '2010', '2011')]);
-			cube2.createStoredMeasure('antennas', {}, 0);
+			cube2.createStoredMeasure('antennas', {}, 'float32', 0);
 			cube2.setNestedObject('antennas', { '2010': 1000, '2011': 500 });
 
 			cube.hydrateFromCube(cube2);

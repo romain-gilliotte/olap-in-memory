@@ -42,7 +42,7 @@ describe('Serialization', function () {
 				new TimeDimension('time', 'month', '2010-01', '2011-01')
 			]);
 
-			cube.createStoredMeasure('main', {}, 33);
+			cube.createStoredMeasure('main', {}, 'float32', 33);
 		});
 
 		it("should get the same cube after a serialization/deserialization round", function () {

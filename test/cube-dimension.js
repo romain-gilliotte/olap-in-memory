@@ -9,8 +9,8 @@ describe("Dimension", function () {
 
 		it('should be able to add generic dimension', function () {
 			const cube = new Cube([new TimeDimension('time', 'month', '2010-01', '2010-02')]);
-			cube.createStoredMeasure('measure1', { time: 'sum' }, 100);
-			cube.createStoredMeasure('measure2', { time: 'average' }, 100);
+			cube.createStoredMeasure('measure1', { time: 'sum' }, 'float32', 100);
+			cube.createStoredMeasure('measure2', { time: 'average' }, 'float32', 100);
 
 			const newDimension = new GenericDimension('location', 'city', ['paris', 'madrid', 'berlin'])
 			const newCube = cube.addDimension(newDimension, { measure1: 'sum', measure2: 'average' });
@@ -28,8 +28,8 @@ describe("Dimension", function () {
 
 		it('should be able to add a time dimension', function () {
 			const cube = new Cube([new TimeDimension('time1', 'month', '2010-01', '2010-02')]);
-			cube.createStoredMeasure('measure1', { time: 'sum' }, 100);
-			cube.createStoredMeasure('measure2', { time: 'average' }, 100);
+			cube.createStoredMeasure('measure1', { time: 'sum' }, 'float32', 100);
+			cube.createStoredMeasure('measure2', { time: 'average' }, 'float32', 100);
 
 			const newDimension = new TimeDimension('time2', 'week_mon', '2010-W01-mon', '2010-W08-mon')
 			const newCube = cube.addDimension(newDimension, { measure1: 'sum', measure2: 'average' });
@@ -55,7 +55,7 @@ describe("Dimension", function () {
 
 			cube = new Cube([location, period]);
 			for (let agg of ['sum', 'average', 'highest', 'lowest', 'first', 'last']) {
-				cube.createStoredMeasure(`antennas_${agg}`, { period: agg, location: agg }, 0);
+				cube.createStoredMeasure(`antennas_${agg}`, { period: agg, location: agg }, 'float32', 0);
 				cube.setNestedArray(`antennas_${agg}`, [[1, 2], [4, 8], [16, 32]]);
 			}
 

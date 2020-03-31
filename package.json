@@ -9,7 +9,7 @@
     "lodash.clonedeep": "^4.5.0",
     "lodash.merge": "^4.6.2",
     "pako": "^1.0.11",
-    "timeslot-dag": "^2.0.1"
+    "timeslot-dag": "^2.1.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
