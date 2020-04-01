@@ -435,35 +435,16 @@ class Cube {
 			const actualDim = newCube.dimensions[dimIndex];
 			const targetDim = targetDims[dimIndex];
 
+			// FIXME: properly think and add tests around
+			// the consequences of dicing first, and then drilling instead of the opposite
+			newCube = newCube.dice(targetDim.id, targetDim.rootAttribute, targetDim.getItems(), true);
+
 			if (actualDim.rootAttribute === targetDim.rootAttribute)
-				newCube = newCube
-					.dice(targetDim.id, targetDim.rootAttribute, targetDim.getItems(), true);
-
-			else if (actualDim.attributes.includes(targetDim.rootAttribute)) {
-				newCube = newCube
-					.dice(targetDim.id, targetDim.rootAttribute, targetDim.getItems(), true)
-					.drillUp(targetDim.id, targetDim.rootAttribute);
-			}
-			else if (targetDim.attributes.includes(actualDim.rootAttribute)) {
-				// We could simply drilldown and dice but it looses data on the edges of the cube.
-				// So instead of we do it in one step.
-				const intermediateDims = newCube.dimensions.map(dim =>
-					dim.id == targetDim.id ?
-						targetDim.dice(actualDim.rootAttribute, actualDim.getItems()) :
-						dim
-				);
-
-				const intermediateCube = new Cube(intermediateDims);
-				Object.assign(intermediateCube.computedMeasures, newCube.computedMeasures);
-				Object.assign(intermediateCube.storedMeasuresRules, newCube.storedMeasuresRules);
-				for (let measureId in newCube.storedMeasures) {
-					intermediateCube.storedMeasures[measureId] = newCube.storedMeasures[measureId].drillDown(
-						newCube.dimensions, intermediateDims, this.storedMeasuresRules[measureId][actualDim.id]
-					)
-				}
-
-				newCube = intermediateCube;
-			}
+				continue;
+			else if (actualDim.attributes.includes(targetDim.rootAttribute))
+				newCube = newCube.drillUp(targetDim.id, targetDim.rootAttribute);
+			else if (targetDim.attributes.includes(actualDim.rootAttribute))
+				newCube = newCube.drillDown(targetDim.id, targetDim.rootAttribute)
 			else
 				throw new Error(`The cube dimensions '${targetDim.id}' are not compatible between them.`);
 		}

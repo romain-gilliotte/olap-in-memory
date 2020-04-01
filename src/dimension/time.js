@@ -21,13 +21,13 @@ class TimeDimension extends AbstractDimension {
     constructor(id, rootAttribute, start, end, label = null) {
         super(id, rootAttribute, label);
 
-        this._start = new TimeSlot(start);
-        this._end = new TimeSlot(end);
+        this._start = TimeSlot.fromDate(new TimeSlot(start).firstDate, 'day');
+        this._end = TimeSlot.fromDate(new TimeSlot(end).lastDate, 'day')
         this._attributeItems = {};
         this._attributeMappings = {};
 
-        if (this._start.periodicity !== rootAttribute || this._end.periodicity !== rootAttribute)
-            throw new Error('Periodicity does not match with provided boundaries');
+        if (this._start.periodicity !== 'day' || this._end.periodicity !== 'day')
+            throw new Error('Start and end must be dates.');
 
         if (this._start.value > this._end.value)
             throw new Error('Empty dimensions are not allowed');
@@ -81,8 +81,8 @@ class TimeDimension extends AbstractDimension {
         return new TimeDimension(
             this.id,
             newAttribute,
-            this._start.toParentPeriodicity(newAttribute).value,
-            this._end.toParentPeriodicity(newAttribute).value,
+            this._start.value,
+            this._end.value,
             this.label
         );
     }
@@ -91,15 +91,15 @@ class TimeDimension extends AbstractDimension {
         if (newAttribute == this.rootAttribute)
             return this;
 
-        if (!this._start.childPeriodicities.includes(newAttribute)) {
+        if (!TimeSlot.upperSlots[newAttribute].includes(this._rootAttribute)) {
             throw new Error('Invalid periodicity.');
         }
 
         return new TimeDimension(
             this.id,
             newAttribute,
-            TimeSlot.fromDate(this._start.firstDate, newAttribute).value,
-            TimeSlot.fromDate(this._end.lastDate, newAttribute).value,
+            this._start.value,
+            this._end.value,
             this.label
         );
     }
@@ -132,6 +132,9 @@ class TimeDimension extends AbstractDimension {
     }
 
     diceRange(attribute, start, end) {
+        if (attribute === 'all')
+            return this;
+
         let newStart, newEnd;
 
         if (start) {
@@ -139,7 +142,7 @@ class TimeDimension extends AbstractDimension {
             if (startTs.periodicity !== attribute)
                 throw new Error(`${start} is not a valid slot of periodicity ${attribute}`);
 
-            newStart = TimeSlot.fromDate(startTs.firstDate, this._rootAttribute).value;
+            newStart = TimeSlot.fromDate(startTs.firstDate, 'day').value;
         }
         else
             newStart = this._start.value;
@@ -150,7 +153,7 @@ class TimeDimension extends AbstractDimension {
             if (endTs.periodicity !== attribute)
                 throw new Error(`${end} is not a valid slot of periodicity ${attribute}`);
 
-            newEnd = TimeSlot.fromDate(endTs.lastDate, this._rootAttribute).value;
+            newEnd = TimeSlot.fromDate(endTs.lastDate, 'day').value;
         }
         else
             newEnd = this._end.value;
@@ -200,23 +203,12 @@ class TimeDimension extends AbstractDimension {
         if (this.id !== otherDimension.id)
             throw new Error('Not the same dimension');
 
-        let rootAttribute;
         if (this.attributes.includes(otherDimension.rootAttribute))
-            rootAttribute = otherDimension.rootAttribute;
+            return otherDimension.diceRange('day', this._start.value, this._end.value);
         else if (otherDimension.attributes.includes(this.rootAttribute))
-            rootAttribute = this.rootAttribute;
+            return this.diceRange('day', otherDimension._start.value, otherDimension._end.value);
         else
             throw new Error(`The dimensions are not compatible`);
-
-        const start = this._start.toParentPeriodicity(rootAttribute).value < otherDimension._start.toParentPeriodicity(rootAttribute).value ?
-            otherDimension._start.toParentPeriodicity(rootAttribute).value :
-            this._start.toParentPeriodicity(rootAttribute).value;
-
-        const end = this._end.toParentPeriodicity(rootAttribute).value < otherDimension._end.toParentPeriodicity(rootAttribute).value ?
-            this._end.toParentPeriodicity(rootAttribute).value :
-            otherDimension._end.toParentPeriodicity(rootAttribute).value;
-
-        return new TimeDimension(this.id, rootAttribute, start, end);
     }
 }
 
