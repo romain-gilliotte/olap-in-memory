@@ -63,8 +63,9 @@ class Cube {
 
 	renameMeasure(oldMeasureId, newMeasureId) {
 		const cube = new Cube(this.dimensions);
-		cube.storedMeasures = Object.assign({}, this.storedMeasures);
-		cube.computedMeasures = Object.assign({}, this.computedMeasures);
+		Object.assign(cube.storedMeasures, this.storedMeasures);
+		Object.assign(cube.storedMeasuresRules, this.storedMeasuresRules);
+		Object.assign(cube.computedMeasures, this.computedMeasures);
 
 		if (cube.computedMeasures[oldMeasureId]) {
 			cube.computedMeasures[newMeasureId] = cube.computedMeasures[oldMeasureId];

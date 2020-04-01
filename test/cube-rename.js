@@ -40,6 +40,14 @@ describe("Measures", function () {
             assert.throws(() => newCube.getData('antennas'));
         });
 
+        it('should not change anything when renaming twice', function () {
+            const newCube = cube
+                .renameMeasure('antennas', 'receivers')
+                .renameMeasure('receivers', 'antennas');
+
+            assert.deepEqual(cube, newCube);
+        });
+
     });
 
 });
