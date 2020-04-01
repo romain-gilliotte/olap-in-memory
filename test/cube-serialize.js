@@ -8,6 +8,8 @@ describe('Serialization', function () {
 
 		it('should be able to pickle and unpickle primitive types', function () {
 			const obj = [
+				NaN,
+				32,
 				new Int32Array([255]),
 				'totot',
 				new Float32Array([666]),

@@ -34,7 +34,6 @@ class InMemoryStore {
 
     constructor(size, type = 'float32', defaultValue = NaN) {
         this._size = size;
-        this._defaultValue = defaultValue;
         this._type = type;
         this._status = new Int8Array(size);
         this._status.fill(STATUS_EMPTY);
@@ -45,7 +44,6 @@ class InMemoryStore {
         else if (type == 'float64') this._data = new Float64Array(size);
         else throw new Error('Invalid type');
 
-        this._data.fill(NaN); // hack
         if (!Number.isNaN(defaultValue)) {
             this._data.fill(defaultValue);
             this._status.fill(STATUS_SET);
@@ -55,8 +53,8 @@ class InMemoryStore {
     serialize() {
         return toBuffer({
             size: this._size,
-            defaultValue: this._defaultValue,
             type: this._type,
+            status: this._status,
             data: this._data
         });
     }
@@ -65,8 +63,8 @@ class InMemoryStore {
         const data = fromBuffer(buffer);
         const store = new InMemoryStore(0);
         store._size = data.size;
-        store._defaultValue = data.defaultValue;
         store._type = data.type;
+        store._status = data.status;
         store._data = data.data;
         return store;
     }
@@ -118,7 +116,7 @@ class InMemoryStore {
     }
 
     reorder(oldDimensions, newDimensions) {
-        const newStore = new InMemoryStore(this._size, this._type, this._defaultValue);
+        const newStore = new InMemoryStore(this._size, this._type);
 
         const numDimensions = newDimensions.length;
         const dimensionsIndexes = newDimensions.map(newDim => oldDimensions.indexOf(newDim))
@@ -160,7 +158,7 @@ class InMemoryStore {
         });
 
         // Rewrite data vector.
-        const newStore = new InMemoryStore(newLength, this._type, this._defaultValue);
+        const newStore = new InMemoryStore(newLength, this._type);
         const newDimIdx = new Uint8Array(numDimensions);
         for (let newIdx = 0; newIdx < newLength; ++newIdx) {
             // Decompose new index into dimensions indexes
@@ -188,7 +186,7 @@ class InMemoryStore {
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
-        const newStore = new InMemoryStore(newSize, this._type, this._defaultValue);
+        const newStore = new InMemoryStore(newSize, this._type);
         const contributions = new Uint16Array(newSize);
 
         newStore._status.fill(0); // we'll OR the values from the parent buffer, so we need to init at zero.
@@ -271,7 +269,7 @@ class InMemoryStore {
             contributionsTotal[oldIdx] += 1;
         }
 
-        const newStore = new InMemoryStore(newSize, this._type, this._defaultValue);
+        const newStore = new InMemoryStore(newSize, this._type);
 
         for (let newIdx = 0; newIdx < newSize; ++newIdx) {
             const oldIdx = idxNewOld[newIdx];

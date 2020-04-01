@@ -25,6 +25,7 @@ const ARRAY = 3;
 const STRING = 4;
 const OBJECT = 5;
 const NULL = 6;
+const NUMBER = 7
 
 
 function toBuffer(obj) {
@@ -87,6 +88,11 @@ function toRawBuffer(obj) {
         new Uint32Array(result, 0, 1).set([STRING]);
         new Uint8Array(result, 4, payload.byteLength).set(new Uint8Array(payload));
     }
+    else if (typeof obj === 'number') {
+        result = new ArrayBuffer(8);
+        new Uint32Array(result, 0, 1).set([NUMBER]);
+        new Float32Array(result, 4, 1).set([obj]);
+    }
     else {
         const payload = toRawBuffer(Object.entries(obj).map(([key, value]) => [key, toRawBuffer(value)]));
 
@@ -131,6 +137,9 @@ function fromRawBuffer(buffer, offset = 0) {
     }
     else if (header === NULL) {
         return null;
+    }
+    else if (header === NUMBER) {
+        return new Float32Array(buffer, offset + 4, 1)[0];
     }
     else if (header === OBJECT) {
         const result = {};
