@@ -218,7 +218,10 @@ class Cube {
 	}
 
 	hydrateFromCube(otherCube) {
-		const compatibleCube = otherCube.reshape(this.dimensions);
+		// Exception == the cubes have no overlap, it is safe to skip this one.
+		let compatibleCube;
+		try { compatibleCube = otherCube.reshape(this.dimensions); }
+		catch (e) { return }
 
 		for (let measureId in this.storedMeasures)
 			if (compatibleCube.storedMeasures[measureId])
