@@ -210,22 +210,27 @@ class InMemoryStore {
                 newIdx = newIdx * newDimensions[j].numItems + offset;
             }
 
-            let oldValue = this._data[oldIdx];
-            if (contributions[newIdx] === 0)
-                newStore._data[newIdx] = oldValue;
-            else {
-                if (method == 'last')
+            if (this._status[oldIdx] & STATUS_SET) {
+                let oldValue = this._data[oldIdx];
+                if (contributions[newIdx] === 0)
                     newStore._data[newIdx] = oldValue;
-                else if (method == 'highest')
-                    newStore._data[newIdx] = newStore._data[newIdx] < oldValue ? oldValue : newStore._data[newIdx];
-                else if (method == 'lowest')
-                    newStore._data[newIdx] = newStore._data[newIdx] < oldValue ? newStore._data[newIdx] : oldValue;
-                else if (method == 'sum' || method == 'average')
-                    newStore._data[newIdx] += oldValue;
-            }
+                else {
+                    if (method == 'last')
+                        newStore._data[newIdx] = oldValue;
+                    else if (method == 'highest')
+                        newStore._data[newIdx] = newStore._data[newIdx] < oldValue ? oldValue : newStore._data[newIdx];
+                    else if (method == 'lowest')
+                        newStore._data[newIdx] = newStore._data[newIdx] < oldValue ? newStore._data[newIdx] : oldValue;
+                    else if (method == 'sum' || method == 'average')
+                        newStore._data[newIdx] += oldValue;
+                }
 
-            newStore._status[newIdx] |= this._status[oldIdx];
-            contributions[newIdx] += 1;
+                newStore._status[newIdx] |= this._status[oldIdx];
+                contributions[newIdx] += 1;
+            }
+            else {
+                newStore._status[newIdx] |= STATUS_EMPTY;
+            }
         }
 
         if (method === 'average')

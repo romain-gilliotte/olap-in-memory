@@ -174,23 +174,21 @@ class Cube {
 		this.setData(measureId, data);
 	}
 
-	getNestedObject(measureId, withTotals = false) {
+	getNestedObject(measureId, withTotals = false, withMetadata = false) {
 		if (!withTotals || this.dimensions.length == 0) {
 			const data = this.getData(measureId);
 			const status = this.getStatus(measureId);
-			return toNestedObject(data, status, this.dimensions);
+			return toNestedObject(data, status, this.dimensions, withMetadata);
 		}
 
 		const result = {};
 		for (let j = 0; j < 2 ** this.dimensions.length; ++j) {
 			let subCube = this;
-			for (let i = 0; i < this.dimensions.length; ++i) {
-				const include = j & (1 << i);
-				if (include !== 0)
+			for (let i = 0; i < this.dimensions.length; ++i)
+				if (j & (1 << i))
 					subCube = subCube.drillUp(this.dimensions[i].id, 'all')
-			}
 
-			merge(result, subCube.getNestedObject(measureId, false));
+			merge(result, subCube.getNestedObject(measureId, false, withMetadata));
 		}
 
 		return result;

@@ -21,6 +21,49 @@ describe("Drilling", function () {
                 );
             });
         });
+
+        describe('With incomplete data (data from feb missing)', function () {
+            let cube, newCube;
+
+            before(function () {
+                cube = new Cube([new TimeDimension('time', 'month', '2010-01', '2010-06')]);
+                cube.createStoredMeasure('data_sum');
+                cube.createStoredMeasure('data_avg', { time: 'average' });
+                cube.hydrateFromSparseNestedObject('data_sum', { '2010-01': 1, '2010-03': 2 });
+                cube.hydrateFromSparseNestedObject('data_avg', { '2010-01': 10, '2010-03': 20 });
+
+                newCube = cube.drillUp('time', 'quarter');
+            });
+
+            it('Drilled up cube should have summed', function () {
+                assert.deepEqual(
+                    newCube.getNestedObject('data_sum', true, true),
+                    {
+                        '2010-Q1': 3,
+                        '2010-Q1:incomplete': true,
+                        '2010-Q2': NaN,
+                        '2010-Q2:incomplete': true,
+                        'all': 3,
+                        'all:incomplete': true
+                    }
+                );
+            });
+
+            it('Drilled up cube should have averaged', function () {
+                assert.deepEqual(
+                    newCube.getNestedObject('data_avg', true, true),
+                    {
+                        '2010-Q1': 15,
+                        '2010-Q1:incomplete': true,
+                        '2010-Q2': NaN,
+                        '2010-Q2:incomplete': true,
+                        'all': 15,
+                        'all:incomplete': true
+                    }
+                );
+            });
+
+        });
     });
 
     describe('drillDown', function () {
