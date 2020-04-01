@@ -20,24 +20,24 @@ describe("Measures", function () {
             const newCube = cube.renameMeasure('router_by_antennas', 'router_by_receivers');
 
             // all measures still work
-            assert.doesNotThrow(() => newCube.getFlatArray('routers'));
-            assert.doesNotThrow(() => newCube.getFlatArray('antennas'));
-            assert.doesNotThrow(() => newCube.getFlatArray('router_by_receivers'))
+            assert.doesNotThrow(() => newCube.getData('routers'));
+            assert.doesNotThrow(() => newCube.getData('antennas'));
+            assert.doesNotThrow(() => newCube.getData('router_by_receivers'))
 
             // former measure does not work any longer
-            assert.throws(() => newCube.getFlatArray('router_by_antennas'));
+            assert.throws(() => newCube.getData('router_by_antennas'));
         })
 
         it('should update formulas of computed measures', function () {
             const newCube = cube.renameMeasure('antennas', 'receivers');
 
             // all measures still work
-            assert.doesNotThrow(() => newCube.getFlatArray('routers'));
-            assert.doesNotThrow(() => newCube.getFlatArray('receivers'));
-            assert.doesNotThrow(() => newCube.getFlatArray('router_by_antennas'))
+            assert.doesNotThrow(() => newCube.getData('routers'));
+            assert.doesNotThrow(() => newCube.getData('receivers'));
+            assert.doesNotThrow(() => newCube.getData('router_by_antennas'))
 
             // former measure does not work any longer
-            assert.throws(() => newCube.getFlatArray('antennas'));
+            assert.throws(() => newCube.getData('antennas'));
         });
 
     });

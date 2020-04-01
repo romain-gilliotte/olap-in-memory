@@ -102,7 +102,7 @@ class Cube {
 			throw new Error('No such measure');
 	}
 
-	getFlatArray(measureId) {
+	getData(measureId) {
 		if (this.storedMeasures[measureId] !== undefined)
 			return this.storedMeasures[measureId].data;
 
@@ -133,27 +133,27 @@ class Cube {
 			throw new Error('No such measure');
 	}
 
-	setFlatArray(measureId, values) {
+	setData(measureId, values) {
 		if (this.storedMeasures[measureId]) {
 			this.storedMeasures[measureId].data = values;
 		}
 		else
-			throw new Error('setFlatArray can only be called on stored measures');
+			throw new Error('setData can only be called on stored measures');
 	}
 
 	getNestedArray(measureId) {
-		const array = this.getFlatArray(measureId);
+		const array = this.getData(measureId);
 		return flatArrayToNestedArray(array, this.dimensions);
 	}
 
 	setNestedArray(measureId, values) {
 		const array = nestedArrayToFlatArray(values, this.dimensions);
-		this.setFlatArray(measureId, array);
+		this.setData(measureId, array);
 	}
 
 	getNestedObject(measureId, withTotals = false) {
 		if (!withTotals || this.dimensions.length == 0)
-			return flatArrayToNestedObject(this.getFlatArray(measureId), this.dimensions);
+			return flatArrayToNestedObject(this.getData(measureId), this.dimensions);
 
 		const result = {};
 		for (let j = 0; j < 2 ** this.dimensions.length; ++j) {
@@ -172,7 +172,7 @@ class Cube {
 
 	setNestedObject(measureId, value) {
 		const array = nestedObjectToFlatArray(value, this.dimensions);
-		this.setFlatArray(measureId, array);
+		this.setData(measureId, array);
 	}
 
 	hydrateFromSparseNestedObject(measureId, obj, offset = 0, dimOffset = 0) {

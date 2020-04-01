@@ -20,7 +20,7 @@ describe('Accessors', function () {
 		});
 
 		it('should retrieve flat array', function () {
-			assert.deepEqual(cube.getFlatArray('antennas'), [1, 2, 4, 8, 16, 32]);
+			assert.deepEqual(cube.getData('antennas'), [1, 2, 4, 8, 16, 32]);
 		});
 
 		it('should retrieve nested array', function () {
@@ -56,7 +56,7 @@ describe('Accessors', function () {
 		it('should retrieve nested object w/ totals on a cube with no dimensions', function () {
 			let myCube = new Cube([]);
 			myCube.createStoredMeasure('antennas');
-			myCube.setFlatArray('antennas', [32]);
+			myCube.setData('antennas', [32]);
 
 			assert.deepEqual(
 				myCube.getNestedObject('antennas', true),
@@ -66,7 +66,7 @@ describe('Accessors', function () {
 
 		it('should compute flat array', function () {
 			assert.deepEqual(
-				cube.getFlatArray('router_by_antennas'),
+				cube.getData('router_by_antennas'),
 				[3 / 1, 2 / 2, 4 / 4, 9 / 8, 16 / 16, 32 / 32]
 			);
 		});
@@ -81,13 +81,13 @@ describe('Accessors', function () {
 		});
 
 		it('should set flat array', function () {
-			cube.setFlatArray('antennas', [1, 2, 4, 8, 16, 32]);
-			assert.deepEqual(cube.getFlatArray('antennas'), [1, 2, 4, 8, 16, 32]);
+			cube.setData('antennas', [1, 2, 4, 8, 16, 32]);
+			assert.deepEqual(cube.getData('antennas'), [1, 2, 4, 8, 16, 32]);
 		});
 
 		it('should set nested array', function () {
 			cube.setNestedArray('antennas', [[1, 2], [4, 8], [16, 32]]);
-			assert.deepEqual(cube.getFlatArray('antennas'), [1, 2, 4, 8, 16, 32]);
+			assert.deepEqual(cube.getData('antennas'), [1, 2, 4, 8, 16, 32]);
 		});
 
 		it('should set nested object', function () {
@@ -97,7 +97,7 @@ describe('Accessors', function () {
 				tokyo: { summer: 16, winter: 32 }
 			});
 
-			assert.deepEqual(cube.getFlatArray('antennas'), [1, 2, 4, 8, 16, 32]);
+			assert.deepEqual(cube.getData('antennas'), [1, 2, 4, 8, 16, 32]);
 		});
 
 	});
