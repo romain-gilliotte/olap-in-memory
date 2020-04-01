@@ -1,6 +1,27 @@
 
+function toNestedObjectRec(values, status, dimensions, dimOffset, offset) {
+    const result = {};
+    const items = dimensions[dimOffset].getItems();
+
+    items.forEach((item, itemIndex) => {
+        const childOffset = offset * items.length + itemIndex;
+
+        if (dimOffset + 1 < dimensions.length) {
+            result[item] = toNestedObjectRec(values, status, dimensions, dimOffset + 1, childOffset)
+        }
+        else {
+            result[item] = values[childOffset];
+            if ((status[childOffset] & 4) !== 0)
+                result[item + ':interpolated'] = true;
+        }
+    });
+
+    return result;
+};
+
+
 module.exports = {
-    nestedObjectToFlatArray(value, dimensions) {
+    fromNestedObject(value, dimensions) {
         value = [value];
 
         for (let i = 0; i < dimensions.length; ++i) {
@@ -20,28 +41,13 @@ module.exports = {
         return value;
     },
 
-    flatArrayToNestedObject(values, dimensions) {
+    toNestedObject(values, status, dimensions) {
         // numDimensions == 0
         if (dimensions.length === 0)
             return values[0];
 
-        // numDimensions >= 1
-        for (let i = dimensions.length - 1; i >= 0; --i) {
-            let chunkSize = dimensions[i].numItems;
+        return toNestedObjectRec(values, status, dimensions, 0, 0)
 
-            let newValues = new Array(values.length / chunkSize);
-            for (let j = 0; j < newValues.length; ++j) {
-                newValues[j] = {};
-                let k = 0;
-                for (let item of dimensions[i].getItems()) {
-                    newValues[j][item] = values[j * chunkSize + k];
-                    k++;
-                }
-            }
-
-            values = newValues;
-        }
-
-        return values[0];
     }
+
 }

@@ -1,6 +1,6 @@
 
 module.exports = {
-    nestedArrayToFlatArray(values, dimensions) {
+    fromNestedArray(values, dimensions) {
         const numSteps = dimensions.length - 1;
 
         for (let i = 0; i < numSteps; ++i)
@@ -9,7 +9,7 @@ module.exports = {
         return values;
     },
 
-    flatArrayToNestedArray(values, dimensions) {
+    toNestedArray(values, status, dimensions) {
         // numDimensions == 0
         if (dimensions.length === 0)
             return values[0];

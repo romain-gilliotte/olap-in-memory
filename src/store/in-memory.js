@@ -14,9 +14,13 @@ class InMemoryStore {
         return this._data.byteLength;
     }
 
+    // we should simply return the data, but it breaks the tests.
     get data() {
-        // we should simply return the data, but it breaks the tests.
         return Array.from(this._data);
+    }
+
+    get status() {
+        return Array.from(this._status);
     }
 
     set data(values) {
@@ -41,6 +45,7 @@ class InMemoryStore {
         else if (type == 'float64') this._data = new Float64Array(size);
         else throw new Error('Invalid type');
 
+        this._data.fill(NaN); // hack
         if (!Number.isNaN(defaultValue)) {
             this._data.fill(defaultValue);
             this._status.fill(STATUS_SET);

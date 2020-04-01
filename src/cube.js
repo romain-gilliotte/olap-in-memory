@@ -2,8 +2,8 @@ const merge = require('lodash.merge');
 const cloneDeep = require('lodash.clonedeep');
 const DimensionFactory = require('./dimension/factory');
 const CatchAllDimension = require('./dimension/catch-all');
-const { nestedArrayToFlatArray, flatArrayToNestedArray } = require('./formatter/nested-array');
-const { nestedObjectToFlatArray, flatArrayToNestedObject } = require('./formatter/nested-object');
+const { fromNestedArray, toNestedArray } = require('./formatter/nested-array');
+const { fromNestedObject, toNestedObject } = require('./formatter/nested-object');
 const { toBuffer, fromBuffer } = require('./serialization');
 const InMemoryStore = require('./store/in-memory');
 
@@ -134,6 +134,26 @@ class Cube {
 			throw new Error('No such measure');
 	}
 
+	getStatus(measureId) {
+		if (this.storedMeasures[measureId] !== undefined)
+			return this.storedMeasures[measureId].status;
+
+		else if (this.computedMeasures[measureId] !== undefined) {
+			const result = new Array(this.storeSize);
+			result.fill(0);
+			for (let storedMeasureId in this.storedMeasures) {
+				const status = this.storedMeasures[storedMeasureId].status;
+				for (let i = 0; i < this.storeSize; ++i)
+					result[i] |= status[i];
+			}
+			return result;
+		}
+
+		else
+			throw new Error('No such measure');
+
+	}
+
 	setData(measureId, values) {
 		if (this.storedMeasures[measureId]) {
 			this.storedMeasures[measureId].data = values;
@@ -143,18 +163,23 @@ class Cube {
 	}
 
 	getNestedArray(measureId) {
-		const array = this.getData(measureId);
-		return flatArrayToNestedArray(array, this.dimensions);
+		const data = this.getData(measureId);
+		const status = this.getStatus(measureId);
+
+		return toNestedArray(data, status, this.dimensions);
 	}
 
 	setNestedArray(measureId, values) {
-		const array = nestedArrayToFlatArray(values, this.dimensions);
-		this.setData(measureId, array);
+		const data = fromNestedArray(values, this.dimensions);
+		this.setData(measureId, data);
 	}
 
 	getNestedObject(measureId, withTotals = false) {
-		if (!withTotals || this.dimensions.length == 0)
-			return flatArrayToNestedObject(this.getData(measureId), this.dimensions);
+		if (!withTotals || this.dimensions.length == 0) {
+			const data = this.getData(measureId);
+			const status = this.getStatus(measureId);
+			return toNestedObject(data, status, this.dimensions);
+		}
 
 		const result = {};
 		for (let j = 0; j < 2 ** this.dimensions.length; ++j) {
@@ -172,8 +197,8 @@ class Cube {
 	}
 
 	setNestedObject(measureId, value) {
-		const array = nestedObjectToFlatArray(value, this.dimensions);
-		this.setData(measureId, array);
+		const data = fromNestedObject(value, this.dimensions);
+		this.setData(measureId, data);
 	}
 
 	hydrateFromSparseNestedObject(measureId, obj, offset = 0, dimOffset = 0) {
