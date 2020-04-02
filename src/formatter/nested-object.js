@@ -1,26 +1,19 @@
 
 function toNestedObjectRec(values, status, dimensions, dimOffset, offset, withMetadata) {
+    if (dimOffset >= dimensions.length) {
+        if (withMetadata) {
+            const cellStatus = status[offset];
+            return { v: values[offset], c: !(cellStatus & 1), r: !(cellStatus & 4) };
+        }
+        else
+            return values[offset];
+    }
+
     const result = {};
     const items = dimensions[dimOffset].getItems();
-
     items.forEach((item, itemIndex) => {
         const childOffset = offset * items.length + itemIndex;
-
-        if (dimOffset + 1 < dimensions.length) {
-            result[item] = toNestedObjectRec(values, status, dimensions, dimOffset + 1, childOffset, withMetadata)
-        }
-        else {
-            const cellStatus = status[childOffset];
-            const cellValue = values[childOffset];
-
-            result[item] = cellValue;
-            if (withMetadata) {
-                if (cellStatus & 1)
-                    result[item + ':incomplete'] = true;
-                if (cellStatus & 4)
-                    result[item + ':interpolated'] = true;
-            }
-        }
+        result[item] = toNestedObjectRec(values, status, dimensions, dimOffset + 1, childOffset, withMetadata)
     });
 
     return result;
@@ -49,12 +42,7 @@ module.exports = {
     },
 
     toNestedObject(values, status, dimensions, withMetadata = false) {
-        // numDimensions == 0
-        if (dimensions.length === 0)
-            return values[0];
-
         return toNestedObjectRec(values, status, dimensions, 0, 0, withMetadata)
-
     }
 
 }
