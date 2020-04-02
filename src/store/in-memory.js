@@ -14,9 +14,12 @@ class InMemoryStore {
         return this._data.byteLength;
     }
 
-    // we should simply return the data, but it breaks the tests.
     get data() {
-        return Array.from(this._data);
+        const result = new Array(this._data.length);
+        for (let i = 0; i < this._data.length; ++i)
+            result[i] = this.getValue(i);
+
+        return result;
     }
 
     get status() {
@@ -70,7 +73,7 @@ class InMemoryStore {
     }
 
     getValue(index) {
-        return this._data[index];
+        return this._status[index] & STATUS_SET ? this._data[index] : NaN;
     }
 
     getStatus(index) {

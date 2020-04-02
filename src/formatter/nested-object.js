@@ -13,12 +13,7 @@ function toNestedObjectRec(values, status, dimensions, dimOffset, offset, withMe
             const cellStatus = status[childOffset];
             const cellValue = values[childOffset];
 
-            // Always return NaN if the value does not have been at least partially set.
-            if (cellStatus & 2)
-                result[item] = cellValue;
-            else
-                result[item] = NaN;
-
+            result[item] = cellValue;
             if (withMetadata) {
                 if (cellStatus & 1)
                     result[item + ':incomplete'] = true;
