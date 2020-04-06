@@ -31,8 +31,11 @@ class InMemoryStore {
             throw new Error('value length is invalid');
 
         this._status.fill(STATUS_SET);
-        for (let i = 0; i < this._size; ++i)
+        for (let i = 0; i < this._size; ++i) {
             this._data[i] = values[i];
+            if (typeof values[i] !== 'number' || Number.isNaN(values[i]))
+                this._status[i] = STATUS_EMPTY;
+        }
     }
 
     constructor(size, type = 'float32', defaultValue = NaN) {
@@ -82,7 +85,7 @@ class InMemoryStore {
 
     setValue(index, value, status = STATUS_SET) {
         this._data[index] = value;
-        this._status[index] = status;
+        this._status[index] = typeof value === 'number' && !Number.isNaN(value) ? status : STATUS_EMPTY;
     }
 
     load(otherStore, myDimensions, hisDimensions) {

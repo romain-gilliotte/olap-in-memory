@@ -139,6 +139,14 @@ describe('Accessors', function () {
 				}
 			)
 		});
+
+		it('Setting a value to null or NaN should unset it', function () {
+			const cube = createTestCube(true, true);
+			cube.hydrateFromSparseNestedObject('antennas', { toledo: { summer: null } });
+
+			assert.isNaN(cube.getData('antennas')[2]);
+			assert.equal(cube.getStatus('antennas')[2], 1);
+		})
 	});
 });
 

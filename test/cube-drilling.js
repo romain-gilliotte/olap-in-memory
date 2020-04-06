@@ -39,12 +39,9 @@ describe("Drilling", function () {
                 assert.deepEqual(
                     newCube.getNestedObject('data_sum', true, true),
                     {
-                        '2010-Q1': 3,
-                        '2010-Q1:incomplete': true,
-                        '2010-Q2': NaN,
-                        '2010-Q2:incomplete': true,
-                        'all': 3,
-                        'all:incomplete': true
+                        '2010-Q1': { v: 3, c: false, r: true },
+                        '2010-Q2': { v: NaN, c: false, r: true },
+                        'all': { v: 3, c: false, r: true }
                     }
                 );
             });
@@ -53,12 +50,9 @@ describe("Drilling", function () {
                 assert.deepEqual(
                     newCube.getNestedObject('data_avg', true, true),
                     {
-                        '2010-Q1': 15,
-                        '2010-Q1:incomplete': true,
-                        '2010-Q2': NaN,
-                        '2010-Q2:incomplete': true,
-                        'all': 15,
-                        'all:incomplete': true
+                        '2010-Q1': { v: 15, c: false, r: true },
+                        '2010-Q2': { v: NaN, c: false, r: true },
+                        'all': { v: 15, c: false, r: true }
                     }
                 );
             });
