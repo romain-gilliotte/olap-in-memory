@@ -109,6 +109,48 @@ describe("Drilling", function () {
                 );
             });
         });
+
+        describe('quarter to month, incomplete cube', function () {
+            let cube, newCube;
+
+            before(function () {
+                cube = new Cube([new TimeDimension('time', 'quarter', '2010-Q1', '2010-Q2')]);
+                cube.createStoredMeasure('measure1', { time: 'sum' });
+                cube.hydrateFromSparseNestedObject('measure1', { '2010-Q1': 90 });
+
+                newCube = cube.drillDown('time', 'month');
+            });
+
+            it('check cube data', function () {
+                assert.deepEqual(
+                    cube.getData('measure1'),
+                    [90, NaN]
+                );
+            });
+
+            it('newCube should drillup again to same values', function () {
+                assert.deepEqual(
+                    newCube.drillUp('time', 'quarter').getData('measure1'),
+                    [90, NaN]
+                );
+            });
+
+            it('newCube should have divided the quarter in three month, and left the rest', function () {
+                assert.deepEqual(
+                    newCube.getData('measure1'),
+                    [30, 30, 30, NaN, NaN, NaN]
+                );
+            });
+
+            it('newCube should have proper status flags', function () {
+                assert.deepEqual(
+                    newCube.getStatus('measure1'),
+                    [6, 6, 6, 1, 1, 1]
+                );
+            });
+
+        });
+
     });
 });
 
