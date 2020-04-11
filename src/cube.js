@@ -1,5 +1,6 @@
 const merge = require('lodash.merge');
 const cloneDeep = require('lodash.clonedeep');
+const { Parser } = require('expr-eval');
 const DimensionFactory = require('./dimension/factory');
 const CatchAllDimension = require('./dimension/catch-all');
 const { fromNestedArray, toNestedArray } = require('./formatter/nested-array');
@@ -50,7 +51,7 @@ class Cube {
 		if (this.storedMeasures[measureId] !== undefined || this.computedMeasures[measureId] !== undefined)
 			throw new Error('This measure already exists');
 
-		this.computedMeasures[measureId] = formula;
+		this.computedMeasures[measureId] = new Parser().parse(formula);
 	}
 
 	createStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = NaN) {
@@ -78,10 +79,11 @@ class Cube {
 			delete cube.storedMeasuresRules[oldMeasureId];
 
 			for (let measureId in cube.computedMeasures) {
-				cube.computedMeasures[measureId] = cube.computedMeasures[measureId].replace(
-					new RegExp(oldMeasureId, 'g'),
-					newMeasureId
-				);
+				const expression = cube.computedMeasures[measureId];
+
+				if (expression.variables().includes(oldMeasureId)) {
+					cube.computedMeasures[measureId] = expression.substitute(oldMeasureId, newMeasureId);
+				}
 			}
 		}
 		else {
@@ -108,28 +110,26 @@ class Cube {
 			return this.storedMeasures[measureId].data;
 
 		else if (this.computedMeasures[measureId] !== undefined) {
+			const storeSize = this.storeSize;
+			const measureIds = this.storedMeasureIds;
+			const measures = measureIds.map(id => this.storedMeasures[id]);
+			const numMeasures = measures.length;
+
 			// Create function to compute
-			const fn = new Function(
-				...this.storedMeasureIds,
-				'return ' + this.computedMeasures[measureId]
-			);
+			const fn = this.computedMeasures[measureId].toJSFunction(measureIds);
 
 			// Fill result array
-			const result = new Array(this.storeSize);
-			const params = new Array(this.storedMeasureIds.length);
-			for (let i = 0; i < this.storeSize; ++i) {
-				let j = 0;
-				for (let storedMeasureId in this.storedMeasures) {
-					params[j] = this.storedMeasures[storedMeasureId].getValue(i);
-					j++;
-				}
+			const result = new Array(storeSize);
+			const params = new Array(numMeasures);
+			for (let i = 0; i < storeSize; ++i) {
+				for (let j = 0; j < numMeasures; ++j)
+					params[j] = measures[j].getValue(i);
 
 				result[i] = fn(...params);
 			}
 
 			return result;
 		}
-
 		else
 			throw new Error('No such measure');
 	}
