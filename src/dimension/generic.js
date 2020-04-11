@@ -19,11 +19,13 @@ class GenericDimension extends AbstractDimension {
 		// 	parity: ['even', 'odd']
 		// }
 		this._attributeItems = {};
-		this._attributeItems[rootAttribute] = items;
 		this._attributeItems['all'] = ['all'];
+		this._attributeItems[rootAttribute] = items;
 
 		this._attributeLabels = {};
+		this._attributeLabels['all'] = { 'all': 'All' };
 		this._attributeLabels[rootAttribute] = {};
+
 		items.forEach(item => {
 			if (!itemlabels)
 				this._attributeLabels[rootAttribute][item] = item;
@@ -40,8 +42,8 @@ class GenericDimension extends AbstractDimension {
 		// 	parity: [0, 1, 0, 1] <- this._attributeMappings.parity[3 ('2012')] == 0 ('even')
 		// }
 		this._attributeMappings = {};
-		this._attributeMappings[rootAttribute] = new Uint32Array(items.map((item, index) => index));
 		this._attributeMappings['all'] = new Uint32Array(items.length); // everything points to item 0
+		this._attributeMappings[rootAttribute] = new Uint32Array(items.map((item, index) => index));
 
 		if (items.length === 0)
 			throw new Error('Empty dimensions are not allowed');
