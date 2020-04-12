@@ -48,13 +48,27 @@ class Cube {
 	}
 
 	createComputedMeasure(measureId, formula) {
+		if (!/^[a-z][_a-z0-9]+$/i.test(measureId))
+			throw new Error(`Invalid measureId: ${measureId}`);
+
 		if (this.storedMeasures[measureId] !== undefined || this.computedMeasures[measureId] !== undefined)
 			throw new Error('This measure already exists');
 
-		this.computedMeasures[measureId] = new Parser().parse(formula);
+		const parser = new Parser({ logical: false, comparison: false, 'in': false, assignment: false });
+		parser.functions.isNaN = Number.isNaN;
+
+		const expression = parser.parse(formula);
+		const variables = expression.variables({ withMembers: true });
+		if (!variables.every(variable => this.storedMeasureIds.includes(variable)))
+			throw new Error(`Unknown measure: ${variable}`);
+
+		this.computedMeasures[measureId] = expression;
 	}
 
 	createStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = NaN) {
+		if (!/^[a-z][_a-z0-9]*$/i.test(measureId))
+			throw new Error(`Invalid measureId: ${measureId}`);
+
 		if (this.storedMeasures[measureId] !== undefined)
 			throw new Error('This measure already exists');
 
@@ -94,12 +108,20 @@ class Cube {
 	}
 
 	dropMeasure(measureId) {
-		if (this.storedMeasures[measureId] !== undefined) {
+		if (this.computedMeasures[measureId] !== undefined)
+			delete this.computedMeasures[measureId];
+
+		else if (this.storedMeasures[measureId] !== undefined) {
 			delete this.storedMeasures[measureId];
 			delete this.storedMeasuresRules[measureId];
+
+			for (let measureId in cube.computedMeasures) {
+				const expression = cube.computedMeasures[measureId];
+				if (expression.variables().includes(measureId)) {
+					delete cube.computedMeasures[measureId];
+				}
+			}
 		}
-		else if (this.computedMeasures[measureId] !== undefined)
-			delete this.computedMeasures[measureId];
 
 		else
 			throw new Error('No such measure');
