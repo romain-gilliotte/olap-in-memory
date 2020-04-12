@@ -436,10 +436,8 @@ class Cube {
 		let newCube = this;
 
 		// Remove unneeded dimensions, and reorder.
-		newCube = this.project(
-			this.dimensionIds.filter(
-				dimId => !!targetDims.find(dim => dim.id == dimId)
-			)
+		newCube = newCube.project(
+			targetDims.filter(dim => newCube.dimensionIds.includes(dim.id)).map(dim => dim.id)
 		);
 
 		// Add missing dimensions.
