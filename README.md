@@ -1,5 +1,11 @@
 # Olap in memory
 
+![Test suite](https://github.com/romain-gilliotte/olap-in-memory/workflows/Test%20suite/badge.svg)
+![npm bundle size](https://img.shields.io/bundlephobia/minzip/olap-in-memory)
+![NPM](https://img.shields.io/npm/l/olap-in-memory)
+![npm](https://img.shields.io/npm/v/olap-in-memory)
+![npm](https://img.shields.io/npm/dt/olap-in-memory)
+
 Olap in memory is a library to manipulate offline OLAP cubes.
 
 It was written as a companion library for [Monitool](https://github.com/romain-gilliotte/monitool), a full-featured monitoring platform targeted at humanitarian organizations.
