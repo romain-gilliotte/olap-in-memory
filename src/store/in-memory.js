@@ -125,22 +125,22 @@ class InMemoryStore {
         const newStore = new InMemoryStore(this._size, this._type);
 
         const numDimensions = newDimensions.length;
-        const dimensionsIndexes = newDimensions.map(newDim => oldDimensions.indexOf(newDim))
+        const newToOldDimIdx = newDimensions.map(newDim => oldDimensions.indexOf(newDim))
 
-        const newDimensionIndex = new Uint16Array(numDimensions);
-        for (let newIdx = 0; newIdx < this._size; ++newIdx) {
+        const oldDimIdx = new Uint16Array(numDimensions);
+        for (let oldIdx = 0; oldIdx < this._size; ++oldIdx) {
             // Decompose new index into dimensions indexes
-            let newIndexCopy = newIdx;
+            let oldIdxCopy = oldIdx;
             for (let i = numDimensions - 1; i >= 0; --i) {
-                newDimensionIndex[i] = newIndexCopy % newDimensions[i].numItems;
-                newIndexCopy = Math.floor(newIndexCopy / newDimensions[i].numItems);
+                oldDimIdx[i] = oldIdxCopy % oldDimensions[i].numItems;
+                oldIdxCopy = Math.floor(oldIdxCopy / oldDimensions[i].numItems);
             }
 
             // Compute what the old index was
-            let oldIdx = 0;
+            let newIdx = 0;
             for (let i = 0; i < numDimensions; ++i) {
-                let oldDimIndex = dimensionsIndexes[i];
-                oldIdx = oldIdx * oldDimensions[i].numItems + newDimensionIndex[oldDimIndex];
+                let oldDimIndex = newToOldDimIdx[i];
+                newIdx = newIdx * newDimensions[i].numItems + oldDimIdx[oldDimIndex];
             }
 
             newStore._status[newIdx] = this._status[oldIdx];

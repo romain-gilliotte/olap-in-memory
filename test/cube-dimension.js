@@ -96,9 +96,53 @@ describe("Dimension", function () {
 		});
 
 		it('should inverse the dimensions', function () {
-			const inversed = cube.reorderDimensions(['period', 'location']);
+			assert.deepEqual(
+				cube.reorderDimensions(['period', 'location']).getNestedArray('antennas'),
+				[[1, 4, 16], [2, 8, 32]]
+			);
+		});
 
-			assert.deepEqual(inversed.getNestedArray('antennas'), [[1, 4, 16], [2, 8, 32]]);
+		it('should work with more dimensions', function () {
+			let cube = new Cube([
+				new GenericDimension('dim1', 'item', ['11', '12']),
+				new GenericDimension('dim2', 'item', ['21', '22']),
+				new GenericDimension('dim3', 'item', ['31', '32'])
+			]);
+
+			cube.createStoredMeasure('main');
+			cube.setData('main', [1, 2, 3, 4, 5, 6, 7, 8]);
+
+			assert.deepEqual(
+				cube.reorderDimensions(['dim1', 'dim2', 'dim3']).getNestedObject('main'),
+				{
+					'11': { '21': { '31': 1, '32': 2 }, '22': { '31': 3, '32': 4 } },
+					'12': { '21': { '31': 5, '32': 6 }, '22': { '31': 7, '32': 8 } }
+				}
+			);
+
+			assert.deepEqual(
+				cube.reorderDimensions(['dim1', 'dim3', 'dim2']).getNestedObject('main'),
+				{
+					'11': { '31': { '21': 1, '22': 3 }, '32': { '21': 2, '22': 4 } },
+					'12': { '31': { '21': 5, '22': 7 }, '32': { '21': 6, '22': 8 } }
+				}
+			);
+
+			assert.deepEqual(
+				cube.reorderDimensions(['dim3', 'dim2', 'dim1']).getNestedObject('main'),
+				{
+					'31': { '21': { '11': 1, '12': 5 }, '22': { '11': 3, '12': 7 } },
+					'32': { '21': { '11': 2, '12': 6 }, '22': { '11': 4, '12': 8 } }
+				}
+			);
+
+			assert.deepEqual(
+				cube.reorderDimensions(['dim3', 'dim1', 'dim2']).getNestedObject('main'),
+				{
+					'31': { '11': { '21': 1, '22': 3 }, '12': { '21': 5, '22': 7 } },
+					'32': { '11': { '21': 2, '22': 4 }, '12': { '21': 6, '22': 8 } }
+				}
+			);
 		});
 
 	});
