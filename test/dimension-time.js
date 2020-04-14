@@ -30,16 +30,16 @@ describe('TimeDimension', function () {
 	});
 
 	it('should compute child items for all attributes', function () {
-		assert.equal(dimension.getChildItem('month', '2010-01'), '2010-01');
-		assert.equal(dimension.getChildItem('year', '2010-01'), '2010');
+		assert.equal(dimension.getGroupItemFromRootItem('month', '2010-01'), '2010-01');
+		assert.equal(dimension.getGroupItemFromRootItem('year', '2010-01'), '2010');
 	});
 
 	it('should compute child indexes for all attributes', function () {
-		assert.equal(dimension.getChildIndex('month', 0), 0);
-		assert.equal(dimension.getChildIndex('month', 1), 1);
+		assert.equal(dimension.getGroupIndexFromRootIndex('month', 0), 0);
+		assert.equal(dimension.getGroupIndexFromRootIndex('month', 1), 1);
 
-		assert.equal(dimension.getChildIndex('year', 0), 0);
-		assert.equal(dimension.getChildIndex('year', 1), 1);
+		assert.equal(dimension.getGroupIndexFromRootIndex('year', 0), 0);
+		assert.equal(dimension.getGroupIndexFromRootIndex('year', 1), 1);
 	});
 
 	it('should drill up', function () {
@@ -78,6 +78,14 @@ describe('TimeDimension', function () {
 		const otherDimension = new TimeDimension('time', 'quarter', '2010-Q3', '2010-Q4');
 
 		assert.throws(() => dimension.intersect(otherDimension));
+	});
+
+	it('should union two dimensions', function () {
+		const otherDimension = new TimeDimension('time', 'quarter', '2010-Q3', '2010-Q4');
+
+		const union = dimension.union(otherDimension);
+		assert.equal(union.rootAttribute, 'quarter');
+		assert.deepEqual(union.getItems(), ['2009-Q4', '2010-Q1', '2010-Q2', '2010-Q3', '2010-Q4']);
 	});
 
 	it('should work when serialized', function () {

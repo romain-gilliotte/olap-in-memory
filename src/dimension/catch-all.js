@@ -6,10 +6,6 @@ class CatchAll extends AbstractDimension {
         throw new Error('Unsupported');
     }
 
-    get isInterpolated() {
-        throw new Error('Unsupported');
-    }
-
 	/**
 	 * Create a simple dimension
 	 */
@@ -27,7 +23,7 @@ class CatchAll extends AbstractDimension {
     }
 
     getEntries(attribute = null, language = 'en') {
-        return [['_total', '_total']]
+        return [['_total', 'Total']]
     }
 
     drillUp(newAttribute) {
@@ -54,25 +50,19 @@ class CatchAll extends AbstractDimension {
 
     /**
      *
-     * @param  {[type]} attribute eg: 'month'
-     * @param  {[type]} value     '2010-01-01'
-     * @return {[type]}           '2010-01'
-     */
-    getChildItem(attribute, value) {
-        return '_total';
-    }
-
-    /**
-     *
      * @param  {[type]} attribute eg: month
      * @param  {[type]} index     32
      * @return {[type]}           2
      */
-    getChildIndex(attribute, index) {
+    getGroupIndexFromRootIndex(attribute, index) {
         return 0;
     }
 
     intersect(otherDimension) {
+        return otherDimension;
+    }
+
+    union(otherDimension) {
         return this;
     }
 }

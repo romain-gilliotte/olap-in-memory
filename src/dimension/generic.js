@@ -4,46 +4,40 @@ const { toBuffer, fromBuffer } = require('../serialization');
 class GenericDimension extends AbstractDimension {
 
 	get attributes() {
-		return Object.keys(this._attributeMappings);
+		return Object.keys(this._rootIdxToGroupIdx);
 	}
 
 	/**
 	 * Create a simple dimension
 	 */
-	constructor(id, rootAttribute, items, dimensionLabel = null, itemlabels = null) {
-		super(id, rootAttribute, dimensionLabel);
+	constructor(id, rootAttribute, items, label = null, itemToLabelMap = null) {
+		super(id, rootAttribute, label);
 
 		// Items for all attributes
 		// {
 		// 	year: ['2010', '2011', '2012', '2013'],
 		// 	parity: ['even', 'odd']
 		// }
-		this._attributeItems = {};
-		this._attributeItems['all'] = ['all'];
-		this._attributeItems[rootAttribute] = items;
-
-		this._attributeLabels = {};
-		this._attributeLabels['all'] = { 'all': 'All' };
-		this._attributeLabels[rootAttribute] = {};
-
-		items.forEach(item => {
-			if (!itemlabels)
-				this._attributeLabels[rootAttribute][item] = item;
-			else if (typeof itemlabels == 'function')
-				this._attributeLabels[rootAttribute][item] = itemlabels(item);
-			else
-				this._attributeLabels[rootAttribute][item] = itemlabels[item];
-		});
-
+		this._items = {};
+		this._items['all'] = ['all'];
+		this._items[rootAttribute] = items;
 
 		// Mappings from all attributes to default one
 		// {
 		// 	year: [0, 1, 2, 3], <- maps to itself
 		// 	parity: [0, 1, 0, 1] <- this._attributeMappings.parity[3 ('2012')] == 0 ('even')
 		// }
-		this._attributeMappings = {};
-		this._attributeMappings['all'] = new Uint32Array(items.length); // everything points to item 0
-		this._attributeMappings[rootAttribute] = new Uint32Array(items.map((item, index) => index));
+		this._rootIdxToGroupIdx = {};
+		this._rootIdxToGroupIdx['all'] = new Uint32Array(items.length); // everything points to item 0
+		this._rootIdxToGroupIdx[rootAttribute] = new Uint32Array(items.map((item, index) => index));
+
+		// Mapping for labels
+		this._itemToLabel = {};
+		this._itemToLabel['all'] = { 'all': 'All' };
+		this._itemToLabel[rootAttribute] = {};
+		items.forEach(item => {
+			this._itemToLabel[rootAttribute][item] = this._getOrCall(itemToLabelMap, item);
+		});
 
 		if (items.length === 0)
 			throw new Error('Empty dimensions are not allowed');
@@ -52,9 +46,9 @@ class GenericDimension extends AbstractDimension {
 	static deserialize(buffer) {
 		const data = fromBuffer(buffer);
 		const dimension = new GenericDimension(data.id, data.rootAttribute, data.attributeItems[data.rootAttribute], data.label);
-		Object.assign(dimension._attributeItems, data.attributeItems);
-		Object.assign(dimension._attributeLabels, data.attributeLabels);
-		Object.assign(dimension._attributeMappings, data.attributeMappings);
+		Object.assign(dimension._items, data.attributeItems);
+		Object.assign(dimension._itemToLabel, data.attributeLabels);
+		Object.assign(dimension._rootIdxToGroupIdx, data.attributeMappings);
 
 		return dimension;
 	}
@@ -64,91 +58,87 @@ class GenericDimension extends AbstractDimension {
 			id: this.id,
 			label: this.label,
 			rootAttribute: this.rootAttribute,
-			rootItems: this._attributeItems[this.rootAttribute],
-			attributeItems: this._attributeItems,
-			attributeLabels: this._attributeLabels,
-			attributeMappings: this._attributeMappings
+			rootItems: this._items[this.rootAttribute],
+			attributeItems: this._items,
+			attributeLabels: this._itemToLabel,
+			attributeMappings: this._rootIdxToGroupIdx
 		});
 	}
 
 	/**
 	 * Add a parent attribute based on an existing one.
+	 * If an exception is throw on mapping functions, the dimensions will not be modified.
 	 *
-	 * @param {string} baseAttribute ie: "zipCode"
-	 * @param {string} newAttribute   ie: "city"
-	 * @param {Record<string, string> | (string): string} mapping ie: {"12345": "paris", "54321": "paris"}
-	 * @param {Record<string, string> | (string): string} labels  ie: {'paris': "Ville de Paris"}
+	 * @param {string} baseAttr ie: "zipCode"
+	 * @param {string} newAttr   ie: "city"
+	 * @param {Record<string, string> | (string): string} parentToGroup ie: {"12345": "paris", "54321": "paris"}
+	 * @param {Record<string, string> | (string): string} groupToLabelMap  ie: {'paris': "Ville de Paris"}
 	 */
-	addChildAttribute(parentAttribute, childAttribute, mapping, labels = null) {
-		let newItems = [],
-			newLabels = {},
-			newMappings = new Uint32Array(this.numItems);
+	addAttribute(baseAttr, newAttr, baseToNew, newToNewLabel = null) {
+		const newItem_to_newIdx = {};
 
-		let indexes = {},
-			parentItems = this._attributeItems[parentAttribute],
-			parentMapping = this._attributeMappings[parentAttribute];
+		// Initialize data
+		const items = [];
+		const rootIdxToGroupIdx = new Uint32Array(this.numItems);
+		const itemToLabels = {};
 
 		for (let rootIndex = 0; rootIndex < this.numItems; ++rootIndex) {
-			let parentIndex = parentMapping[rootIndex],
-				parentItem = parentItems[parentIndex];
-
-			let childItem = typeof mapping == 'function' ? mapping(parentItem) : mapping[parentItem];
-			if (typeof childItem !== 'string')
+			// Convert baseItem to newItem
+			const baseIdx = this._rootIdxToGroupIdx[baseAttr][rootIndex];
+			const baseItem = this._items[baseAttr][baseIdx];
+			const newItem = this._getOrCall(baseToNew, baseItem);
+			if (typeof newItem !== 'string')
 				throw new Error('Mapping result must be a string.');
 
-			if (indexes[childItem] === undefined) {
-				indexes[childItem] = newItems.length;
-				newItems.push(childItem);
-
-				if (!labels)
-					newLabels[childItem] = childItem;
-				else if (typeof labels == 'function')
-					newLabels[childItem] = labels(childItem);
-				else
-					newLabels[childItem] = labels[childItem];
+			// Create index, label and push if we see this item for the first time in the mapping table.
+			if (newItem_to_newIdx[newItem] === undefined) {
+				newItem_to_newIdx[newItem] = items.length;
+				items.push(newItem);
+				itemToLabels[newItem] = this._getOrCall(newToNewLabel, newItem);
 			}
 
-			// childItem == asia
-			// index de asia: indexes[childItem] == 1
-			// mapping country: [0, 0, 1, 2]
-
-			newMappings[rootIndex] = indexes[childItem];
+			// Record mapping from root 
+			rootIdxToGroupIdx[rootIndex] = newItem_to_newIdx[newItem];
 		}
 
-		this._attributeItems[childAttribute] = newItems;
-		this._attributeMappings[childAttribute] = newMappings;
-		this._attributeLabels[childAttribute] = newLabels;
+		this._items[newAttr] = items;
+		this._rootIdxToGroupIdx[newAttr] = rootIdxToGroupIdx;
+		this._itemToLabel[newAttr] = itemToLabels;
 	}
 
 	getItems(attribute = null) {
-		return this._attributeItems[attribute || this._rootAttribute];
+		return this._items[attribute || this._rootAttribute];
 	}
 
-	getEntries(attribute = null, language = 'en') {
+	getEntries(attribute = null) {
 		attribute = attribute || this._rootAttribute;
 
-		return this._attributeItems[attribute].map(item => [
+		return this._items[attribute].map(item => [
 			item,
-			this._attributeLabels[attribute][item]
+			this._itemToLabel[attribute][item]
 		]);
 	}
 
-	drillUp(newAttribute) {
-		const
-			rootItems = this._attributeItems[this._rootAttribute],
-			newItems = this._attributeItems[newAttribute],
-			newMapping = this._attributeMappings[newAttribute],
-			newLabels = this._attributeLabels[newAttribute],
-			newDimension = new GenericDimension(this.id, newAttribute, newItems, this.label, newLabels);
+	drillUp(targetAttr) {
+		const newDimension = new GenericDimension(
+			this.id,
+			targetAttr,
+			this.getItems(targetAttr),
+			this.label,
+			this._itemToLabel[targetAttr]
+		);
+
+		const rootItems = this._items[this._rootAttribute];
+		const newItems = this._items[targetAttr];
+		const newMapping = this._rootIdxToGroupIdx[targetAttr];
 
 		ol: for (let childAttribute of this.attributes) {
-			if (childAttribute === newAttribute)
-				continue; // Skip current one.
+			if (childAttribute === targetAttr)
+				continue; // Skip root attribute.
 
-			const
-				childItems = this._attributeItems[childAttribute],
-				childMapping = this._attributeMappings[childAttribute],
-				mapping = {};
+			const childItems = this._items[childAttribute];
+			const childMapping = this._rootIdxToGroupIdx[childAttribute];
+			const mapping = {};
 
 			for (let i = 0; i < rootItems.length; ++i) {
 				let childItem = childItems[childMapping[i]],
@@ -161,40 +151,41 @@ class GenericDimension extends AbstractDimension {
 				mapping[newItem] = childItem;
 			}
 
-			newDimension.addChildAttribute(newAttribute, childAttribute, mapping, this._attributeLabels[childAttribute]);
+			newDimension.addAttribute(targetAttr, childAttribute, mapping, this._itemToLabel[childAttribute]);
 		}
 
 		return newDimension;
 	}
 
 	dice(attribute, items, reorder = false) {
-		let oldItems = this._attributeItems[this._rootAttribute],
+		let oldItems = this._items[this._rootAttribute],
 			newItems = null;
 
 		if (this.rootAttribute === attribute) {
-			// We found the dimension directly
 			if (reorder)
-				newItems = items.filter(i => oldItems.indexOf(i) !== -1);
+				newItems = items.filter(i => oldItems.includes(i));
 			else
-				newItems = oldItems.filter(i => items.indexOf(i) !== -1);
+				newItems = oldItems.filter(i => items.includes(i));
 		}
 		else {
-			// Dice by group value
 			if (reorder)
 				// because it does not make sense.
 				throw new Error('Reordering is not allowed when using groups');
 			else
-				newItems = oldItems.filter(i => items.indexOf(this.getChildItem(attribute, i)) !== -1);
+				newItems = oldItems.filter(i => {
+					const groupItem = this.getGroupItemFromRootItem(attribute, i);
+					return items.includes(groupItem);
+				});
 		}
 
-		let dimension = new GenericDimension(this.id, this.rootAttribute, newItems, this.label, this._attributeLabels[this._rootAttribute]);
+		let dimension = new GenericDimension(this.id, this.rootAttribute, newItems, this.label, this._itemToLabel[this._rootAttribute]);
 		for (let attribute of this.attributes)
 			if (attribute !== this._rootAttribute)
-				dimension.addChildAttribute(
+				dimension.addAttribute(
 					this._rootAttribute,
 					attribute,
-					i => this.getChildItem(attribute, i),
-					this._attributeLabels[attribute]
+					item => this.getGroupItemFromRootItem(attribute, item),
+					this._itemToLabel[attribute]
 				);
 
 		return dimension;
@@ -204,46 +195,85 @@ class GenericDimension extends AbstractDimension {
 		throw new Error('Unsupported');
 	}
 
-	/**
-	 *
-	 * @param  {[type]} attribute eg: 'month'
-	 * @param  {[type]} value     '2010-01-01'
-	 * @return {[type]}           '2010-01'
-	 */
-	getChildItem(attribute, value) {
-		const valueIndex = this._attributeItems[this._rootAttribute].indexOf(value);
-		if (valueIndex === -1) {
-			throw new Error(`No item "${value}" was found on attribute ${this._rootAttribute} of dimension ${this.id}`);
-		}
+	getGroupIndexFromRootIndex(groupAttr, rootIdx) {
+		this._checkAttribute(groupAttr);
+		this._checkRootIndex(rootIdx);
 
-		if (this._attributeMappings[attribute]) {
-			const childValueIndex = this._attributeMappings[attribute][valueIndex];
-			return this._attributeItems[attribute][childValueIndex];
-		}
-		else {
-			throw new Error(`No attribute ${attribute} was found on dimension ${this.id}`);
-		}
+		return this._rootIdxToGroupIdx[groupAttr][rootIdx];
 	}
 
-	/**
-	 *
-	 * @param  {[type]} attribute eg: month
-	 * @param  {[type]} index     32
-	 * @return {[type]}           2
-	 */
-	getChildIndex(attribute, index) {
-		if (this._attributeMappings[attribute]) {
-			return this._attributeMappings[attribute][index];
-		}
-		else {
-			throw new Error(`No attribute ${attribute} was found on dimension ${this.id}`);
-		}
+	union(otherDimension) {
+		if (this.id !== otherDimension.id)
+			throw new Error('not the same dimension');
+
+		// Choose rootAttribute
+		let me = this, other = otherDimension;
+		if (this.attributes.includes(otherDimension.rootAttribute))
+			me = me.drillUp(otherDimension.rootAttribute);
+		else if (otherDimension.attributes.includes(this.rootAttribute))
+			other = other.drillUp(this.rootAttribute);
+		else
+			throw new Error(`The dimensions are not compatible`);
+
+		// Mapping functions
+		const anyItemToGroup = (groupAttr, rootItem) => {
+			try {
+				return me.getGroupItemFromRootItem(groupAttr, rootItem);
+			}
+			catch (e) {
+				return other.getGroupItemFromRootItem(groupAttr, rootItem)
+			}
+		};
+
+		const anyItemToLabel = (attr, item) => {
+			if (me._itemToLabel[attr] && me._itemToLabel[attr][item])
+				return me._itemToLabel[attr][item];
+			else if (other._itemToLabel[attr] && other._itemToLabel[attr][item])
+				return other._itemToLabel[attr][item];
+			else
+				return item;
+		};
+
+		// Create union and merge groups.
+		const dimension = new GenericDimension(
+			me.id,
+			me.rootAttribute,
+			[
+				...me.getItems(),
+				...otherDimension.getItems().filter(item => !me.getItems().includes(item))
+			],
+			me.label,
+			item => anyItemToLabel(me.rootAttribute, item)
+		);
+
+		// List all groups
+		// fixme: would look better using sets
+		let groupAttrs = {};
+		for (let attribute of me.attributes)
+			if (attribute !== me._rootAttribute)
+				groupAttrs[attribute] = true;
+		for (let attribute of other.attributes)
+			if (attribute !== other._rootAttribute)
+				groupAttrs[attribute] = true;
+
+
+		for (let groupAttr in groupAttrs)
+			try {
+				dimension.addAttribute(
+					me._rootAttribute,
+					groupAttr,
+					rootItem => anyItemToGroup(groupAttr, rootItem),
+					groupItem => anyItemToLabel(groupAttr, groupItem)
+				);
+			}
+			catch (e) { }
+
+		return dimension;
 	}
 
 	intersect(otherDimension) {
-		if (this.id !== otherDimension.id) {
+		if (this.id !== otherDimension.id)
 			throw new Error('not the same dimension');
-		}
 
 		let rootAttribute;
 		if (this.attributes.includes(otherDimension.rootAttribute))
@@ -258,6 +288,16 @@ class GenericDimension extends AbstractDimension {
 
 		return this.drillUp(rootAttribute).dice(rootAttribute, commonItems);
 	}
+
+	_getOrCall(objfun, param) {
+		if (!objfun)
+			return param;
+		else if (typeof objfun == 'function')
+			return objfun(param);
+		else
+			return objfun[param];
+	}
+
 }
 
 module.exports = GenericDimension;

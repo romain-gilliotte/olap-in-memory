@@ -229,7 +229,7 @@ class Cube {
 
 		const dimension = this.dimensions[dimOffset];
 		for (let key in obj) {
-			const itemOffset = dimension.getItems().indexOf(key);
+			const itemOffset = dimension.getRootIndexFromRootItem(key);
 			if (itemOffset !== -1) {
 				const newOffset = offset * dimension.numItems + itemOffset;
 				this.hydrateFromSparseNestedObject(measureId, obj[key], newOffset, dimOffset + 1);
@@ -404,32 +404,37 @@ class Cube {
 	}
 
 	/**
-	 * Create a new cube that contains
-	 * - the union of the measures
-	 * - the intersection of the dimensions
-	 * - the intersection of the dimensions items
-	 *
-	 * Cubes will drillUp if necessary so that the dimensions are compatible.
+	 * Create a new cube that contains the union of the measures
 	 *
 	 * This is useful when we want to create computed measures from different sources.
 	 * For instance, composing a cube with sells by day, and number of open hour per week,
 	 * to compute average sell by opening hour per week.
 	 */
-	compose(otherCube) {
-		const newDimensions = this.dimensions
-			.map(myDimension => {
-				const otherDimension = otherCube.getDimension(myDimension.id);
-				return otherDimension ? myDimension.intersect(otherDimension) : null;
-			})
-			.filter(sharedDim => sharedDim !== null);
+	compose(otherCube, union = false) {
+		let newDimensions = this.dimensions.reduce((m, myDimension) => {
+			const otherDimension = otherCube.getDimension(myDimension.id);
 
-		const cube1 = this.reshape(newDimensions);
-		const cube2 = otherCube.reshape(newDimensions);
+			if (!otherDimension)
+				return m;
+			else if (union)
+				return [...m, myDimension.union(otherDimension)];
+			else
+				return [...m, myDimension.intersect(otherDimension)];
+		}, [])
 
-		Object.assign(cube1.computedMeasures, cube2.computedMeasures);
-		Object.assign(cube1.storedMeasures, cube2.storedMeasures);
-		Object.assign(cube1.storedMeasuresRules, cube2.storedMeasuresRules);
-		return cube1;
+		const newCube = new Cube(newDimensions);
+
+		this.storedMeasureIds.forEach(measureId => {
+			newCube.createStoredMeasure(measureId, this.storedMeasuresRules[measureId]);
+			newCube.hydrateFromCube(this);
+		});
+		otherCube.storedMeasureIds.forEach(measureId => {
+			newCube.createStoredMeasure(measureId, otherCube.storedMeasuresRules[measureId]);
+			newCube.hydrateFromCube(otherCube);
+		});
+
+		Object.assign(newCube.computedMeasures, this.computedMeasures, otherCube.computedMeasures);
+		return newCube;
 	}
 
 	reshape(targetDims) {

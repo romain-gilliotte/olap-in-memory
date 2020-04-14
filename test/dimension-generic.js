@@ -14,21 +14,21 @@ describe('GenericDimension', function () {
             item => 'city of ' + item
         );
 
-        dimension.addChildAttribute(
+        dimension.addAttribute(
             'city',
             'cityNumLetters',
             city => city.length.toString(),
             { '5': 'five', '6': 'six', '8': 'eigth' }
         )
 
-        dimension.addChildAttribute(
+        dimension.addAttribute(
             'city',
             'country',
             { 'madrid': 'spain', 'beirut': 'lebanon', 'paris': 'france', 'toulouse': 'france' },
             item => 'country of ' + item
         );
 
-        dimension.addChildAttribute(
+        dimension.addAttribute(
             'country',
             'continent',
             item => item === 'lebanon' ? 'asia' : 'europe',
@@ -52,17 +52,17 @@ describe('GenericDimension', function () {
     });
 
     it('should compute child items for all attributes', function () {
-        assert.equal(dimension.getChildItem('city', 'paris'), 'paris');
-        assert.equal(dimension.getChildItem('cityNumLetters', 'madrid'), '6');
-        assert.equal(dimension.getChildItem('country', 'madrid'), 'spain');
-        assert.equal(dimension.getChildItem('continent', 'madrid'), 'europe');
+        assert.equal(dimension.getGroupItemFromRootItem('city', 'paris'), 'paris');
+        assert.equal(dimension.getGroupItemFromRootItem('cityNumLetters', 'madrid'), '6');
+        assert.equal(dimension.getGroupItemFromRootItem('country', 'madrid'), 'spain');
+        assert.equal(dimension.getGroupItemFromRootItem('continent', 'madrid'), 'europe');
     });
 
     it('should compute child indexes', function () {
-        assert.equal(dimension.getChildIndex('country', 0), 0);
-        assert.equal(dimension.getChildIndex('country', 1), 0);
-        assert.equal(dimension.getChildIndex('country', 2), 1);
-        assert.equal(dimension.getChildIndex('country', 3), 2);
+        assert.equal(dimension.getGroupIndexFromRootIndex('country', 0), 0);
+        assert.equal(dimension.getGroupIndexFromRootIndex('country', 1), 0);
+        assert.equal(dimension.getGroupIndexFromRootIndex('country', 2), 1);
+        assert.equal(dimension.getGroupIndexFromRootIndex('country', 3), 2);
     });
 
     it('should drill up', function () {
@@ -116,6 +116,23 @@ describe('GenericDimension', function () {
         );
 
         assert.throws(() => dimension.intersect(otherDimension));
+    });
+
+    it('should union', function () {
+        const otherDimension = new GenericDimension(
+            'location',
+            'city',
+            ['lyon'],
+            'Location',
+            item => 'city of ' + item
+        );
+
+        otherDimension.addAttribute('city', 'country', item => 'france', item => 'country of ' + item);
+
+        const result = dimension.union(otherDimension);
+        assert.deepEqual(result.attributes, ['all', 'city', 'country']);
+        assert.deepEqual(result.getGroupItemFromRootItem('country', 'lyon'), 'france');
+        assert.deepEqual(result.getGroupItemFromRootItem('country', 'paris'), 'france');
     });
 
     it('should work when serialized', function () {

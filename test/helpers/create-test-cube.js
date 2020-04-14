@@ -4,9 +4,9 @@ const { Cube, GenericDimension } = require('../../src');
 module.exports = (createMesures = true, fill = true) => {
 	const period = new GenericDimension('period', 'season', ['summer', 'winter']);
 	const location = new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo']);
-	location.addChildAttribute('city', 'country', { 'paris': 'france', 'toledo': 'spain', 'tokyo': 'japan' });
-	location.addChildAttribute('city', 'continent', { 'paris': 'europe', 'toledo': 'europe', 'tokyo': 'asia' });
-	location.addChildAttribute('city', 'citySize', { 'paris': 'big', 'toledo': 'small', 'tokyo': 'big' });
+	location.addAttribute('city', 'country', { 'paris': 'france', 'toledo': 'spain', 'tokyo': 'japan' });
+	location.addAttribute('city', 'continent', { 'paris': 'europe', 'toledo': 'europe', 'tokyo': 'asia' });
+	location.addAttribute('city', 'citySize', { 'paris': 'big', 'toledo': 'small', 'tokyo': 'big' });
 
 	const cube = new Cube([location, period]);
 

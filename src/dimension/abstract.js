@@ -46,26 +46,41 @@ class AbstractDimension {
         throw new Error('Override me');
     }
 
-	/**
-	 *
-	 * @param  {[type]} attribute eg: 'month'
-	 * @param  {[type]} item     '2010-01-01'
-	 * @return {[type]}           '2010-01'
-	 */
-    getChildItem(attribute, item) {
+    getRootIndexFromRootItem(rootItem) {
+        const rootItems = this.getItems();
+        return rootItems.indexOf(rootItem);
+    }
+
+    getGroupIndexFromRootIndex(groupAttr, rootIndex) {
         throw new Error('Override me');
     }
 
-	/**
-	 *
-	 * @param  {[type]} attribute eg: month
-	 * @param  {[type]} itemIndex 32
-	 * @return {[type]}           2
-	 */
-    getChildIndex(attribute, itemIndex) {
-        throw new Error('Override me');
+    getGroupIndexFromRootItem(groupAttr, rootItem) {
+        const rootIndex = this.getRootIndexFromRootItem(rootItem);
+        return this.getGroupIndexFromRootIndex(groupAttr, rootIndex);
     }
 
+    getGroupItemFromRootIndex(groupAttr, rootIndex) {
+        const groupIndex = this.getGroupIndexFromRootIndex(groupAttr, rootIndex);
+        const groupItems = this.getItems(groupAttr);
+        return groupItems[groupIndex];
+    }
+
+    getGroupItemFromRootItem(groupAttr, rootItem) {
+        const groupIndex = this.getGroupIndexFromRootItem(groupAttr, rootItem);
+        const groupItems = this.getItems(groupAttr);
+        return groupItems[groupIndex];
+    }
+
+    _checkRootIndex(index) {
+        if (index < 0 || index >= this.numItems)
+            throw new Error(`rootIndex ${index} out of bounds [0, ${this.numItems}[`);
+    }
+
+    _checkAttribute(attribute) {
+        if (!this.attributes.includes(attribute))
+            throw new Error(`No attribute ${attribute} was found on dimension ${this.id}`);
+    }
 }
 
 module.exports = AbstractDimension;

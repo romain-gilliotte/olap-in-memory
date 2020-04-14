@@ -209,7 +209,7 @@ class InMemoryStore {
             let newIdx = 0;
             for (let j = 0; j < numDimensions; ++j) {
                 let newAttribute = newDimensions[j].rootAttribute;
-                let offset = oldDimensions[j].getChildIndex(newAttribute, oldDimensionIndex[j]);
+                let offset = oldDimensions[j].getGroupIndexFromRootIndex(newAttribute, oldDimensionIndex[j]);
 
                 newIdx = newIdx * newDimensions[j].numItems + offset;
             }
@@ -267,7 +267,7 @@ class InMemoryStore {
             // Compute corresponding old index
             let oldIdx = 0;
             for (let j = 0; j < numDimensions; ++j) {
-                let offset = newDimensions[j].getChildIndex(oldDimensions[j].rootAttribute, newDimensionIndex[j]);
+                let offset = newDimensions[j].getGroupIndexFromRootIndex(oldDimensions[j].rootAttribute, newDimensionIndex[j]);
                 oldIdx = oldIdx * oldDimensions[j].numItems + offset;
             }
 

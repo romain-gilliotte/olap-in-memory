@@ -4,10 +4,6 @@ const { toBuffer, fromBuffer } = require('../serialization');
 
 class TimeDimension extends AbstractDimension {
 
-    get rootAttribute() {
-        return this._rootAttribute;
-    }
-
     get attributes() {
         return [this._rootAttribute, ...TimeSlot.upperSlots[this._rootAttribute]]
     }
@@ -23,8 +19,8 @@ class TimeDimension extends AbstractDimension {
 
         this._start = TimeSlot.fromDate(new TimeSlot(start).firstDate, 'day');
         this._end = TimeSlot.fromDate(new TimeSlot(end).lastDate, 'day')
-        this._attributeItems = {};
-        this._attributeMappings = {};
+        this._items = {};
+        this._rootIdxToGroupIdx = {};
 
         if (this._start.periodicity !== 'day' || this._end.periodicity !== 'day')
             throw new Error('Start and end must be dates.');
@@ -51,20 +47,18 @@ class TimeDimension extends AbstractDimension {
     getItems(attribute = null) {
         attribute = attribute || this._rootAttribute;
 
-        if (!this._attributeItems[attribute]) {
+        if (!this._items[attribute]) {
             const end = this._end.toParentPeriodicity(attribute);
             let period = this._start.toParentPeriodicity(attribute);
 
-            const items = [period.value];
+            this._items[attribute] = [period.value];
             while (period.value < end.value) {
                 period = period.next();
-                items.push(period.value);
+                this._items[attribute].push(period.value);
             }
-
-            this._attributeItems[attribute] = items;
         }
 
-        return this._attributeItems[attribute];
+        return this._items[attribute];
     }
 
     getEntries(attribute = null, language = 'en') {
@@ -167,36 +161,41 @@ class TimeDimension extends AbstractDimension {
         );
     }
 
-    /**
-     * i.e. Get the value of the month from the day.
-     * 
-     * @param  {[type]} attribute eg: 'month'
-     * @param  {[type]} value     '2010-01-01'
-     * @return {[type]}           '2010-01'
-     */
-    getChildItem(attribute, value) {
-        return new TimeSlot(value).toParentPeriodicity(attribute).value;
-    }
-
-    /**
-     * Get the month index corresponding to a given day.
-     * 
-     * @param  {[type]} attribute eg: month
-     * @param  {[type]} index     32
-     * @return {[type]}           2
-     */
-    getChildIndex(attribute, index) {
-        if (!this._attributeMappings[attribute]) {
-            const rootItems = this.getItems(this._rootAttribute);
-            const attributeItems = this.getItems(attribute);
-
-            this._attributeMappings[attribute] = rootItems.map(rootItem => {
-                const attributeItem = this.getChildItem(attribute, rootItem);
-                return attributeItems.indexOf(attributeItem);
-            });
+    /** This could be much more efficient */
+    getGroupIndexFromRootIndex(groupAttr, rootIdx) {
+        if (undefined === this._rootIdxToGroupIdx[groupAttr]) {
+            this._rootIdxToGroupIdx[groupAttr] = new Int32Array(this.numItems);
+            this._rootIdxToGroupIdx[groupAttr].fill(-2);
         }
 
-        return this._attributeMappings[attribute][index];
+        if (-2 === this._rootIdxToGroupIdx[groupAttr][rootIdx]) {
+            const rootItems = this.getItems();
+            const rootItem = rootItems[rootIdx];
+
+            const groupItem = new TimeSlot(rootItem).toParentPeriodicity(groupAttr).value;
+            const groupItems = this.getItems(groupAttr);
+
+            this._rootIdxToGroupIdx[groupAttr][rootIdx] = groupItems.indexOf(groupItem);
+        }
+
+        return this._rootIdxToGroupIdx[groupAttr][rootIdx];
+    }
+
+    union(otherDimension) {
+        if (this.id !== otherDimension.id)
+            throw new Error('Not the same dimension');
+
+        let rootAttribute;
+        if (this.attributes.includes(otherDimension.rootAttribute))
+            rootAttribute = otherDimension._rootAttribute;
+        else if (otherDimension.attributes.includes(this.rootAttribute))
+            rootAttribute = this._rootAttribute
+        else
+            throw new Error(`The dimensions are not compatible`);
+
+        const start = this._start.value < otherDimension._start.value ? this._start.value : otherDimension._start.value;
+        const end = otherDimension._end.value < this._end.value ? this._end.value : otherDimension._end.value;
+        return new TimeDimension(this.id, rootAttribute, start, end, this.label);
     }
 
     intersect(otherDimension) {
