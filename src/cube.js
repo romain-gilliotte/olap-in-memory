@@ -1,12 +1,12 @@
 const merge = require('lodash.merge');
 const cloneDeep = require('lodash.clonedeep');
-const { Parser } = require('expr-eval');
 const DimensionFactory = require('./dimension/factory');
 const CatchAllDimension = require('./dimension/catch-all');
 const { fromNestedArray, toNestedArray } = require('./formatter/nested-array');
 const { fromNestedObject, toNestedObject } = require('./formatter/nested-object');
 const { toBuffer, fromBuffer } = require('./serialization');
 const InMemoryStore = require('./store/in-memory');
+const getParser = require('./parser');
 
 class Cube {
 
@@ -54,10 +54,7 @@ class Cube {
 		if (this.storedMeasures[measureId] !== undefined || this.computedMeasures[measureId] !== undefined)
 			throw new Error('This measure already exists');
 
-		const parser = new Parser({ logical: false, comparison: false, 'in': false, assignment: false });
-		parser.functions.isNaN = Number.isNaN;
-
-		const expression = parser.parse(formula);
+		const expression = getParser().parse(formula);
 		const variables = expression.variables({ withMembers: true });
 		if (!variables.every(variable => this.storedMeasureIds.includes(variable)))
 			throw new Error(`Unknown measure: ${variable}`);
@@ -137,17 +134,14 @@ class Cube {
 			const measures = measureIds.map(id => this.storedMeasures[id]);
 			const numMeasures = measures.length;
 
-			// Create function to compute
-			const fn = this.computedMeasures[measureId].toJSFunction(measureIds);
-
 			// Fill result array
 			const result = new Array(storeSize);
-			const params = new Array(numMeasures);
+			const params = {};
 			for (let i = 0; i < storeSize; ++i) {
 				for (let j = 0; j < numMeasures; ++j)
-					params[j] = measures[j].getValue(i);
+					params[measureIds[j]] = measures[j].getValue(i);
 
-				result[i] = fn(...params);
+				result[i] = this.computedMeasures[measureId].evaluate(params);
 			}
 
 			return result;
