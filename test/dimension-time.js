@@ -77,7 +77,9 @@ describe('TimeDimension', function () {
 	it('should raise when intersecting dimensions with no common items', function () {
 		const otherDimension = new TimeDimension('time', 'quarter', '2010-Q3', '2010-Q4');
 
-		assert.throws(() => dimension.intersect(otherDimension));
+		const intersection = dimension.intersect(otherDimension);
+		assert.equal(intersection.numItems, 0);
+		assert.deepEqual(intersection.getItems(), []);
 	});
 
 	it('should union two dimensions', function () {

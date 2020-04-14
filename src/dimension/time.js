@@ -24,9 +24,6 @@ class TimeDimension extends AbstractDimension {
 
         if (this._start.periodicity !== 'day' || this._end.periodicity !== 'day')
             throw new Error('Start and end must be dates.');
-
-        if (this._start.value > this._end.value)
-            throw new Error('Empty dimensions are not allowed');
     }
 
     static deserialize(buffer) {
@@ -45,6 +42,9 @@ class TimeDimension extends AbstractDimension {
     }
 
     getItems(attribute = null) {
+        if (this._start.value > this._end.value)
+            return [];
+
         attribute = attribute || this._rootAttribute;
 
         if (!this._items[attribute]) {

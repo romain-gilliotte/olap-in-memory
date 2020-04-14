@@ -105,7 +105,9 @@ describe('GenericDimension', function () {
             ['lyon', 'barcelona', 'narbonne']
         );
 
-        assert.throws(() => dimension.intersect(otherDimension));
+        const newDimension = dimension.intersect(otherDimension);
+        assert.equal(newDimension.numItems, 0);
+        assert.deepEqual(newDimension.getItems(), []);
     });
 
     it('should raise when intersecting dimensions with no common attribute', function () {

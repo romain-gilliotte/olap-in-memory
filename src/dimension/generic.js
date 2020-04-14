@@ -38,9 +38,6 @@ class GenericDimension extends AbstractDimension {
 		items.forEach(item => {
 			this._itemToLabel[rootAttribute][item] = this._getOrCall(itemToLabelMap, item);
 		});
-
-		if (items.length === 0)
-			throw new Error('Empty dimensions are not allowed');
 	}
 
 	static deserialize(buffer) {

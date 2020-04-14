@@ -94,7 +94,7 @@ describe("Operation between cubes", function () {
 			assert.deepEqual(newCube.getNestedArray('routers'), [3]);
 		});
 
-		it('should raise if composing cubes with no overlap in time dimension', function () {
+		it('should return null cube if composing cubes with no overlap in time dimension', function () {
 			const time1 = new TimeDimension('time', 'month', '2010-01', '2010-02');
 			const cube1 = new Cube([time1]);
 			cube1.createStoredMeasure('antennas');
@@ -105,7 +105,8 @@ describe("Operation between cubes", function () {
 			cube2.createStoredMeasure('routers');
 			cube2.setNestedArray('routers', [3, 2]);
 
-			assert.throws(() => cube1.compose(cube2));
+			const newCube = cube1.compose(cube2);
+			assert.equal(newCube.storeSize, 0);
 		});
 
 		it('should compose cubes with overlapping time dimension w/ different root attributes', function () {
@@ -212,11 +213,11 @@ describe("Operation between cubes", function () {
 
 			const newCube = cube1.compose(cube2, true);
 			assert.deepEqual(newCube.dimensionIds, ['time']);
-			assert.deepEqual(newCube.getNestedArray('antennas'), [1, 2, NaN]);
-			assert.deepEqual(newCube.getNestedArray('routers'), [NaN, 3, 2]);
+			assert.deepEqual(newCube.getData('antennas'), [1, 2, NaN]);
+			assert.deepEqual(newCube.getData('routers'), [NaN, 3, 2]);
 		});
 
-		it('should raise if composing cubes with no overlap in time dimension', function () {
+		it('should work if composing cubes with no overlap in time dimension', function () {
 			const time1 = new TimeDimension('time', 'month', '2010-01', '2010-02');
 			const cube1 = new Cube([time1]);
 			cube1.createStoredMeasure('antennas');
@@ -228,9 +229,14 @@ describe("Operation between cubes", function () {
 			cube2.setNestedArray('routers', [3, 2]);
 
 			const newCube = cube1.compose(cube2, true);
+			newCube.createComputedMeasure('safe_sum', 'antennas + routers');
+			newCube.createComputedMeasure('unsafe_sum', 'antennas || routers');
+
 			assert.deepEqual(newCube.dimensionIds, ['time']);
-			assert.deepEqual(newCube.getNestedArray('antennas'), [1, 2, NaN, NaN]);
-			assert.deepEqual(newCube.getNestedArray('routers'), [NaN, NaN, 3, 2]);
+			assert.deepEqual(newCube.getData('antennas'), [1, 2, NaN, NaN]);
+			assert.deepEqual(newCube.getData('routers'), [NaN, NaN, 3, 2]);
+			assert.deepEqual(newCube.getData('safe_sum'), [NaN, NaN, NaN, NaN]);
+			assert.deepEqual(newCube.getData('unsafe_sum'), [1, 2, 3, 2]);
 		});
 
 		it('should compose cubes with overlapping time dimension w/ different root attributes', function () {
@@ -246,8 +252,8 @@ describe("Operation between cubes", function () {
 
 			const newCube = cube1.compose(cube2, true);
 			assert.deepEqual(newCube.dimensionIds, ['time']);
-			assert.deepEqual(newCube.getNestedArray('antennas'), [7, 8, NaN]);
-			assert.deepEqual(newCube.getNestedArray('routers'), [16, 32, 64]);
+			assert.deepEqual(newCube.getData('antennas'), [7, 8, NaN]);
+			assert.deepEqual(newCube.getData('routers'), [16, 32, 64]);
 		});
 
 	});
