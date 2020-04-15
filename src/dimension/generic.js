@@ -54,8 +54,8 @@ class GenericDimension extends AbstractDimension {
 		return toBuffer({
 			id: this.id,
 			label: this.label,
-			rootAttribute: this.rootAttribute,
-			rootItems: this._items[this.rootAttribute],
+			rootAttribute: this._rootAttribute,
+			rootItems: this._items[this._rootAttribute],
 			attributeItems: this._items,
 			attributeLabels: this._itemToLabel,
 			attributeMappings: this._rootIdxToGroupIdx
@@ -117,6 +117,9 @@ class GenericDimension extends AbstractDimension {
 	}
 
 	drillUp(targetAttr) {
+		if (targetAttr === this._rootAttribute)
+			return this;
+
 		const newDimension = new GenericDimension(
 			this.id,
 			targetAttr,
@@ -158,7 +161,7 @@ class GenericDimension extends AbstractDimension {
 		let oldItems = this._items[this._rootAttribute],
 			newItems = null;
 
-		if (this.rootAttribute === attribute) {
+		if (this._rootAttribute === attribute) {
 			if (reorder)
 				newItems = items.filter(i => oldItems.includes(i));
 			else
@@ -175,7 +178,18 @@ class GenericDimension extends AbstractDimension {
 				});
 		}
 
-		let dimension = new GenericDimension(this.id, this.rootAttribute, newItems, this.label, this._itemToLabel[this._rootAttribute]);
+		// return this if the dice does not change the dimension
+		if (oldItems.length === newItems.length) {
+			let i = 0;
+			for (; i < newItems.length; ++i)
+				if (oldItems[i] !== newItems[i])
+					break;
+
+			if (i === newItems.length)
+				return this;
+		}
+
+		let dimension = new GenericDimension(this.id, this._rootAttribute, newItems, this.label, this._itemToLabel[this._rootAttribute]);
 		for (let attribute of this.attributes)
 			if (attribute !== this._rootAttribute)
 				dimension.addAttribute(
@@ -188,8 +202,10 @@ class GenericDimension extends AbstractDimension {
 		return dimension;
 	}
 
-	diceRange(attribute, start, end) {
-		throw new Error('Unsupported');
+	getGroupIndexFromRootIndexMap(groupAttr) {
+		this._checkAttribute(groupAttr);
+
+		return this._rootIdxToGroupIdx[groupAttr];
 	}
 
 	getGroupIndexFromRootIndex(groupAttr, rootIdx) {
@@ -205,10 +221,10 @@ class GenericDimension extends AbstractDimension {
 
 		// Choose rootAttribute
 		let me = this, other = otherDimension;
-		if (this.attributes.includes(otherDimension.rootAttribute))
-			me = me.drillUp(otherDimension.rootAttribute);
-		else if (otherDimension.attributes.includes(this.rootAttribute))
-			other = other.drillUp(this.rootAttribute);
+		if (this.attributes.includes(otherDimension._rootAttribute))
+			me = me.drillUp(otherDimension._rootAttribute);
+		else if (otherDimension.attributes.includes(this._rootAttribute))
+			other = other.drillUp(this._rootAttribute);
 		else
 			throw new Error(`The dimensions are not compatible`);
 
@@ -234,13 +250,13 @@ class GenericDimension extends AbstractDimension {
 		// Create union and merge groups.
 		const dimension = new GenericDimension(
 			me.id,
-			me.rootAttribute,
+			me._rootAttribute,
 			[
 				...me.getItems(),
 				...otherDimension.getItems().filter(item => !me.getItems().includes(item))
 			],
 			me.label,
-			item => anyItemToLabel(me.rootAttribute, item)
+			item => anyItemToLabel(me._rootAttribute, item)
 		);
 
 		// List all groups
@@ -252,7 +268,6 @@ class GenericDimension extends AbstractDimension {
 		for (let attribute of other.attributes)
 			if (attribute !== other._rootAttribute)
 				groupAttrs[attribute] = true;
-
 
 		for (let groupAttr in groupAttrs)
 			try {
@@ -273,10 +288,10 @@ class GenericDimension extends AbstractDimension {
 			throw new Error('not the same dimension');
 
 		let rootAttribute;
-		if (this.attributes.includes(otherDimension.rootAttribute))
-			rootAttribute = otherDimension.rootAttribute;
-		else if (otherDimension.attributes.includes(this.rootAttribute))
-			rootAttribute = this.rootAttribute;
+		if (this.attributes.includes(otherDimension._rootAttribute))
+			rootAttribute = otherDimension._rootAttribute;
+		else if (otherDimension.attributes.includes(this._rootAttribute))
+			rootAttribute = this._rootAttribute;
 		else
 			throw new Error(`The dimensions are not compatible`);
 

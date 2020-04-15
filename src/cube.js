@@ -74,6 +74,9 @@ class Cube {
 	}
 
 	renameMeasure(oldMeasureId, newMeasureId) {
+		if (oldMeasureId == newMeasureId)
+			return this;
+
 		const cube = new Cube(this.dimensions);
 		Object.assign(cube.storedMeasures, this.storedMeasures);
 		Object.assign(cube.storedMeasuresRules, this.storedMeasuresRules);
@@ -251,15 +254,26 @@ class Cube {
 	}
 
 	reorderDimensions(dimensionIds) {
-		const newDimensions = dimensionIds.map(id => this.dimensions.find(dim => dim.id === id));
+		// Check for no-op
+		let dimIdx = 0
+		for (; dimIdx < this.dimensions.length; ++dimIdx)
+			if (dimensionIds[dimIdx] !== this.dimensions[dimIdx].id)
+				break;
 
-		const newCube = new Cube(newDimensions);
-		Object.assign(newCube.computedMeasures, this.computedMeasures);
-		Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
-		for (let measureId in this.storedMeasures)
-			newCube.storedMeasures[measureId] = this.storedMeasures[measureId].reorder(this.dimensions, newDimensions);
+		if (dimIdx !== this.dimensions.length) {
+			const newDimensions = dimensionIds.map(id => this.dimensions.find(dim => dim.id === id));
 
-		return newCube;
+			const newCube = new Cube(newDimensions);
+			Object.assign(newCube.computedMeasures, this.computedMeasures);
+			Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
+			for (let measureId in this.storedMeasures)
+				newCube.storedMeasures[measureId] = this.storedMeasures[measureId].reorder(this.dimensions, newDimensions);
+
+			return newCube;
+		}
+		else {
+			return this;
+		}
 	}
 
 	slice(dimensionId, attribute, value) {
@@ -280,9 +294,11 @@ class Cube {
 	}
 
 	diceRange(dimensionId, attribute, start, end) {
-		const newDimensions = this.dimensions.map(
-			dim => dim.id === dimensionId ? dim.diceRange(attribute, start, end) : dim
-		);
+		const dimIdx = this.getDimensionIndex(dimensionId);
+		const newDimensions = this.dimensions.slice();
+		newDimensions[dimIdx] = newDimensions[dimIdx].diceRange(attribute, start, end);
+		if (newDimensions[dimIdx] == this.dimensions[dimIdx])
+			return this;
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
@@ -294,9 +310,11 @@ class Cube {
 	}
 
 	dice(dimensionId, attribute, items, reorder = false) {
-		const newDimensions = this.dimensions.map(
-			dim => dim.id === dimensionId ? dim.dice(attribute, items, reorder) : dim
-		);
+		const dimIdx = this.getDimensionIndex(dimensionId);
+		const newDimensions = this.dimensions.slice();
+		newDimensions[dimIdx] = newDimensions[dimIdx].dice(attribute, items, reorder);
+		if (newDimensions[dimIdx] == this.dimensions[dimIdx])
+			return this;
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
@@ -308,9 +326,13 @@ class Cube {
 	}
 
 	keepDimensions(dimensionIds) {
-		return this.removeDimensions(
-			this.dimensionIds.filter(dimId => dimensionIds.indexOf(dimId) === -1)
-		);
+		let cube = this;
+
+		for (let dimension of this.dimensions)
+			if (!dimensionIds.includes(dimension.id))
+				cube = cube.removeDimension(dimension.id);
+
+		return cube;
 	}
 
 	removeDimensions(dimensionIds) {
@@ -348,6 +370,8 @@ class Cube {
 	}
 
 	removeDimension(dimensionId) {
+		// fixme bug. if drillup is a noop, this will break the current cube
+		// we need to add a unit test.
 		const newCube = this.drillUp(dimensionId, 'all');
 		for (let measureId in this.storedMeasuresRules) {
 			newCube.storedMeasuresRules[measureId] = cloneDeep(newCube.storedMeasuresRules[measureId]);
@@ -360,9 +384,14 @@ class Cube {
 	}
 
 	drillDown(dimensionId, attribute, useRounding = true) {
-		const newDimensions = this.dimensions.map(dim =>
-			dim.id === dimensionId ? dim.drillDown(attribute) : dim
-		);
+		const dimIdx = this.getDimensionIndex(dimensionId);
+		if (this.dimensions[dimIdx].rootAttribute === attribute)
+			return this;
+
+		const newDimensions = this.dimensions.slice();
+		newDimensions[dimIdx] = newDimensions[dimIdx].drillDown(attribute);
+		if (newDimensions[dimIdx] == this.dimensions[dimIdx])
+			return this;
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
@@ -381,9 +410,14 @@ class Cube {
 	 * ie: minutes by hour, or cities by region.
 	 */
 	drillUp(dimensionId, attribute) {
-		const newDimensions = this.dimensions.map(dim =>
-			dim.id === dimensionId ? dim.drillUp(attribute) : dim
-		);
+		const dimIdx = this.getDimensionIndex(dimensionId);
+		if (this.dimensions[dimIdx].rootAttribute === attribute)
+			return this;
+
+		const newDimensions = this.dimensions.slice();
+		newDimensions[dimIdx] = newDimensions[dimIdx].drillUp(attribute);
+		if (newDimensions[dimIdx] == this.dimensions[dimIdx])
+			return this;
 
 		const newCube = new Cube(newDimensions);
 		Object.assign(newCube.computedMeasures, this.computedMeasures);
@@ -435,9 +469,14 @@ class Cube {
 		let newCube = this;
 
 		// Remove unneeded dimensions, and reorder.
-		newCube = newCube.project(
-			targetDims.filter(dim => newCube.dimensionIds.includes(dim.id)).map(dim => dim.id)
-		);
+		{
+			const newCubeDimensionIds = newCube.dimensionIds;
+			const commonDimensionIds = targetDims
+				.filter(dim => newCubeDimensionIds.includes(dim.id))
+				.map(dim => dim.id);
+
+			newCube = newCube.project(commonDimensionIds);
+		}
 
 		// Add missing dimensions.
 		for (let dimIndex = 0; dimIndex < targetDims.length; ++dimIndex) {
@@ -456,7 +495,9 @@ class Cube {
 			const targetDim = targetDims[dimIndex];
 
 			// FIXME: properly think and add tests around
-			// the consequences of dicing first, and then drilling instead of the opposite
+			// the consequences of dicing first, and then drilling instead of the opposite.
+
+			// fixme we could intersect
 			newCube = newCube.dice(targetDim.id, targetDim.rootAttribute, targetDim.getItems(), true);
 
 			if (actualDim.rootAttribute === targetDim.rootAttribute)

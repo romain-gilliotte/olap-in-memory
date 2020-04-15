@@ -141,7 +141,6 @@ class TimeDimension extends AbstractDimension {
         else
             newStart = this._start.value;
 
-
         if (end) {
             const endTs = new TimeSlot(end);
             if (endTs.periodicity !== attribute)
@@ -152,13 +151,32 @@ class TimeDimension extends AbstractDimension {
         else
             newEnd = this._end.value;
 
-        return new TimeDimension(
-            this.id,
-            this._rootAttribute,
-            newStart < this._start.value ? this._start.value : newStart,
-            newEnd < this._end.value ? newEnd : this._end.value,
-            this.label
-        );
+        if (newStart <= this._start.value && this._end.value <= newEnd)
+            return this;
+        else
+            return new TimeDimension(
+                this.id,
+                this._rootAttribute,
+                newStart < this._start.value ? this._start.value : newStart,
+                newEnd < this._end.value ? newEnd : this._end.value,
+                this.label
+            );
+    }
+
+    getGroupIndexFromRootIndexMap(groupAttr) {
+        if (undefined === this._rootIdxToGroupIdx[groupAttr]) {
+            this._checkAttribute(groupAttr);
+
+            const rootItems = this.getItems();
+            const groupItems = this.getItems(groupAttr);
+
+            this._rootIdxToGroupIdx[groupAttr] = rootItems.map(rootItem => {
+                const groupItem = new TimeSlot(rootItem).toParentPeriodicity(groupAttr).value;
+                return groupItems.indexOf(groupItem);
+            });
+        }
+
+        return this._rootIdxToGroupIdx[groupAttr];
     }
 
     /** This could be much more efficient */

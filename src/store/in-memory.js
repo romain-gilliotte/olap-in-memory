@@ -192,6 +192,12 @@ class InMemoryStore {
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
+        const oldDimLength = oldDimensions.map(dim => dim.numItems);
+        const newDimLength = newDimensions.map(dim => dim.numItems);
+        const dimIdxOldNewMap = newDimensions.map((newDim, index) => {
+            return oldDimensions[index].getGroupIndexFromRootIndexMap(newDim.rootAttribute);
+        });
+
         const newStore = new InMemoryStore(newSize, this._type);
         const contributions = new Uint16Array(newSize);
 
@@ -202,16 +208,14 @@ class InMemoryStore {
             // Decompose old index into dimensions indexes
             let oldIndexCopy = oldIdx;
             for (let i = numDimensions - 1; i >= 0; --i) {
-                oldDimensionIndex[i] = oldIndexCopy % oldDimensions[i].numItems;
-                oldIndexCopy = Math.floor(oldIndexCopy / oldDimensions[i].numItems);
+                oldDimensionIndex[i] = oldIndexCopy % oldDimLength[i];
+                oldIndexCopy = Math.floor(oldIndexCopy / oldDimLength[i]);
             }
 
             let newIdx = 0;
-            for (let j = 0; j < numDimensions; ++j) {
-                let newAttribute = newDimensions[j].rootAttribute;
-                let offset = oldDimensions[j].getGroupIndexFromRootIndex(newAttribute, oldDimensionIndex[j]);
-
-                newIdx = newIdx * newDimensions[j].numItems + offset;
+            for (let i = 0; i < numDimensions; ++i) {
+                let offset = dimIdxOldNewMap[i][oldDimensionIndex[i]];
+                newIdx = newIdx * newDimLength[i] + offset;
             }
 
             if (this._status[oldIdx] & STATUS_SET) {
@@ -249,6 +253,11 @@ class InMemoryStore {
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
+        const oldDimLength = oldDimensions.map(dim => dim.numItems);
+        const newDimLength = newDimensions.map(dim => dim.numItems);
+        const dimIdxNewOldMap = oldDimensions.map((oldDim, index) => {
+            return newDimensions[index].getGroupIndexFromRootIndexMap(oldDim.rootAttribute);
+        });
 
         // Needed to keep track of number of contributions by cell
         const contributionsIds = new Uint32Array(oldSize);
@@ -260,15 +269,15 @@ class InMemoryStore {
             // Decompose new index into dimensions indexes
             let newIndexCopy = newIdx;
             for (let i = numDimensions - 1; i >= 0; --i) {
-                newDimensionIndex[i] = newIndexCopy % newDimensions[i].numItems;
-                newIndexCopy = Math.floor(newIndexCopy / newDimensions[i].numItems);
+                newDimensionIndex[i] = newIndexCopy % newDimLength[i];
+                newIndexCopy = Math.floor(newIndexCopy / newDimLength[i]);
             }
 
             // Compute corresponding old index
             let oldIdx = 0;
             for (let j = 0; j < numDimensions; ++j) {
-                let offset = newDimensions[j].getGroupIndexFromRootIndex(oldDimensions[j].rootAttribute, newDimensionIndex[j]);
-                oldIdx = oldIdx * oldDimensions[j].numItems + offset;
+                let offset = dimIdxNewOldMap[j][newDimensionIndex[j]];
+                oldIdx = oldIdx * oldDimLength[j] + offset;
             }
 
             // Depending on aggregation method, copy value.
