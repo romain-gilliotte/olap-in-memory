@@ -126,7 +126,7 @@ describe('GenericDimension', function () {
             'city',
             ['lyon'],
             'Location',
-            item => 'city of ' + item
+            item => 'great city of ' + item
         );
 
         otherDimension.addAttribute('city', 'country', item => 'france', item => 'country of ' + item);
@@ -135,12 +135,22 @@ describe('GenericDimension', function () {
         assert.deepEqual(result.attributes, ['all', 'city', 'country']);
         assert.deepEqual(result.getGroupItemFromRootItem('country', 'lyon'), 'france');
         assert.deepEqual(result.getGroupItemFromRootItem('country', 'paris'), 'france');
+        assert.deepEqual(
+            result.getEntries(),
+            [
+                ['paris', 'city of paris'],
+                ['toulouse', 'city of toulouse'],
+                ['madrid', 'city of madrid'],
+                ['beirut', 'city of beirut'],
+                ['lyon', 'great city of lyon'],
+            ]
+        )
     });
 
     it('should work when serialized', function () {
         const newDimension = GenericDimension.deserialize(dimension.serialize());
 
-        assert.deepEqual(newDimension, dimension);
+        assert.deepEqual(newDimension.getItems(), dimension.getItems());
     });
 
     it('should be able to humanize root attribute labels', function () {

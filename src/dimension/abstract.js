@@ -28,6 +28,7 @@ class AbstractDimension {
         this.id = id;
         this._rootAttribute = rootAttribute;
         this._label = label;
+        this._itemsToIdx = {};
     }
 
     getItems(attribute = null) {
@@ -47,12 +48,30 @@ class AbstractDimension {
     }
 
     getRootIndexFromRootItem(rootItem) {
-        const rootItems = this.getItems();
-        return rootItems.indexOf(rootItem);
+        const rootItemsToIdx = this.getItemsToIdx();
+        const result = rootItemsToIdx[rootItem];
+        return result === undefined ? -1 : result;
     }
 
     getGroupIndexFromRootIndex(groupAttr, rootIndex) {
         throw new Error('Override me');
+    }
+
+    getItemsToIdx(attribute = null) {
+        const attr = attribute || this._rootAttribute
+
+        if (!this._itemsToIdx[attr]) {
+            const itemsToIdx = {};
+            const items = this.getItems(attr);
+            const numItems = items.length;
+
+            for (let i = 0; i < numItems; ++i)
+                itemsToIdx[items[i]] = i;
+
+            this._itemsToIdx[attr] = itemsToIdx;
+        }
+
+        return this._itemsToIdx[attr];
     }
 
     getGroupIndexFromRootItem(groupAttr, rootItem) {

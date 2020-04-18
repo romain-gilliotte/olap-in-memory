@@ -95,9 +95,9 @@ class InMemoryStore {
         const myDimLengths = myDimensions.map(dim => dim.numItems);
         const dimIdxHisMineMap = hisDimensions.map((hisDimension, index) => {
             const hisItems = hisDimension.getItems();
-            const myItems = myDimensions[index].getItems();
+            const myItemsToIdx = myDimensions[index].getItemsToIdx();
 
-            return hisItems.map(newItem => myItems.indexOf(newItem));
+            return hisItems.map(newItem => myItemsToIdx[newItem]);
         });
 
         const hisDimIdx = new Uint8Array(numDimensions);
@@ -158,9 +158,9 @@ class InMemoryStore {
         const newDimLength = newDimensions.map(dim => dim.numItems);
         const dimIdxNewOldMap = newDimensions.map((dimension, index) => {
             const newItems = dimension.getItems();
-            const oldItems = oldDimensions[index].getItems();
+            const oldItemsToIdx = oldDimensions[index].getItemsToIdx();
 
-            return newItems.map(newItem => oldItems.indexOf(newItem));
+            return newItems.map(newItem => oldItemsToIdx[newItem]);
         });
 
         // Rewrite data vector.

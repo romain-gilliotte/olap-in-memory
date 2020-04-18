@@ -17,8 +17,8 @@ class TimeDimension extends AbstractDimension {
     constructor(id, rootAttribute, start, end, label = null) {
         super(id, rootAttribute, label);
 
-        this._start = TimeSlot.fromDate(new TimeSlot(start).firstDate, 'day');
-        this._end = TimeSlot.fromDate(new TimeSlot(end).lastDate, 'day')
+        this._start = TimeSlot.fromDate(TimeSlot.fromValue(start).firstDate, 'day');
+        this._end = TimeSlot.fromDate(TimeSlot.fromValue(end).lastDate, 'day')
         this._items = {};
         this._rootIdxToGroupIdx = {};
 
@@ -64,7 +64,7 @@ class TimeDimension extends AbstractDimension {
     getEntries(attribute = null, language = 'en') {
         return this.getItems(attribute).map(item => [
             item,
-            new TimeSlot(item).humanizeValue(language)
+            TimeSlot.fromValue(item).humanizeValue(language)
         ]);
     }
 
@@ -109,12 +109,12 @@ class TimeDimension extends AbstractDimension {
         }
 
         // Check that items are ordered, have the good period, and that there are no gaps.
-        let last = new TimeSlot(items[0]);
+        let last = TimeSlot.fromValue(items[0]);
         if (last.periodicity !== attribute)
             throw new Error('Unsupported: wrong periodicity');
 
         for (let i = 1; i < items.length; ++i) {
-            const current = new TimeSlot(items[i]);
+            const current = TimeSlot.fromValue(items[i]);
             if (current.periodicity !== attribute || current.value !== last.next().value) {
                 throw new Error('Unsupported: follow');
             }
@@ -132,7 +132,7 @@ class TimeDimension extends AbstractDimension {
         let newStart, newEnd;
 
         if (start) {
-            const startTs = new TimeSlot(start);
+            const startTs = TimeSlot.fromValue(start);
             if (startTs.periodicity !== attribute)
                 throw new Error(`${start} is not a valid slot of periodicity ${attribute}`);
 
@@ -142,7 +142,7 @@ class TimeDimension extends AbstractDimension {
             newStart = this._start.value;
 
         if (end) {
-            const endTs = new TimeSlot(end);
+            const endTs = TimeSlot.fromValue(end);
             if (endTs.periodicity !== attribute)
                 throw new Error(`${end} is not a valid slot of periodicity ${attribute}`);
 
@@ -168,32 +168,20 @@ class TimeDimension extends AbstractDimension {
             this._checkAttribute(groupAttr);
 
             const rootItems = this.getItems();
-            const groupItems = this.getItems(groupAttr);
+            const groupItemsToIdx = this.getItemsToIdx(groupAttr);
 
             this._rootIdxToGroupIdx[groupAttr] = rootItems.map(rootItem => {
-                const groupItem = new TimeSlot(rootItem).toParentPeriodicity(groupAttr).value;
-                return groupItems.indexOf(groupItem);
+                const groupItem = TimeSlot.fromValue(rootItem).toParentPeriodicity(groupAttr).value;
+                return groupItemsToIdx[groupItem];
             });
         }
 
         return this._rootIdxToGroupIdx[groupAttr];
     }
 
-    /** This could be much more efficient */
     getGroupIndexFromRootIndex(groupAttr, rootIdx) {
         if (undefined === this._rootIdxToGroupIdx[groupAttr]) {
-            this._rootIdxToGroupIdx[groupAttr] = new Int32Array(this.numItems);
-            this._rootIdxToGroupIdx[groupAttr].fill(-2);
-        }
-
-        if (-2 === this._rootIdxToGroupIdx[groupAttr][rootIdx]) {
-            const rootItems = this.getItems();
-            const rootItem = rootItems[rootIdx];
-
-            const groupItem = new TimeSlot(rootItem).toParentPeriodicity(groupAttr).value;
-            const groupItems = this.getItems(groupAttr);
-
-            this._rootIdxToGroupIdx[groupAttr][rootIdx] = groupItems.indexOf(groupItem);
+            this.getGroupIndexFromRootIndexMap(groupAttr)
         }
 
         return this._rootIdxToGroupIdx[groupAttr][rootIdx];
