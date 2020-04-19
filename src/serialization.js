@@ -1,9 +1,3 @@
-let zlib;
-try {
-    zlib = require('zlib');
-} catch (e) { }
-
-
 const TypedArraySubClasses = [
     Int8Array,
     Uint8Array,
@@ -26,28 +20,10 @@ const OBJECT = 5;
 const NULL = 6;
 const NUMBER = 7
 
-
-function toBuffer(obj) {
-    let buffer = toRawBuffer(obj);
-    if (zlib)
-        buffer = zlib.gzipSync(buffer);
-
-    return Uint8Array.prototype.slice.call(buffer).buffer;
-}
-
-function fromBuffer(buffer) {
-    if (zlib)
-        buffer = zlib.gunzipSync(buffer);
-
-    const rawTruncated = Uint8Array.prototype.slice.call(buffer).buffer;
-
-    return fromRawBuffer(rawTruncated);
-}
-
 /**
  * Serialize a mix of ArrayBuffer, TypedArray, Array, String and plain objects into a buffer.
  */
-function toRawBuffer(obj) {
+function toBuffer(obj) {
     let result;
 
     if (obj === null) {
@@ -63,14 +39,14 @@ function toRawBuffer(obj) {
     }
     else if (obj.buffer instanceof ArrayBuffer) {
         const typeIndex = TypedArraySubClasses.findIndex(type => obj instanceof type);
-        const payload = toRawBuffer(obj.buffer);
+        const payload = toBuffer(obj.buffer);
 
         result = new ArrayBuffer(8 + payload.byteLength);
         new Uint32Array(result, 0, 2).set([TYPED_ARRAY, typeIndex])
         new Uint8Array(result, 8, payload.byteLength).set(new Uint8Array(payload))
     }
     else if (Array.isArray(obj)) {
-        const buffers = obj.map(item => toRawBuffer(item));
+        const buffers = obj.map(item => toBuffer(item));
         const payloadLength = buffers.reduce((m, b) => m + 4 + b.byteLength, 0);
 
         result = new ArrayBuffer(8 + payloadLength);
@@ -84,7 +60,7 @@ function toRawBuffer(obj) {
         }
     }
     else if (typeof obj === 'string') {
-        const payload = toRawBuffer(new TextEncoder().encode(obj));
+        const payload = toBuffer(new TextEncoder().encode(obj));
 
         result = new ArrayBuffer(4 + payload.byteLength);
         new Uint32Array(result, 0, 1).set([STRING]);
@@ -96,7 +72,7 @@ function toRawBuffer(obj) {
         new Float32Array(result, 4, 1).set([obj]);
     }
     else {
-        const payload = toRawBuffer(Object.entries(obj).map(([key, value]) => [key, toRawBuffer(value)]));
+        const payload = toBuffer(Object.entries(obj).map(([key, value]) => [key, toBuffer(value)]));
 
         result = new ArrayBuffer(4 + payload.byteLength);
         new Uint32Array(result, 0, 1).set([5]);
@@ -106,7 +82,7 @@ function toRawBuffer(obj) {
     return result;
 }
 
-function fromRawBuffer(buffer, offset = 0) {
+function fromBuffer(buffer, offset = 0) {
     const header = new Uint32Array(buffer, offset, 1)[0];
 
     if (header === ARRAY_BUFFER) {
@@ -115,7 +91,7 @@ function fromRawBuffer(buffer, offset = 0) {
     }
     else if (header === TYPED_ARRAY) {
         const typeIndex = new Uint32Array(buffer, offset + 4, 1)[0];
-        const payload = fromRawBuffer(buffer, offset + 8);
+        const payload = fromBuffer(buffer, offset + 8);
         return new TypedArraySubClasses[typeIndex](payload);
     }
     else if (header === ARRAY) {
@@ -125,7 +101,7 @@ function fromRawBuffer(buffer, offset = 0) {
         let itemOffset = offset + 8;
         for (let i = 0; i < size; ++i) {
             const itemSize = new Uint32Array(buffer, itemOffset, 1)[0];
-            const item = fromRawBuffer(buffer, itemOffset + 4);
+            const item = fromBuffer(buffer, itemOffset + 4);
 
             result.push(item);
             itemOffset += 4 + itemSize;
@@ -134,7 +110,7 @@ function fromRawBuffer(buffer, offset = 0) {
         return result;
     }
     else if (header === STRING) {
-        const payload = fromRawBuffer(buffer, offset + 4);
+        const payload = fromBuffer(buffer, offset + 4);
         return new TextDecoder().decode(payload);
     }
     else if (header === NULL) {
@@ -145,11 +121,11 @@ function fromRawBuffer(buffer, offset = 0) {
     }
     else if (header === OBJECT) {
         const result = {};
-        fromRawBuffer(buffer, offset + 4).forEach(entry => {
-            result[entry[0]] = fromRawBuffer(entry[1]);
+        fromBuffer(buffer, offset + 4).forEach(entry => {
+            result[entry[0]] = fromBuffer(entry[1]);
         })
         return result;
     }
 }
 
-module.exports = { toBuffer, fromBuffer, toRawBuffer, fromRawBuffer };
+module.exports = { toBuffer, fromBuffer };
