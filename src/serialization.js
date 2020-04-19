@@ -1,4 +1,3 @@
-const pako = require('pako')
 let zlib;
 try {
     zlib = require('zlib');
@@ -29,15 +28,18 @@ const NUMBER = 7
 
 
 function toBuffer(obj) {
-    const buffer = toRawBuffer(obj);
-    const compressed = zlib ? zlib.gzipSync(buffer) : pako.gzip(buffer);
+    let buffer = toRawBuffer(obj);
+    if (zlib)
+        buffer = zlib.gzipSync(buffer);
 
-    return Uint8Array.prototype.slice.call(compressed).buffer;
+    return Uint8Array.prototype.slice.call(buffer).buffer;
 }
 
 function fromBuffer(buffer) {
-    const raw = zlib ? zlib.gunzipSync(buffer) : pako.ungzip(buffer);
-    const rawTruncated = Uint8Array.prototype.slice.call(raw).buffer;
+    if (zlib)
+        buffer = zlib.gunzipSync(buffer);
+
+    const rawTruncated = Uint8Array.prototype.slice.call(buffer).buffer;
 
     return fromRawBuffer(rawTruncated);
 }
