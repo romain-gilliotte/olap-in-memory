@@ -18,7 +18,7 @@ It support:
 
 # Installation
 
-TimeslotDAG runs in both NodeJS and the browser
+It runs in both NodeJS and the browser
 
 ```console
 $ npm install olap-in-memory
