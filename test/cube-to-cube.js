@@ -477,26 +477,5 @@ describe("Operation between cubes", function () {
 			);
 		});
 
-		it('should allow forcing the data to fit', function () {
-			const cube = new Cube([new TimeDimension('time', 'month', '2010-02', '2010-06')]);
-			cube.createStoredMeasure('antennas', {}, 'float32', 0);
-
-			const cube2 = new Cube([new TimeDimension('time', 'year', '2010', '2011')]);
-			cube2.createStoredMeasure('antennas', {}, 'float32', 0);
-			cube2.setNestedObject('antennas', { '2010': 1000, '2011': 500 });
-
-			cube.hydrateFromCube(cube2);
-
-			assert.deepEqual(
-				cube.getNestedObject('antennas'),
-				{
-					'2010-02': 200,
-					'2010-03': 200,
-					'2010-04': 200,
-					'2010-05': 200,
-					'2010-06': 200
-				}
-			);
-		});
 	});
 });

@@ -487,26 +487,23 @@ class Cube {
             const actualDim = newCube.dimensions[dimIndex];
             const targetDim = targetDims[dimIndex];
 
-            // FIXME: properly think and add tests around
-            // the consequences of dicing first, and then drilling instead of the opposite.
+            if (actualDim.rootAttribute === targetDim.rootAttribute) {
+                continue;
+            } else if (actualDim.attributes.includes(targetDim.rootAttribute)) {
+                newCube = newCube.drillUp(targetDim.id, targetDim.rootAttribute);
+            } else if (targetDim.attributes.includes(actualDim.rootAttribute)) {
+                newCube = newCube.drillDown(targetDim.id, targetDim.rootAttribute);
+            } else {
+                const err = `The cube dimensions '${targetDim.id}' are not compatible between them.`;
+                throw new Error(err);
+            }
 
-            // fixme we could intersect
             newCube = newCube.dice(
                 targetDim.id,
                 targetDim.rootAttribute,
                 targetDim.getItems(),
                 true
             );
-
-            if (actualDim.rootAttribute === targetDim.rootAttribute) continue;
-            else if (actualDim.attributes.includes(targetDim.rootAttribute))
-                newCube = newCube.drillUp(targetDim.id, targetDim.rootAttribute);
-            else if (targetDim.attributes.includes(actualDim.rootAttribute))
-                newCube = newCube.drillDown(targetDim.id, targetDim.rootAttribute);
-            else
-                throw new Error(
-                    `The cube dimensions '${targetDim.id}' are not compatible between them.`
-                );
         }
 
         return newCube;
