@@ -1,6 +1,4 @@
-
 class AbstractDimension {
-
     get numItems() {
         return this.getItems().length;
     }
@@ -17,13 +15,13 @@ class AbstractDimension {
         return this._label;
     }
 
-	/**
-	 * Create a simple dimension
-	 *
-	 * @param  {[type]} id         ie: "location"
+    /**
+     * Create a simple dimension
+     *
+     * @param  {[type]} id         ie: "location"
      * @param  {[type]} attribute  ie: "zipCode"
      * @param  {string} label
-	 */
+     */
     constructor(id, rootAttribute, label = null) {
         this.id = id;
         this._rootAttribute = rootAttribute;
@@ -58,15 +56,14 @@ class AbstractDimension {
     }
 
     getItemsToIdx(attribute = null) {
-        const attr = attribute || this._rootAttribute
+        const attr = attribute || this._rootAttribute;
 
         if (!this._itemsToIdx[attr]) {
             const itemsToIdx = {};
             const items = this.getItems(attr);
             const numItems = items.length;
 
-            for (let i = 0; i < numItems; ++i)
-                itemsToIdx[items[i]] = i;
+            for (let i = 0; i < numItems; ++i) itemsToIdx[items[i]] = i;
 
             this._itemsToIdx[attr] = itemsToIdx;
         }

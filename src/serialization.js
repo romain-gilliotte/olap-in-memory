@@ -9,7 +9,7 @@ const TypedArraySubClasses = [
     Float32Array,
     Float64Array,
     BigInt64Array,
-    BigUint64Array
+    BigUint64Array,
 ];
 
 const ARRAY_BUFFER = 1;
@@ -18,7 +18,7 @@ const ARRAY = 3;
 const STRING = 4;
 const OBJECT = 5;
 const NULL = 6;
-const NUMBER = 7
+const NUMBER = 7;
 
 /**
  * Serialize a mix of ArrayBuffer, TypedArray, Array, String and plain objects into a buffer.
@@ -29,23 +29,20 @@ function toBuffer(obj) {
     if (obj === null) {
         result = new ArrayBuffer(4);
         new Uint32Array(result, 0, 1).set([NULL]);
-    }
-    else if (obj instanceof ArrayBuffer) {
+    } else if (obj instanceof ArrayBuffer) {
         // We waste some space by padding the end of each arraybuffer with zeros
         // to avoid breaking alignment in the blob.
         result = new ArrayBuffer(8 + Math.ceil(obj.byteLength / 4) * 4);
         new Uint32Array(result, 0, 2).set([ARRAY_BUFFER, obj.byteLength]);
         new Uint8Array(result, 8, obj.byteLength).set(new Uint8Array(obj));
-    }
-    else if (obj.buffer instanceof ArrayBuffer) {
+    } else if (obj.buffer instanceof ArrayBuffer) {
         const typeIndex = TypedArraySubClasses.findIndex(type => obj instanceof type);
         const payload = toBuffer(obj.buffer);
 
         result = new ArrayBuffer(8 + payload.byteLength);
-        new Uint32Array(result, 0, 2).set([TYPED_ARRAY, typeIndex])
-        new Uint8Array(result, 8, payload.byteLength).set(new Uint8Array(payload))
-    }
-    else if (Array.isArray(obj)) {
+        new Uint32Array(result, 0, 2).set([TYPED_ARRAY, typeIndex]);
+        new Uint8Array(result, 8, payload.byteLength).set(new Uint8Array(payload));
+    } else if (Array.isArray(obj)) {
         const buffers = obj.map(item => toBuffer(item));
         const payloadLength = buffers.reduce((m, b) => m + 4 + b.byteLength, 0);
 
@@ -55,23 +52,22 @@ function toBuffer(obj) {
         let offset = 8;
         for (let i = 0; i < buffers.length; ++i) {
             new Uint32Array(result, offset, 1).set([buffers[i].byteLength]);
-            new Uint8Array(result, offset + 4, buffers[i].byteLength).set(new Uint8Array(buffers[i]));
+            new Uint8Array(result, offset + 4, buffers[i].byteLength).set(
+                new Uint8Array(buffers[i])
+            );
             offset += 4 + buffers[i].byteLength;
         }
-    }
-    else if (typeof obj === 'string') {
+    } else if (typeof obj === 'string') {
         const payload = toBuffer(new TextEncoder().encode(obj));
 
         result = new ArrayBuffer(4 + payload.byteLength);
         new Uint32Array(result, 0, 1).set([STRING]);
         new Uint8Array(result, 4, payload.byteLength).set(new Uint8Array(payload));
-    }
-    else if (typeof obj === 'number') {
+    } else if (typeof obj === 'number') {
         result = new ArrayBuffer(8);
         new Uint32Array(result, 0, 1).set([NUMBER]);
         new Float32Array(result, 4, 1).set([obj]);
-    }
-    else {
+    } else {
         const payload = toBuffer(Object.entries(obj).map(([key, value]) => [key, toBuffer(value)]));
 
         result = new ArrayBuffer(4 + payload.byteLength);
@@ -88,13 +84,11 @@ function fromBuffer(buffer, offset = 0) {
     if (header === ARRAY_BUFFER) {
         const size = new Uint32Array(buffer, offset + 4, 1)[0];
         return buffer.slice(offset + 8, offset + 8 + size);
-    }
-    else if (header === TYPED_ARRAY) {
+    } else if (header === TYPED_ARRAY) {
         const typeIndex = new Uint32Array(buffer, offset + 4, 1)[0];
         const payload = fromBuffer(buffer, offset + 8);
         return new TypedArraySubClasses[typeIndex](payload);
-    }
-    else if (header === ARRAY) {
+    } else if (header === ARRAY) {
         const size = new Uint32Array(buffer, offset + 4, 1)[0];
         const result = [];
 
@@ -108,22 +102,18 @@ function fromBuffer(buffer, offset = 0) {
         }
 
         return result;
-    }
-    else if (header === STRING) {
+    } else if (header === STRING) {
         const payload = fromBuffer(buffer, offset + 4);
         return new TextDecoder().decode(payload);
-    }
-    else if (header === NULL) {
+    } else if (header === NULL) {
         return null;
-    }
-    else if (header === NUMBER) {
+    } else if (header === NUMBER) {
         return new Float32Array(buffer, offset + 4, 1)[0];
-    }
-    else if (header === OBJECT) {
+    } else if (header === OBJECT) {
         const result = {};
         fromBuffer(buffer, offset + 4).forEach(entry => {
             result[entry[0]] = fromBuffer(entry[1]);
-        })
+        });
         return result;
     }
 }

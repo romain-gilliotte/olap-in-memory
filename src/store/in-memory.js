@@ -9,15 +9,13 @@ const STATUS_INTERPOLATED = 4;
  * => Avoid allocations in the loops to keep things acceptably fast.
  */
 class InMemoryStore {
-
     get byteLength() {
         return this._data.byteLength;
     }
 
     get data() {
         const result = new Array(this._data.length);
-        for (let i = 0; i < this._data.length; ++i)
-            result[i] = this.getValue(i);
+        for (let i = 0; i < this._data.length; ++i) result[i] = this.getValue(i);
 
         return result;
     }
@@ -27,8 +25,7 @@ class InMemoryStore {
     }
 
     set data(values) {
-        if (this._size !== values.length)
-            throw new Error('value length is invalid');
+        if (this._size !== values.length) throw new Error('value length is invalid');
 
         this._status.fill(STATUS_SET);
         for (let i = 0; i < this._size; ++i) {
@@ -61,7 +58,7 @@ class InMemoryStore {
             size: this._size,
             type: this._type,
             status: this._status,
-            data: this._data
+            data: this._data,
         });
     }
 
@@ -85,7 +82,8 @@ class InMemoryStore {
 
     setValue(index, value, status = STATUS_SET) {
         this._data[index] = value;
-        this._status[index] = typeof value === 'number' && !Number.isNaN(value) ? status : STATUS_EMPTY;
+        this._status[index] =
+            typeof value === 'number' && !Number.isNaN(value) ? status : STATUS_EMPTY;
     }
 
     load(otherStore, myDimensions, hisDimensions) {
@@ -125,7 +123,7 @@ class InMemoryStore {
         const newStore = new InMemoryStore(this._size, this._type);
 
         const numDimensions = newDimensions.length;
-        const newToOldDimIdx = newDimensions.map(newDim => oldDimensions.indexOf(newDim))
+        const newToOldDimIdx = newDimensions.map(newDim => oldDimensions.indexOf(newDim));
 
         const oldDimIdx = new Uint16Array(numDimensions);
         for (let oldIdx = 0; oldIdx < this._size; ++oldIdx) {
@@ -220,23 +218,22 @@ class InMemoryStore {
 
             if (this._status[oldIdx] & STATUS_SET) {
                 let oldValue = this._data[oldIdx];
-                if (contributions[newIdx] === 0)
-                    newStore._data[newIdx] = oldValue;
+                if (contributions[newIdx] === 0) newStore._data[newIdx] = oldValue;
                 else {
-                    if (method == 'last')
-                        newStore._data[newIdx] = oldValue;
+                    if (method == 'last') newStore._data[newIdx] = oldValue;
                     else if (method == 'highest')
-                        newStore._data[newIdx] = newStore._data[newIdx] < oldValue ? oldValue : newStore._data[newIdx];
+                        newStore._data[newIdx] =
+                            newStore._data[newIdx] < oldValue ? oldValue : newStore._data[newIdx];
                     else if (method == 'lowest')
-                        newStore._data[newIdx] = newStore._data[newIdx] < oldValue ? newStore._data[newIdx] : oldValue;
+                        newStore._data[newIdx] =
+                            newStore._data[newIdx] < oldValue ? newStore._data[newIdx] : oldValue;
                     else if (method == 'sum' || method == 'average')
                         newStore._data[newIdx] += oldValue;
                 }
 
                 newStore._status[newIdx] |= this._status[oldIdx];
                 contributions[newIdx] += 1;
-            }
-            else {
+            } else {
                 newStore._status[newIdx] |= STATUS_EMPTY;
             }
         }
@@ -293,8 +290,7 @@ class InMemoryStore {
             if (this._status[oldIdx] & STATUS_SET) {
                 const numContributions = contributionsTotal[oldIdx];
                 newStore._status[newIdx] = this._status[oldIdx];
-                if (numContributions > 1)
-                    newStore._status[newIdx] |= STATUS_INTERPOLATED;
+                if (numContributions > 1) newStore._status[newIdx] |= STATUS_INTERPOLATED;
 
                 if (method === 'sum') {
                     if (useRounding) {
@@ -302,22 +298,19 @@ class InMemoryStore {
                         const remainder = this._data[oldIdx] % numContributions;
                         const contributionId = contributionsIds[oldIdx];
                         const oneOverDistance = remainder / numContributions;
-                        const lastIsSame = Math.floor(contributionId * oneOverDistance) === Math.floor((contributionId - 1) * oneOverDistance);
+                        const lastIsSame =
+                            Math.floor(contributionId * oneOverDistance) ===
+                            Math.floor((contributionId - 1) * oneOverDistance);
 
                         newStore._data[newIdx] = Math.floor(value);
-                        if (!lastIsSame)
-                            newStore._data[newIdx]++;
-                    }
-                    else {
+                        if (!lastIsSame) newStore._data[newIdx]++;
+                    } else {
                         newStore._data[newIdx] = this._data[oldIdx] / numContributions;
                     }
-                }
-                else
-                    newStore._data[newIdx] = this._data[oldIdx];
+                } else newStore._data[newIdx] = this._data[oldIdx];
 
                 contributionsIds[oldIdx]++;
-            }
-            else {
+            } else {
                 newStore._status[newIdx] = STATUS_EMPTY;
             }
         }

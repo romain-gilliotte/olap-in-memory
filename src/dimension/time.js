@@ -3,22 +3,21 @@ const AbstractDimension = require('./abstract');
 const { toBuffer, fromBuffer } = require('../serialization');
 
 class TimeDimension extends AbstractDimension {
-
     get attributes() {
-        return [this._rootAttribute, ...TimeSlot.upperSlots[this._rootAttribute]]
+        return [this._rootAttribute, ...TimeSlot.upperSlots[this._rootAttribute]];
     }
 
     /**
-     * 
-     * @param {TimeSlotPeriodicity} rootAttribute 
-     * @param {string} start 
-     * @param {string} end 
+     *
+     * @param {TimeSlotPeriodicity} rootAttribute
+     * @param {string} start
+     * @param {string} end
      */
     constructor(id, rootAttribute, start, end, label = null) {
         super(id, rootAttribute, label);
 
         this._start = TimeSlot.fromDate(TimeSlot.fromValue(start).firstDate, 'day');
-        this._end = TimeSlot.fromDate(TimeSlot.fromValue(end).lastDate, 'day')
+        this._end = TimeSlot.fromDate(TimeSlot.fromValue(end).lastDate, 'day');
         this._items = {};
         this._rootIdxToGroupIdx = {};
 
@@ -37,13 +36,12 @@ class TimeDimension extends AbstractDimension {
             label: this.label,
             rootAttribute: this.rootAttribute,
             start: this._start.value,
-            end: this._end.value
+            end: this._end.value,
         });
     }
 
     getItems(attribute = null) {
-        if (this._start.value > this._end.value)
-            return [];
+        if (this._start.value > this._end.value) return [];
 
         attribute = attribute || this._rootAttribute;
 
@@ -64,13 +62,12 @@ class TimeDimension extends AbstractDimension {
     getEntries(attribute = null, language = 'en') {
         return this.getItems(attribute).map(item => [
             item,
-            TimeSlot.fromValue(item).humanizeValue(language)
+            TimeSlot.fromValue(item).humanizeValue(language),
         ]);
     }
 
     drillUp(newAttribute) {
-        if (newAttribute == this.rootAttribute)
-            return this;
+        if (newAttribute == this.rootAttribute) return this;
 
         return new TimeDimension(
             this.id,
@@ -82,8 +79,7 @@ class TimeDimension extends AbstractDimension {
     }
 
     drillDown(newAttribute) {
-        if (newAttribute == this.rootAttribute)
-            return this;
+        if (newAttribute == this.rootAttribute) return this;
 
         if (!TimeSlot.upperSlots[newAttribute].includes(this._rootAttribute)) {
             throw new Error('Invalid periodicity.');
@@ -99,8 +95,7 @@ class TimeDimension extends AbstractDimension {
     }
 
     dice(attribute, items, reorder = false) {
-        if (items.length === 1)
-            return this.diceRange(attribute, items[0], items[0]);
+        if (items.length === 1) return this.diceRange(attribute, items[0], items[0]);
 
         // if reorder is true, it means we are supposed to keep the order
         // provided in the item list, otherwise we'll keep our chronological order.
@@ -110,8 +105,7 @@ class TimeDimension extends AbstractDimension {
 
         // Check that items are ordered, have the good period, and that there are no gaps.
         let last = TimeSlot.fromValue(items[0]);
-        if (last.periodicity !== attribute)
-            throw new Error('Unsupported: wrong periodicity');
+        if (last.periodicity !== attribute) throw new Error('Unsupported: wrong periodicity');
 
         for (let i = 1; i < items.length; ++i) {
             const current = TimeSlot.fromValue(items[i]);
@@ -126,8 +120,7 @@ class TimeDimension extends AbstractDimension {
     }
 
     diceRange(attribute, start, end) {
-        if (attribute === 'all')
-            return this;
+        if (attribute === 'all') return this;
 
         let newStart, newEnd;
 
@@ -137,9 +130,7 @@ class TimeDimension extends AbstractDimension {
                 throw new Error(`${start} is not a valid slot of periodicity ${attribute}`);
 
             newStart = TimeSlot.fromDate(startTs.firstDate, 'day').value;
-        }
-        else
-            newStart = this._start.value;
+        } else newStart = this._start.value;
 
         if (end) {
             const endTs = TimeSlot.fromValue(end);
@@ -147,12 +138,9 @@ class TimeDimension extends AbstractDimension {
                 throw new Error(`${end} is not a valid slot of periodicity ${attribute}`);
 
             newEnd = TimeSlot.fromDate(endTs.lastDate, 'day').value;
-        }
-        else
-            newEnd = this._end.value;
+        } else newEnd = this._end.value;
 
-        if (newStart <= this._start.value && this._end.value <= newEnd)
-            return this;
+        if (newStart <= this._start.value && this._end.value <= newEnd) return this;
         else
             return new TimeDimension(
                 this.id,
@@ -181,39 +169,41 @@ class TimeDimension extends AbstractDimension {
 
     getGroupIndexFromRootIndex(groupAttr, rootIdx) {
         if (undefined === this._rootIdxToGroupIdx[groupAttr]) {
-            this.getGroupIndexFromRootIndexMap(groupAttr)
+            this.getGroupIndexFromRootIndexMap(groupAttr);
         }
 
         return this._rootIdxToGroupIdx[groupAttr][rootIdx];
     }
 
     union(otherDimension) {
-        if (this.id !== otherDimension.id)
-            throw new Error('Not the same dimension');
+        if (this.id !== otherDimension.id) throw new Error('Not the same dimension');
 
         let rootAttribute;
         if (this.attributes.includes(otherDimension.rootAttribute))
             rootAttribute = otherDimension._rootAttribute;
         else if (otherDimension.attributes.includes(this.rootAttribute))
-            rootAttribute = this._rootAttribute
-        else
-            throw new Error(`The dimensions are not compatible`);
+            rootAttribute = this._rootAttribute;
+        else throw new Error(`The dimensions are not compatible`);
 
-        const start = this._start.value < otherDimension._start.value ? this._start.value : otherDimension._start.value;
-        const end = otherDimension._end.value < this._end.value ? this._end.value : otherDimension._end.value;
+        const start =
+            this._start.value < otherDimension._start.value
+                ? this._start.value
+                : otherDimension._start.value;
+        const end =
+            otherDimension._end.value < this._end.value
+                ? this._end.value
+                : otherDimension._end.value;
         return new TimeDimension(this.id, rootAttribute, start, end, this.label);
     }
 
     intersect(otherDimension) {
-        if (this.id !== otherDimension.id)
-            throw new Error('Not the same dimension');
+        if (this.id !== otherDimension.id) throw new Error('Not the same dimension');
 
         if (this.attributes.includes(otherDimension.rootAttribute))
             return otherDimension.diceRange('day', this._start.value, this._end.value);
         else if (otherDimension.attributes.includes(this.rootAttribute))
             return this.diceRange('day', otherDimension._start.value, otherDimension._end.value);
-        else
-            throw new Error(`The dimensions are not compatible`);
+        else throw new Error(`The dimensions are not compatible`);
     }
 }
 

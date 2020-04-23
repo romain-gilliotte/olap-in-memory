@@ -7,5 +7,5 @@ module.exports = {
         const data = fromBuffer(buffer);
         if (data.start) return TimeDimension.deserialize(buffer);
         else return GenericDimension.deserialize(buffer);
-    }
-}
+    },
+};
