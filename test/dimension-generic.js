@@ -2,7 +2,6 @@ const assert = require('chai').assert;
 const { GenericDimension } = require('../src');
 
 describe('GenericDimension', function () {
-
     let dimension;
 
     before(function () {
@@ -14,27 +13,26 @@ describe('GenericDimension', function () {
             item => 'city of ' + item
         );
 
-        dimension.addAttribute(
-            'city',
-            'cityNumLetters',
-            city => city.length.toString(),
-            { '5': 'five', '6': 'six', '8': 'eigth' }
-        )
+        dimension.addAttribute('city', 'cityNumLetters', city => city.length.toString(), {
+            '5': 'five',
+            '6': 'six',
+            '8': 'eigth',
+        });
 
         dimension.addAttribute(
             'city',
             'country',
-            { 'madrid': 'spain', 'beirut': 'lebanon', 'paris': 'france', 'toulouse': 'france' },
+            { madrid: 'spain', beirut: 'lebanon', paris: 'france', toulouse: 'france' },
             item => 'country of ' + item
         );
 
         dimension.addAttribute(
             'country',
             'continent',
-            item => item === 'lebanon' ? 'asia' : 'europe',
-            { 'asia': 'The huge continent', 'europe': 'The old continent' }
+            item => (item === 'lebanon' ? 'asia' : 'europe'),
+            { asia: 'The huge continent', europe: 'The old continent' }
         );
-    })
+    });
 
     it('should give proper sizes', function () {
         assert.equal(dimension.numItems, 4);
@@ -42,7 +40,13 @@ describe('GenericDimension', function () {
 
     it('should give proper attributes', function () {
         assert.equal(dimension.rootAttribute, 'city');
-        assert.sameMembers(dimension.attributes, ['city', 'cityNumLetters', 'country', 'continent', 'all']);
+        assert.sameMembers(dimension.attributes, [
+            'city',
+            'cityNumLetters',
+            'country',
+            'continent',
+            'all',
+        ]);
     });
 
     it('should compute items for all attributes', function () {
@@ -71,15 +75,16 @@ describe('GenericDimension', function () {
         assert.deepEqual(childDim.getItems(), ['france', 'spain', 'lebanon']);
 
         let childDim2 = dimension.drillUp('cityNumLetters');
-        assert.sameMembers(childDim2.attributes, ['cityNumLetters', 'all'])
+        assert.sameMembers(childDim2.attributes, ['cityNumLetters', 'all']);
     });
 
     it('should intersect to dimensions with the same rootAttribute', function () {
-        const otherDimension = new GenericDimension(
-            'location',
-            'city',
-            ['toulouse', 'madrid', 'amman', 'paris']
-        );
+        const otherDimension = new GenericDimension('location', 'city', [
+            'toulouse',
+            'madrid',
+            'amman',
+            'paris',
+        ]);
 
         const intersection = dimension.intersect(otherDimension);
         assert.equal(intersection.rootAttribute, 'city');
@@ -87,11 +92,11 @@ describe('GenericDimension', function () {
     });
 
     it('should intersect to dimensions with different rootAttribute', function () {
-        const otherDimension = new GenericDimension(
-            'location',
-            'country',
-            ['france', 'spain', 'jordan']
-        );
+        const otherDimension = new GenericDimension('location', 'country', [
+            'france',
+            'spain',
+            'jordan',
+        ]);
 
         const intersection = dimension.intersect(otherDimension);
         assert.equal(intersection.rootAttribute, 'country');
@@ -99,11 +104,11 @@ describe('GenericDimension', function () {
     });
 
     it('should raise when intersecting dimensions with no common items', function () {
-        const otherDimension = new GenericDimension(
-            'location',
-            'city',
-            ['lyon', 'barcelona', 'narbonne']
-        );
+        const otherDimension = new GenericDimension('location', 'city', [
+            'lyon',
+            'barcelona',
+            'narbonne',
+        ]);
 
         const newDimension = dimension.intersect(otherDimension);
         assert.equal(newDimension.numItems, 0);
@@ -111,11 +116,7 @@ describe('GenericDimension', function () {
     });
 
     it('should raise when intersecting dimensions with no common attribute', function () {
-        const otherDimension = new GenericDimension(
-            'location',
-            'postalcode',
-            ['75018', '75019']
-        );
+        const otherDimension = new GenericDimension('location', 'postalcode', ['75018', '75019']);
 
         assert.throws(() => dimension.intersect(otherDimension));
     });
@@ -129,22 +130,24 @@ describe('GenericDimension', function () {
             item => 'great city of ' + item
         );
 
-        otherDimension.addAttribute('city', 'country', item => 'france', item => 'country of ' + item);
+        otherDimension.addAttribute(
+            'city',
+            'country',
+            item => 'france',
+            item => 'country of ' + item
+        );
 
         const result = dimension.union(otherDimension);
         assert.deepEqual(result.attributes, ['all', 'city', 'country']);
         assert.deepEqual(result.getGroupItemFromRootItem('country', 'lyon'), 'france');
         assert.deepEqual(result.getGroupItemFromRootItem('country', 'paris'), 'france');
-        assert.deepEqual(
-            result.getEntries(),
-            [
-                ['paris', 'city of paris'],
-                ['toulouse', 'city of toulouse'],
-                ['madrid', 'city of madrid'],
-                ['beirut', 'city of beirut'],
-                ['lyon', 'great city of lyon'],
-            ]
-        )
+        assert.deepEqual(result.getEntries(), [
+            ['paris', 'city of paris'],
+            ['toulouse', 'city of toulouse'],
+            ['madrid', 'city of madrid'],
+            ['beirut', 'city of beirut'],
+            ['lyon', 'great city of lyon'],
+        ]);
     });
 
     it('should work when serialized', function () {
@@ -154,50 +157,44 @@ describe('GenericDimension', function () {
     });
 
     it('should be able to humanize root attribute labels', function () {
-        assert.deepEqual(
-            dimension.getEntries(),
-            [
-                ['paris', 'city of paris'],
-                ['toulouse', 'city of toulouse'],
-                ['madrid', 'city of madrid'],
-                ['beirut', 'city of beirut']
-            ]
-        );
+        assert.deepEqual(dimension.getEntries(), [
+            ['paris', 'city of paris'],
+            ['toulouse', 'city of toulouse'],
+            ['madrid', 'city of madrid'],
+            ['beirut', 'city of beirut'],
+        ]);
     });
 
     it('should be able to humanize other labels', function () {
-        assert.deepEqual(
-            dimension.getEntries('cityNumLetters'),
-            [['5', 'five'], ['8', 'eigth'], ['6', 'six']]
-        );
+        assert.deepEqual(dimension.getEntries('cityNumLetters'), [
+            ['5', 'five'],
+            ['8', 'eigth'],
+            ['6', 'six'],
+        ]);
     });
 
     it('should be able to humanize labels after drillingUp', function () {
         const newDimension = dimension.drillUp('cityNumLetters');
 
-        assert.deepEqual(
-            newDimension.getEntries(),
-            [['5', 'five'], ['8', 'eigth'], ['6', 'six']]
-        );
+        assert.deepEqual(newDimension.getEntries(), [
+            ['5', 'five'],
+            ['8', 'eigth'],
+            ['6', 'six'],
+        ]);
     });
 
     it('should be able to humanize labels after dice', function () {
         const newDimension = dimension.dice('cityNumLetters', ['6', '5']);
 
-        assert.deepEqual(
-            newDimension.getEntries(),
-            [
-                ['paris', 'city of paris'],
-                ['madrid', 'city of madrid'],
-                ['beirut', 'city of beirut']
-            ]
-        );
+        assert.deepEqual(newDimension.getEntries(), [
+            ['paris', 'city of paris'],
+            ['madrid', 'city of madrid'],
+            ['beirut', 'city of beirut'],
+        ]);
 
-        assert.deepEqual(
-            newDimension.getEntries('cityNumLetters'),
-            [['5', 'five'], ['6', 'six']]
-        );
+        assert.deepEqual(newDimension.getEntries('cityNumLetters'), [
+            ['5', 'five'],
+            ['6', 'six'],
+        ]);
     });
-
 });
-

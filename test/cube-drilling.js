@@ -2,10 +2,8 @@ const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
 const { Cube, TimeDimension } = require('../src');
 
-describe("Drilling", function () {
-
-    describe("drillUp", function () {
-
+describe('Drilling', function () {
+    describe('drillUp', function () {
         describe('cities to continents', function () {
             let cube, newCube;
 
@@ -15,10 +13,10 @@ describe("Drilling", function () {
             });
 
             it('Drilled up cube should have summed cities by continent', function () {
-                assert.deepEqual(
-                    newCube.getNestedArray('antennas'),
-                    [[5, 10], [16, 32]]
-                );
+                assert.deepEqual(newCube.getNestedArray('antennas'), [
+                    [5, 10],
+                    [16, 32],
+                ]);
             });
         });
 
@@ -36,32 +34,24 @@ describe("Drilling", function () {
             });
 
             it('Drilled up cube should have summed', function () {
-                assert.deepEqual(
-                    newCube.getNestedObject('data_sum', true, true),
-                    {
-                        '2010-Q1': { v: 3, c: false, r: true },
-                        '2010-Q2': { v: NaN, c: false, r: true },
-                        'all': { v: 3, c: false, r: true }
-                    }
-                );
+                assert.deepEqual(newCube.getNestedObject('data_sum', true, true), {
+                    '2010-Q1': { v: 3, c: false, r: true },
+                    '2010-Q2': { v: NaN, c: false, r: true },
+                    all: { v: 3, c: false, r: true },
+                });
             });
 
             it('Drilled up cube should have averaged', function () {
-                assert.deepEqual(
-                    newCube.getNestedObject('data_avg', true, true),
-                    {
-                        '2010-Q1': { v: 15, c: false, r: true },
-                        '2010-Q2': { v: NaN, c: false, r: true },
-                        'all': { v: 15, c: false, r: true }
-                    }
-                );
+                assert.deepEqual(newCube.getNestedObject('data_avg', true, true), {
+                    '2010-Q1': { v: 15, c: false, r: true },
+                    '2010-Q2': { v: NaN, c: false, r: true },
+                    all: { v: 15, c: false, r: true },
+                });
             });
-
         });
     });
 
     describe('drillDown', function () {
-
         describe('months to days', function () {
             let cube, newCube;
 
@@ -90,7 +80,9 @@ describe("Drilling", function () {
             let cube, newCube;
 
             before(function () {
-                cube = new Cube([new TimeDimension('time', 'month_week_mon', '2010-01-W1-mon', '2010-02-W1-mon')]);
+                cube = new Cube([
+                    new TimeDimension('time', 'month_week_mon', '2010-01-W1-mon', '2010-02-W1-mon'),
+                ]);
                 cube.createStoredMeasure('measure1', { time: 'sum' }, 'float32', 100);
                 cube.createStoredMeasure('measure2', { time: 'average' }, 'float32', 100);
 
@@ -122,35 +114,20 @@ describe("Drilling", function () {
             });
 
             it('check cube data', function () {
-                assert.deepEqual(
-                    cube.getData('measure1'),
-                    [90, NaN]
-                );
+                assert.deepEqual(cube.getData('measure1'), [90, NaN]);
             });
 
             it('newCube should drillup again to same values', function () {
-                assert.deepEqual(
-                    newCube.drillUp('time', 'quarter').getData('measure1'),
-                    [90, NaN]
-                );
+                assert.deepEqual(newCube.drillUp('time', 'quarter').getData('measure1'), [90, NaN]);
             });
 
             it('newCube should have divided the quarter in three month, and left the rest', function () {
-                assert.deepEqual(
-                    newCube.getData('measure1'),
-                    [30, 30, 30, NaN, NaN, NaN]
-                );
+                assert.deepEqual(newCube.getData('measure1'), [30, 30, 30, NaN, NaN, NaN]);
             });
 
             it('newCube should have proper status flags', function () {
-                assert.deepEqual(
-                    newCube.getStatus('measure1'),
-                    [6, 6, 6, 1, 1, 1]
-                );
+                assert.deepEqual(newCube.getStatus('measure1'), [6, 6, 6, 1, 1, 1]);
             });
-
         });
-
     });
 });
-
