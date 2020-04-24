@@ -98,7 +98,7 @@ class InMemoryStore {
             return hisItems.map(newItem => myItemsToIdx[newItem]);
         });
 
-        const hisDimIdx = new Uint8Array(numDimensions);
+        const hisDimIdx = new Uint32Array(numDimensions);
         for (let hisIdx = 0; hisIdx < hisLength; ++hisIdx) {
             // Decompose new index into dimensions indexes
             let hisIdxCpy = hisIdx;
@@ -125,7 +125,7 @@ class InMemoryStore {
         const numDimensions = newDimensions.length;
         const newToOldDimIdx = newDimensions.map(newDim => oldDimensions.indexOf(newDim));
 
-        const oldDimIdx = new Uint16Array(numDimensions);
+        const oldDimIdx = new Uint32Array(numDimensions);
         for (let oldIdx = 0; oldIdx < this._size; ++oldIdx) {
             // Decompose new index into dimensions indexes
             let oldIdxCopy = oldIdx;
@@ -163,7 +163,7 @@ class InMemoryStore {
 
         // Rewrite data vector.
         const newStore = new InMemoryStore(newLength, this._type);
-        const newDimIdx = new Uint8Array(numDimensions);
+        const newDimIdx = new Uint32Array(numDimensions);
         for (let newIdx = 0; newIdx < newLength; ++newIdx) {
             // Decompose new index into dimensions indexes
             let newIdxCpy = newIdx;
@@ -201,7 +201,7 @@ class InMemoryStore {
 
         newStore._status.fill(0); // we'll OR the values from the parent buffer, so we need to init at zero.
 
-        let oldDimensionIndex = new Uint16Array(numDimensions);
+        let oldDimensionIndex = new Uint32Array(numDimensions);
         for (let oldIdx = 0; oldIdx < oldSize; ++oldIdx) {
             // Decompose old index into dimensions indexes
             let oldIndexCopy = oldIdx;
@@ -261,7 +261,7 @@ class InMemoryStore {
         const contributionsTotal = new Uint32Array(oldSize);
 
         const idxNewOld = new Uint32Array(newSize); // idxNewOld[newIdx] == oldIdx
-        const newDimensionIndex = new Uint16Array(numDimensions);
+        const newDimensionIndex = new Uint32Array(numDimensions);
         for (let newIdx = 0; newIdx < newSize; ++newIdx) {
             // Decompose new index into dimensions indexes
             let newIndexCopy = newIdx;
