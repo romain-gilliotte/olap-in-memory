@@ -333,7 +333,7 @@ class Cube {
         return cube;
     }
 
-    addDimension(newDimension, aggregation = {}, index = null, useRounding = true) {
+    addDimension(newDimension, aggregation = {}, index = null) {
         // If index is not provided, we append the dimension
         index = index === null ? this.dimensions.length : index;
 
@@ -354,8 +354,7 @@ class Cube {
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillDown(
                 oldDimensions,
                 newDimensions,
-                aggregation[measureId],
-                useRounding
+                aggregation[measureId]
             );
 
         return newCube;
@@ -375,7 +374,7 @@ class Cube {
         return newCube;
     }
 
-    drillDown(dimensionId, attribute, useRounding = true) {
+    drillDown(dimensionId, attribute) {
         const dimIdx = this.getDimensionIndex(dimensionId);
         if (this.dimensions[dimIdx].rootAttribute === attribute) return this;
 
@@ -390,8 +389,7 @@ class Cube {
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillDown(
                 this.dimensions,
                 newDimensions,
-                this.storedMeasuresRules[measureId][dimensionId],
-                useRounding
+                this.storedMeasuresRules[measureId][dimensionId]
             );
         }
 

@@ -42,7 +42,7 @@ class InMemoryStore {
         this._status.fill(STATUS_EMPTY);
 
         if (type == 'int32') this._data = new Int32Array(size);
-        else if (type == 'uint32') this._data = new UInt32Array(size);
+        else if (type == 'uint32') this._data = new Uint32Array(size);
         else if (type == 'float32') this._data = new Float32Array(size);
         else if (type == 'float64') this._data = new Float64Array(size);
         else throw new Error('Invalid type');
@@ -246,7 +246,8 @@ class InMemoryStore {
     }
 
     /** fixme: This could be more memory efficient by doing like the other, instead of mapping all indexes */
-    drillDown(oldDimensions, newDimensions, method = 'sum', useRounding = true) {
+    drillDown(oldDimensions, newDimensions, method = 'sum') {
+        const useRounding = this._type == 'int32' || this._type == 'uint32';
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
@@ -307,7 +308,9 @@ class InMemoryStore {
                     } else {
                         newStore._data[newIdx] = this._data[oldIdx] / numContributions;
                     }
-                } else newStore._data[newIdx] = this._data[oldIdx];
+                } else {
+                    newStore._data[newIdx] = this._data[oldIdx];
+                }
 
                 contributionsIds[oldIdx]++;
             } else {

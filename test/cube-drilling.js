@@ -84,8 +84,8 @@ describe('Drilling', function () {
 
             before(function () {
                 cube = new Cube([new TimeDimension('time', 'month', '2010-01', '2010-02')]);
-                cube.createStoredMeasure('measure1', { time: 'sum' }, 'float32', 100);
-                cube.createStoredMeasure('measure2', { time: 'average' }, 'float32', 100);
+                cube.createStoredMeasure('measure1', { time: 'sum' }, 'uint32', 100);
+                cube.createStoredMeasure('measure2', { time: 'average' }, 'uint32', 100);
 
                 newCube = cube.drillDown('time', 'day');
             });
@@ -110,8 +110,8 @@ describe('Drilling', function () {
                 cube = new Cube([
                     new TimeDimension('time', 'month_week_mon', '2010-01-W1-mon', '2010-02-W1-mon'),
                 ]);
-                cube.createStoredMeasure('measure1', { time: 'sum' }, 'float32', 100);
-                cube.createStoredMeasure('measure2', { time: 'average' }, 'float32', 100);
+                cube.createStoredMeasure('measure1', { time: 'sum' }, 'uint32', 100);
+                cube.createStoredMeasure('measure2', { time: 'average' }, 'uint32', 100);
 
                 newCube = cube.drillDown('time', 'day');
             });
