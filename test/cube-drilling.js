@@ -4,6 +4,19 @@ const { Cube, TimeDimension } = require('../src');
 
 describe('Drilling', function () {
     describe('drillUp', function () {
+        describe('no op', function () {
+            let cube, newCube;
+
+            before(function () {
+                cube = createTestCube(true, true);
+                newCube = cube.drillUp('location', 'city');
+            });
+
+            it('Should return this', function () {
+                assert.equal(cube, newCube);
+            });
+        });
+
         describe('cities to continents', function () {
             let cube, newCube;
 
@@ -52,6 +65,20 @@ describe('Drilling', function () {
     });
 
     describe('drillDown', function () {
+        describe('no op', function () {
+            let cube, newCube;
+
+            before(function () {
+                cube = new Cube([new TimeDimension('time', 'month', '2010-01', '2010-02')]);
+                cube.createStoredMeasure('measure1', { time: 'sum' }, 'float32', 100);
+                newCube = cube.drillDown('time', 'month');
+            });
+
+            it('Should return this', function () {
+                assert.equal(newCube, cube);
+            });
+        });
+
         describe('months to days', function () {
             let cube, newCube;
 

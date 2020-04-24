@@ -242,54 +242,48 @@ class Cube {
     reorderDimensions(dimensionIds) {
         // Check for no-op
         let dimIdx = 0;
-        for (; dimIdx < this.dimensions.length; ++dimIdx)
-            if (dimensionIds[dimIdx] !== this.dimensions[dimIdx].id) break;
+        for (; dimIdx < this.dimensions.length; ++dimIdx) {
+            if (dimensionIds[dimIdx] !== this.dimensions[dimIdx].id) {
+                break;
+            }
+        }
 
-        if (dimIdx !== this.dimensions.length) {
-            const newDimensions = dimensionIds.map(id =>
-                this.dimensions.find(dim => dim.id === id)
-            );
-
-            const newCube = new Cube(newDimensions);
-            Object.assign(newCube.computedMeasures, this.computedMeasures);
-            Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
-            for (let measureId in this.storedMeasures)
-                newCube.storedMeasures[measureId] = this.storedMeasures[measureId].reorder(
-                    this.dimensions,
-                    newDimensions
-                );
-
-            return newCube;
-        } else {
+        if (dimIdx === this.dimensions.length) {
             return this;
         }
+
+        // Write a new cube
+        const newDimensions = dimensionIds.map(id => this.dimensions.find(dim => dim.id === id));
+        const newCube = new Cube(newDimensions);
+        newCube.computedMeasures = this.computedMeasures;
+        newCube.storedMeasuresRules = this.storedMeasuresRules;
+        for (let measureId in this.storedMeasures)
+            newCube.storedMeasures[measureId] = this.storedMeasures[measureId].reorder(
+                this.dimensions,
+                newDimensions
+            );
+
+        return newCube;
     }
 
     slice(dimensionId, attribute, value) {
         let dimIndex = this.getDimensionIndex(dimensionId);
         if (dimIndex === -1) throw new Error('No such dimension.');
 
-        if (this.dimensions[dimIndex].rootAttribute !== attribute)
-            throw new Error('Slice only allowed on root attribute.');
-
-        const newCube = this.dice(dimensionId, attribute, [value]); // dice only one value
-        newCube.dimensions.splice(dimIndex, 1); // remove extra dimension
-        for (let measureId in this.storedMeasuresRules) {
-            this.storedMeasuresRules[measureId] = cloneDeep();
-        }
-
-        return newCube;
+        return this.dice(dimensionId, attribute, [value]).removeDimension(dimensionId);
     }
 
     diceRange(dimensionId, attribute, start, end) {
         const dimIdx = this.getDimensionIndex(dimensionId);
         const newDimensions = this.dimensions.slice();
         newDimensions[dimIdx] = newDimensions[dimIdx].diceRange(attribute, start, end);
-        if (newDimensions[dimIdx] == this.dimensions[dimIdx]) return this;
+        if (newDimensions[dimIdx] == this.dimensions[dimIdx]) {
+            return this;
+        }
 
         const newCube = new Cube(newDimensions);
-        Object.assign(newCube.computedMeasures, this.computedMeasures);
-        Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
+        newCube.computedMeasures = this.computedMeasures;
+        newCube.storedMeasuresRules = this.storedMeasuresRules;
         for (let measureId in this.storedMeasures)
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].dice(
                 this.dimensions,
@@ -303,11 +297,13 @@ class Cube {
         const dimIdx = this.getDimensionIndex(dimensionId);
         const newDimensions = this.dimensions.slice();
         newDimensions[dimIdx] = newDimensions[dimIdx].dice(attribute, items, reorder);
-        if (newDimensions[dimIdx] == this.dimensions[dimIdx]) return this;
+        if (newDimensions[dimIdx] == this.dimensions[dimIdx]) {
+            return this;
+        }
 
         const newCube = new Cube(newDimensions);
-        Object.assign(newCube.computedMeasures, this.computedMeasures);
-        Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
+        newCube.computedMeasures = this.computedMeasures;
+        newCube.storedMeasuresRules = this.storedMeasuresRules;
         for (let measureId in this.storedMeasures)
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].dice(
                 this.dimensions,
@@ -319,17 +315,20 @@ class Cube {
 
     keepDimensions(dimensionIds) {
         let cube = this;
-
-        for (let dimension of this.dimensions)
-            if (!dimensionIds.includes(dimension.id)) cube = cube.removeDimension(dimension.id);
+        for (let dimension of this.dimensions) {
+            if (!dimensionIds.includes(dimension.id)) {
+                cube = cube.removeDimension(dimension.id);
+            }
+        }
 
         return cube;
     }
 
     removeDimensions(dimensionIds) {
         let cube = this;
-
-        for (let dimensionId of dimensionIds) cube = cube.removeDimension(dimensionId);
+        for (let dimensionId of dimensionIds) {
+            cube = cube.removeDimension(dimensionId);
+        }
 
         return cube;
     }
@@ -345,9 +344,9 @@ class Cube {
         newDimensions[index] = newDimension;
 
         const newCube = new Cube(newDimensions);
-        Object.assign(newCube.computedMeasures, this.computedMeasures);
+        newCube.computedMeasures = this.computedMeasures;
+        newCube.storedMeasuresRules = cloneDeep(this.storedMeasuresRules);
         for (let measureId in this.storedMeasuresRules) {
-            newCube.storedMeasuresRules[measureId] = cloneDeep(this.storedMeasuresRules[measureId]);
             newCube.storedMeasuresRules[measureId][newDimension.id] = aggregation[measureId];
         }
 
@@ -363,18 +362,16 @@ class Cube {
     }
 
     removeDimension(dimensionId) {
-        // fixme bug. if drillup is a noop, this will break the current cube
-        // we need to add a unit test.
-        const newCube = this.drillUp(dimensionId, 'all');
-        for (let measureId in this.storedMeasuresRules) {
-            newCube.storedMeasuresRules[measureId] = cloneDeep(
-                newCube.storedMeasuresRules[measureId]
-            );
+        const newDimensions = this.dimensions.filter(dim => dim.id !== dimensionId);
+        const newCube = new Cube(newDimensions);
+        newCube.storedMeasures = this.drillUp(dimensionId, 'all').storedMeasures;
+        newCube.computedMeasures = this.computedMeasures;
+        newCube.storedMeasuresRules = cloneDeep(this.storedMeasuresRules);
+
+        for (let measureId in newCube.storedMeasuresRules) {
             delete newCube.storedMeasuresRules[measureId][dimensionId];
         }
 
-        const dimIndex = newCube.getDimensionIndex(dimensionId);
-        newCube.dimensions.splice(dimIndex, 1);
         return newCube;
     }
 
@@ -387,8 +384,8 @@ class Cube {
         if (newDimensions[dimIdx] == this.dimensions[dimIdx]) return this;
 
         const newCube = new Cube(newDimensions);
-        Object.assign(newCube.computedMeasures, this.computedMeasures);
-        Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
+        newCube.computedMeasures = this.computedMeasures;
+        newCube.storedMeasuresRules = this.storedMeasuresRules;
         for (let measureId in this.storedMeasures) {
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillDown(
                 this.dimensions,
@@ -414,8 +411,8 @@ class Cube {
         if (newDimensions[dimIdx] == this.dimensions[dimIdx]) return this;
 
         const newCube = new Cube(newDimensions);
-        Object.assign(newCube.computedMeasures, this.computedMeasures);
-        Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
+        newCube.computedMeasures = this.computedMeasures;
+        newCube.storedMeasuresRules = this.storedMeasuresRules;
         for (let measureId in this.storedMeasures) {
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillUp(
                 this.dimensions,
@@ -494,7 +491,7 @@ class Cube {
             } else if (targetDim.attributes.includes(actualDim.rootAttribute)) {
                 newCube = newCube.drillDown(targetDim.id, targetDim.rootAttribute);
             } else {
-                const err = `The cube dimensions '${targetDim.id}' are not compatible between them.`;
+                const err = `The cube dimensions '${targetDim.id}' are not compatible.`;
                 throw new Error(err);
             }
 

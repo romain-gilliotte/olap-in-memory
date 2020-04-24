@@ -36,6 +36,12 @@ describe('Filtering', function () {
     });
 
     describe('dice', function () {
+        it('should work on noop', function () {
+            let newCube = cube.dice('location', 'city', ['paris', 'toledo', 'tokyo']);
+
+            assert.equal(newCube, cube);
+        });
+
         it('should dice on cities', function () {
             const parTolCube = cube.dice('location', 'city', ['paris', 'toledo']);
 
