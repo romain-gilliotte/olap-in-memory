@@ -120,7 +120,9 @@ class TimeDimension extends AbstractDimension {
     }
 
     diceRange(attribute, start, end) {
-        if (attribute === 'all') return this;
+        if (attribute === 'all') {
+            return this;
+        }
 
         let newStart, newEnd;
 
@@ -140,15 +142,17 @@ class TimeDimension extends AbstractDimension {
             newEnd = TimeSlot.fromDate(endTs.lastDate, 'day').value;
         } else newEnd = this._end.value;
 
-        if (newStart <= this._start.value && this._end.value <= newEnd) return this;
-        else
-            return new TimeDimension(
-                this.id,
-                this._rootAttribute,
-                newStart < this._start.value ? this._start.value : newStart,
-                newEnd < this._end.value ? newEnd : this._end.value,
-                this.label
-            );
+        if (newStart <= this._start.value && this._end.value <= newEnd) {
+            return this;
+        }
+
+        return new TimeDimension(
+            this.id,
+            this._rootAttribute,
+            newStart < this._start.value ? this._start.value : newStart,
+            newEnd < this._end.value ? newEnd : this._end.value,
+            this.label
+        );
     }
 
     getGroupIndexFromRootIndexMap(groupAttr) {
