@@ -43,6 +43,16 @@ The module runs in both NodeJS and the browser.
 $ npm install olap-in-memory
 ```
 
+Once installed, all classes are available in the index of the package.
+
+```javascript
+// CommonJS
+const { Cube, TimeDimension, GenericDimension } = require('olap-in-memory');
+
+// ES6+
+import { Cube, TimeDimension, GenericDimension } from 'olap-in-memory';
+```
+
 # Terminology
 
 In the documentation the following terms are used:
@@ -65,6 +75,8 @@ In the documentation the following terms are used:
         -   [setData, setNestedArray, setNestedObject](#setdata--setnestedarray--setnestedobject)
         -   [hydrateFromSparseNestedObject](#hydratefromsparsenestedobject)
         -   [hydrateFromCube](#hydratefromcube)
+    -   [Composition](#composition)
+    -   [Serialization](#serialization)
 -   [Querying](#querying)
     -   [Slicing](#slicing)
     -   [Dicing](#dicing)
@@ -74,17 +86,15 @@ In the documentation the following terms are used:
     -   [Adding and removing dimensions](#adding-and-removing-dimensions)
     -   [Other convenience methods](#other-convenience-methods)
 -   [Formatting](#formatting)
-    -   [getData(measureId) and getNestedArray(measureId)](#getdata-measureid--and-getnestedarray-measureid-)
-    -   [getStatus(measureId)](#getstatus-measureid-)
-    -   [getNestedObject(measureId, withTotals = false, withMetadata = false)](#getnestedobject-measureid--withtotals---false--withmetadata---false-)
+    -   [getData and getNestedArray](#getdata-and-getnestedarray)
+    -   [getStatus](#getstatus)
+    -   [getNestedObject](#getnestedobject)
 
 # Building cubes
 
 Building a cube from scratch is done in three steps: creating the dimensions, then the measures, and lastly hydrating the cube with data.
 
 ```javascript
-const { TimeDimension, GenericDimension, Cube } = require('olap-in-memory');
-
 // Create dimensions
 const time = new TimeDimension('time', 'day', '2010-01', '2019-12');
 const location = new GenericDimension('location', 'city', ['paris', 'madrid']);
@@ -107,8 +117,6 @@ Before going further, be warned as of today the only implemented storage keeps a
 CPU and memory usage will grow _exponentially_ with the number of dimensions. This was efficient enough for our indended usage, it might not be for yours!
 
 ```javascript
-const { GenericDimension, Cube } = require('olap-in-memory');
-
 const univacCube = new Cube([
     new GenericDimension('dim0', 'root', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']),
     new GenericDimension('dim1', 'root', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']),
@@ -157,8 +165,6 @@ French, Spanish and English locales are supported by the underlying library, but
 As it was needed to localize epidemiological weeks, quarters, and so on, it was not possible to simply use one of the many existing javascript date libraries which already provide translations in most languages.
 
 ```javascript
-const { TimeDimension } = require('olap-in-memory');
-
 // The constructor accepts any value which is valid with timeslot-dag
 new TimeDimension('time', 'month', '2010-01', '2010-12'); // OK
 new TimeDimension('time', 'month', '2010-01-14', '2010-12-07'); // OK
@@ -193,8 +199,6 @@ and with each call to `.addAttribute()`. Locales are _not_ supported.
 When no human strings are provided, by default, the item will be returned instead.
 
 ```javascript
-const { GenericDimension } = require('olap-in-memory');
-
 // Mandatory constructor parameters: dimensionId, rootAttribute, items
 const codes = ['fr75013', 'fr75015', 'fr75018', 'fr54000', 'fr13000', 'es28000'];
 const location = new GenericDimension('location', 'postalCode', codes);
@@ -362,6 +366,61 @@ cube.getData('main_measure');
 // => [33, 33, NaN, NaN, NaN, 22]
 ```
 
+## Composition
+
+Cubes can also be merged together. This is useful to create computed measure which depends on data from different cubes.
+
+When doing so, dimensions will be drilled-up automatically to make the composition possible.
+
+A new cube will be created, so the original cubes are not modified.
+However, the data stores may be reused if they don't need transformations, in that case, editing the data in the original cube will update the data in the composition.
+
+```javascript
+const cube1 = Cube.deserialize(...);
+const cube2 = Cube.deserialize(...);
+
+cube1.measureIds; // => ['sales']
+cube2.measureIds; // => ['worked_hours']
+
+cube1.dimensionIds; // => ['time', 'location']
+cube2.dimensionIds; // => ['normal_vs_overtime', 'time']
+
+// the second parameter tells us if we should intersect (false) or union (true) the dimension items
+// of each dimension in cube1 and cube2 when constructing the new cube.
+const cube = cube1.compose(cube2, false);
+
+// Yay! Our cube now contains both measures.
+cube.measureIds; // ['sales', 'worked_hours']
+
+// But we lost the normal_vs_overtime and location dimensions.
+// We could slice them before composing if we need
+cube.dimensionIds; // ['time']
+
+// We can now create computed measures!
+cube.createComputedMeasures('sales_by_workday', 'sales / worked_hours / 8');
+```
+
+If you need to merge multiple cubes which contain the same measures, composition is not what you are looking for!
+
+Create a cube which can accomodate the data of all of them, and load their content into that with the `.hydrateFromCube()` method.
+Dimensions have a `.union()` convenience method, which should help you with that.
+
+## Serialization
+
+The last way to create cube is by serializing and deserializing them
+
+```javascript
+const fs = require('fs');
+
+// Load cube
+const buffer = fs.readFileSync('./my-cube.cub');
+const cube = Cube.deserialize(buffer);
+
+// Save cube
+const newBuffer = cube.serialize();
+fs.writeFileSync('./my-new-cube.cub', newBuffer);
+```
+
 # Querying
 
 Unlike `set` and `hydrate` methods, cubes can be considered as inmutable objects for all query methods.
@@ -371,12 +430,7 @@ All calls return a new Cube leaving the original cube unchanged and are chainabl
 Do not use "no-op queries" to clone a cube (like dicing with a range which contains the whole cube). In those cases a new instance won't be created, and the query method will `return this`.
 
 ```javascript
-const fs = require('fs');
-const { Cube } = require('olap-in-memory');
-
-// Load cube from file
-const buffer = fs.readFileSync('sales.cub');
-const sales = Cube.deserialize(buffer);
+const sales = Cube.deserialize(...);
 
 // Query cube
 const sales_paris2010 = sales
@@ -620,7 +674,7 @@ isDeepEqual(cube, cubeRestored1, cubeRestored2); // => true
 
 # Formatting
 
-### getData(measureId) and getNestedArray(measureId)
+### getData and getNestedArray
 
 Those methods simply returns a copy of the cells data, either in a flat or nested array, in the same order than provided by the dimensions.
 
@@ -644,7 +698,7 @@ cube.getNestedArray('main_mesure');
 
 ```
 
-### getStatus(measureId)
+### getStatus
 
 Like `getData` and in the same order, this method returns a copy of the status of all the cells within the considered cube.
 
@@ -684,7 +738,7 @@ _.zip(data, status)
 
 Note: There is no `getNestedStatus()` method.
 
-### getNestedObject(measureId, withTotals = false, withMetadata = false)
+### getNestedObject
 
 Simply returns the data as a nested object, indexed with the dimension items.
 This is the method we have been using on the whole documentation
