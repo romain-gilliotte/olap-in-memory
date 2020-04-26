@@ -31,8 +31,8 @@ This needed to have a lower level access to the cubes than provided with availab
 
 Other projects:
 
+-   [OLAP cube.js](https://github.com/feonit/olap-cube-js)
 -   [jsHypercube](https://code.google.com/archive/p/js-hypercube/): Another offline cube system (not maintained).
--   [Data Brewery Cubes](http://cubes.databrewery.org/): Light-weight Python framework and OLAP HTTP server for easy development of reporting applications and aggregate browsing of multi-dimensionally modeled data.
 -   ... PR to add yours!
 
 # Installation
