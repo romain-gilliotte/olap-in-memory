@@ -20,6 +20,6 @@
         "preversion": "npm test",
         "prepublish": "npm test",
         "test": "mocha",
-        "coverage": "nyc npm test"
+        "coverage": "nyc --reporter=lcov npm test"
     }
 }

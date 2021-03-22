@@ -1,20 +1,8 @@
 name: Test and coverage
 on: [push, pull_request]
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@master
-        with:
-          node-version: 14
-      - run: npm install
-      - run: npm test
-
   coverage:
-    needs: [test]
-    name: Coverage
+    name: Test and coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -27,4 +15,3 @@ jobs:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
           coverageCommand: npm run coverage
-          debug: true
