@@ -10,7 +10,7 @@ const getParser = require('./parser');
 
 class Cube {
     get storeSize() {
-        return this.dimensions.reduce((m, d) => m * d.numItems, 1);
+        return this.dimensions.reduce((m, d) => m * d.numItems, 1) * 2;
     }
 
     get byteLength() {
