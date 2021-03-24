@@ -1,2 +1,5 @@
 test
 .github
+.prettierrc
+.nyc_output
+coverage

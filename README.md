@@ -1,6 +1,7 @@
 # Olap in memory
 
-![Test suite](https://github.com/romain-gilliotte/olap-in-memory/workflows/Test%20suite/badge.svg)
+[![Maintainability](https://api.codeclimate.com/v1/badges/7f9625a4d6653520d6f3/maintainability)](https://codeclimate.com/github/romain-gilliotte/olap-in-memory/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/7f9625a4d6653520d6f3/test_coverage)](https://codeclimate.com/github/romain-gilliotte/olap-in-memory/test_coverage)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/olap-in-memory)
 ![NPM](https://img.shields.io/npm/l/olap-in-memory)
 ![npm](https://img.shields.io/npm/v/olap-in-memory)

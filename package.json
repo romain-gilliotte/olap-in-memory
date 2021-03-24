@@ -12,13 +12,13 @@
         "timeslot-dag": "^2.1.3"
     },
     "devDependencies": {
-        "chai": "^4.2.0",
-        "mocha": "^7.1.1",
-        "nyc": "^15.0.1"
+        "chai": "^4.3.4",
+        "mocha": "^8.3.2",
+        "nyc": "^15.1.0",
+        "semantic-release": "^17.4.2"
     },
     "scripts": {
-        "preversion": "npm test",
-        "prepublish": "npm test",
-        "test": "mocha"
+        "test": "mocha",
+        "coverage": "nyc --reporter=lcov npm test"
     }
 }
