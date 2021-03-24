@@ -1,10 +1,11 @@
 {
     "name": "olap-in-memory",
-    "version": "7.0.10",
+    "version": "0.0.0-development",
     "author": "Romain Gilliotte",
     "license": "ISC",
     "description": "An implementation of in-memory OLAP cubes for NodeJS and the browser.",
     "main": "src/index.js",
+    "repository": "github:romain-gilliotte/olap-in-memory",
     "dependencies": {
         "expr-eval": "^2.0.2",
         "lodash.clonedeep": "^4.5.0",
