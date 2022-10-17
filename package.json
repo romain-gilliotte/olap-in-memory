@@ -1,11 +1,11 @@
 {
-    "name": "olap-in-memory",
+    "name": "@growblocks/olap-in-memory",
     "version": "0.0.0-development",
     "author": "Romain Gilliotte",
     "license": "Unlicense",
     "description": "An implementation of in-memory OLAP cubes for NodeJS and the browser.",
     "main": "src/index.js",
-    "repository": "github:romain-gilliotte/olap-in-memory",
+    "repository": "https://github.com/Growblocks/olap-in-memory.git",
     "dependencies": {
         "expr-eval": "^2.0.2",
         "lodash.clonedeep": "^4.5.0",
