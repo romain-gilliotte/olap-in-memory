@@ -510,7 +510,10 @@ class Cube {
             storedMeasuresKeys: Object.keys(this.storedMeasures),
             storedMeasures: Object.values(this.storedMeasures).map(measure => measure.serialize()),
             storedMeasuresRules: this.storedMeasuresRules,
-            computedMeasures: this.computedMeasures,
+            computedMeasures: Object.keys(this.computedMeasures).reduce((acc, cur) => {
+                acc[cur] = this.computedMeasures[cur].toString();
+                return acc;
+            }, {}),
         });
     }
 
@@ -524,7 +527,10 @@ class Cube {
         data.storedMeasuresKeys.forEach((key, i) => {
             cube.storedMeasures[key] = InMemoryStore.deserialize(data.storedMeasures[i]);
         });
-        cube.computedMeasures = data.computedMeasures;
+        cube.computedMeasures = Object.keys(data.computedMeasures).reduce((acc, cur) => {
+            acc[cur] = getParser().parse(data.computedMeasures[cur]);
+            return acc;
+        }, {});
         return cube;
     }
 }
