@@ -113,10 +113,10 @@ class Cube {
             delete this.storedMeasures[measureId];
             delete this.storedMeasuresRules[measureId];
 
-            for (let measureId in cube.computedMeasures) {
-                const expression = cube.computedMeasures[measureId];
+            for (let measureId in this.computedMeasures) {
+                const expression = this.computedMeasures[measureId];
                 if (expression.variables().includes(measureId)) {
-                    delete cube.computedMeasures[measureId];
+                    delete this.computedMeasures[measureId];
                 }
             }
         } else throw new Error('No such measure');
