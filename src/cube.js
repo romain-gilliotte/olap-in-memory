@@ -101,7 +101,7 @@ class Cube {
                 }
             }
         } else {
-            throw new Error('No such measure');
+            throw new Error(`renameMeasure: No such measure ${oldMeasureId} -> ${newMeasureId}`);
         }
 
         return cube;
@@ -119,7 +119,7 @@ class Cube {
                     delete this.computedMeasures[measureId];
                 }
             }
-        } else throw new Error('No such measure');
+        } else throw new Error(`dropMeasure: No such measure: ${measureId}`);
     }
 
     getData(measureId) {
@@ -142,7 +142,7 @@ class Cube {
             }
 
             return result;
-        } else throw new Error('No such measure');
+        } else throw new Error(`getData: no such measure ${measureId}`);
     }
 
     getStatus(measureId) {
@@ -156,7 +156,7 @@ class Cube {
                 for (let i = 0; i < this.storeSize; ++i) result[i] |= status[i];
             }
             return result;
-        } else throw new Error('No such measure');
+        } else throw new Error(`getStatus: No such measure ${measureId}`);
     }
 
     setData(measureId, values) {
@@ -268,7 +268,7 @@ class Cube {
 
     slice(dimensionId, attribute, value) {
         let dimIndex = this.getDimensionIndex(dimensionId);
-        if (dimIndex === -1) throw new Error('No such dimension.');
+        if (dimIndex === -1) throw new Error(`No such dimension: ${dimensionId}`);
 
         return this.dice(dimensionId, attribute, [value]).removeDimension(dimensionId);
     }
