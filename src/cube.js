@@ -270,6 +270,18 @@ class Cube {
         return newCube;
     }
 
+    swapDimensions(dim1, dim2) {
+        if (this.dimensionIds.indexOf(dim1) === -1)
+            throw new Error(`swapDimensions: no such dimension ${dim1}`);
+
+        if (this.dimensionIds.indexOf(dim2) === -1)
+            throw new Error(`swapDimensions: no such dimension ${dim2}`);
+
+        return this.reorderDimensions(
+            this.dimensionIds.map(id => (id === dim1 ? dim2 : id === dim2 ? dim1 : id))
+        );
+    }
+
     slice(dimensionId, attribute, value) {
         let dimIndex = this.getDimensionIndex(dimensionId);
         if (dimIndex === -1) throw new Error(`slice: no such dimension: ${dimensionId}`);
