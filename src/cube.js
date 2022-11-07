@@ -57,7 +57,11 @@ class Cube {
         const expression = getParser().parse(formula);
         const variables = expression.variables({ withMembers: true });
         if (!variables.every(variable => this.storedMeasureIds.includes(variable)))
-            throw new Error(`Unknown measure: ${variable}`);
+            throw new Error(
+                `Unknown measure(s): ${variables.filter(
+                    variable => !this.storedMeasureIds.includes(variable)
+                )}`
+            );
 
         this.computedMeasures[measureId] = expression;
     }
