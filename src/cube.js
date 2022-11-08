@@ -57,7 +57,11 @@ class Cube {
         const expression = getParser().parse(formula);
         const variables = expression.variables({ withMembers: true });
         if (!variables.every(variable => this.storedMeasureIds.includes(variable)))
-            throw new Error(`Unknown measure: ${variable}`);
+            throw new Error(
+                `Unknown measure(s): ${variables.filter(
+                    variable => !this.storedMeasureIds.includes(variable)
+                )}`
+            );
 
         this.computedMeasures[measureId] = expression;
     }
@@ -264,6 +268,18 @@ class Cube {
             );
 
         return newCube;
+    }
+
+    swapDimensions(dim1, dim2) {
+        if (this.dimensionIds.indexOf(dim1) === -1)
+            throw new Error(`swapDimensions: no such dimension ${dim1}`);
+
+        if (this.dimensionIds.indexOf(dim2) === -1)
+            throw new Error(`swapDimensions: no such dimension ${dim2}`);
+
+        return this.reorderDimensions(
+            this.dimensionIds.map(id => (id === dim1 ? dim2 : id === dim2 ? dim1 : id))
+        );
     }
 
     slice(dimensionId, attribute, value) {
