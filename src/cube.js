@@ -54,7 +54,17 @@ class Cube {
         )
             throw new Error('This measure already exists');
 
-        const expression = getParser().parse(formula);
+        // check if formula contains any of the computed measures
+        const computedMeasureIdsInFormula = this.computedMeasureIds.filter(id =>
+            formula.includes(id)
+        );
+        // if yes, replace those with their actual expressions
+        const processedFormula = computedMeasureIdsInFormula.reduce((formula, measureId) => {
+            const expression = this.computedMeasures[measureId];
+            return formula.replace(measureId, `(${expression.toString()})`);
+        }, formula);
+
+        const expression = getParser().parse(processedFormula);
         const variables = expression.variables({ withMembers: true });
         if (!variables.every(variable => this.storedMeasureIds.includes(variable)))
             throw new Error(
