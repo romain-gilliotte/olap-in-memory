@@ -2,7 +2,9 @@ const { Parser } = require('expr-eval');
 
 function getParser() {
     const parser = new Parser({ logical: false, comparison: false, in: false, assignment: false });
+
     parser.functions = {
+        ...parser.functions,
         isNaN: Number.isNaN,
     };
 
