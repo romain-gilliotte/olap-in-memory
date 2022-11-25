@@ -8,8 +8,6 @@ function getParser() {
         isNaN: Number.isNaN,
     };
 
-    parser.consts = {};
-
     // Operators are harcoded => we can't create new ones so we steal the concatenation operation.
     // @see https://github.com/silentmatt/expr-eval/blob/92656356d64d7b7edba1ae1a9128799b64030559/src/token-stream.js#L375
     parser.binaryOps['||'] = (a, b) => {
