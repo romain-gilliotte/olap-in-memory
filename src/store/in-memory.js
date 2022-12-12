@@ -246,7 +246,7 @@ class InMemoryStore {
     }
 
     /** fixme: This could be more memory efficient by doing like the other, instead of mapping all indexes */
-    drillDown(oldDimensions, newDimensions, method = 'sum') {
+    drillDown(oldDimensions, newDimensions, method = 'sum', distributions) {
         const useRounding = this._type == 'int32' || this._type == 'uint32';
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
@@ -293,23 +293,27 @@ class InMemoryStore {
                 newStore._status[newIdx] = this._status[oldIdx];
                 if (numContributions > 1) newStore._status[newIdx] |= STATUS_INTERPOLATED;
 
-                if (method === 'sum') {
-                    if (useRounding) {
-                        const value = Math.floor(this._data[oldIdx] / numContributions);
-                        const remainder = this._data[oldIdx] % numContributions;
-                        const contributionId = contributionsIds[oldIdx];
-                        const oneOverDistance = remainder / numContributions;
-                        const lastIsSame =
-                            Math.floor(contributionId * oneOverDistance) ===
-                            Math.floor((contributionId - 1) * oneOverDistance);
-
-                        newStore._data[newIdx] = Math.floor(value);
-                        if (!lastIsSame) newStore._data[newIdx]++;
-                    } else {
-                        newStore._data[newIdx] = this._data[oldIdx] / numContributions;
-                    }
+                if (distributions) {
+                    newStore._data[newIdx] = this._data[oldIdx] * (distributions[newIdx] ?? 0);
                 } else {
-                    newStore._data[newIdx] = this._data[oldIdx];
+                    if (method === 'sum') {
+                        if (useRounding) {
+                            const value = Math.floor(this._data[oldIdx] / numContributions);
+                            const remainder = this._data[oldIdx] % numContributions;
+                            const contributionId = contributionsIds[oldIdx];
+                            const oneOverDistance = remainder / numContributions;
+                            const lastIsSame =
+                                Math.floor(contributionId * oneOverDistance) ===
+                                Math.floor((contributionId - 1) * oneOverDistance);
+
+                            newStore._data[newIdx] = Math.floor(value);
+                            if (!lastIsSame) newStore._data[newIdx]++;
+                        } else {
+                            newStore._data[newIdx] = this._data[oldIdx] / numContributions;
+                        }
+                    } else {
+                        newStore._data[newIdx] = this._data[oldIdx];
+                    }
                 }
 
                 contributionsIds[oldIdx]++;

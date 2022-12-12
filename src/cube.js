@@ -389,7 +389,7 @@ class Cube {
         return cube;
     }
 
-    addDimension(newDimension, aggregation = {}, index = null) {
+    addDimension(newDimension, aggregation = {}, index = null, distributions = {}) {
         // If index is not provided, we append the dimension
         index = index === null ? this.dimensions.length : index;
 
@@ -410,7 +410,8 @@ class Cube {
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillDown(
                 oldDimensions,
                 newDimensions,
-                aggregation[measureId]
+                aggregation[measureId],
+                distributions[measureId]
             );
 
         return newCube;
