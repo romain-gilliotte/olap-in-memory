@@ -99,6 +99,17 @@ class Cube {
         this.setData(storedMeasureId, data);
     }
 
+    convertToStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = NaN) {
+        if (this.computedMeasures[measureId] !== undefined) {
+            throw new Error(`convertToStoredMeasure: no such computed measure: ${measureId}`);
+        }
+
+        const data = this.getData(measureId);
+        this.dropMeasure(measureId);
+        this.createStoredMeasure(measureId, rules, type, defaultValue);
+        this.setData(storedMeasureId, data);
+    }
+
     renameMeasure(oldMeasureId, newMeasureId) {
         if (oldMeasureId == newMeasureId) return this;
 
