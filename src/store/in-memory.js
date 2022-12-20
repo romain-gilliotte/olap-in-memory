@@ -294,7 +294,13 @@ class InMemoryStore {
                 if (numContributions > 1) newStore._status[newIdx] |= STATUS_INTERPOLATED;
 
                 if (distributions) {
-                    newStore._data[newIdx] = this._data[oldIdx] * (distributions[newIdx] ?? 0);
+                    const addedDimLength = newSize / oldSize;
+                    const sharedDimSize = distributions.length / addedDimLength;
+                    const distIndex =
+                        Math.floor(newIdx / (newSize / sharedDimSize)) * addedDimLength +
+                        (newIdx % addedDimLength);
+
+                    newStore._data[newIdx] = this._data[oldIdx] * (distributions[distIndex] ?? 0);
                 } else {
                     if (method === 'sum') {
                         if (useRounding) {
