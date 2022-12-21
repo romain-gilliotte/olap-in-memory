@@ -299,8 +299,10 @@ class InMemoryStore {
                     const distIndex =
                         Math.floor(newIdx / (newSize / sharedDimSize)) * addedDimLength +
                         (newIdx % addedDimLength);
+                    if (distributions[distIndex] == null)
+                        throw new Error('distribution missing for index ' + distIndex);
 
-                    newStore._data[newIdx] = this._data[oldIdx] * (distributions[distIndex] ?? 0);
+                    newStore._data[newIdx] = this._data[oldIdx] * distributions[distIndex];
                 } else {
                     if (method === 'sum') {
                         if (useRounding) {
