@@ -87,6 +87,25 @@ class Cube {
         this.storedMeasuresRules[measureId] = rules;
     }
 
+    cloneStoredMeasure(originCube, measureId) {
+        if (!/^[a-z][_a-z0-9]*$/i.test(measureId))
+            throw new Error(`Invalid measureId: ${measureId}`);
+
+        if (this.storedMeasures[measureId] !== undefined)
+            throw new Error('This measure already exists');
+
+        if (originCube.storedMeasures[measureId] === undefined)
+            throw new Error('This measure does not exists in originCube');
+
+        this.storedMeasuresRules[measureId] = originCube.storedMeasuresRules[measureId]; // TODO: will this copy over the value or just ref?
+        const originMemoryStore = originCube.storedMeasures[measureId];
+        this.storedMeasures[measureId] = new InMemoryStore(
+            this.storeSize,
+            originMemoryStore._type,
+            originMemoryStore._defaultValue
+        );
+    }
+
     copyToStoredMeasure(
         computedMeasureId,
         storedMeasureId,

@@ -38,6 +38,7 @@ class InMemoryStore {
     constructor(size, type = 'float32', defaultValue = NaN) {
         this._size = size;
         this._type = type;
+        this._defaultValue = defaultValue;
         this._status = new Int8Array(size);
         this._status.fill(STATUS_EMPTY);
 
