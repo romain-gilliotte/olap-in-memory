@@ -97,7 +97,11 @@ class Cube {
         if (originCube.storedMeasures[measureId] === undefined)
             throw new Error('This measure does not exists in originCube');
 
-        this.storedMeasuresRules[measureId] = originCube.storedMeasuresRules[measureId]; // TODO: will this copy over the value or just ref?
+        this.storedMeasuresRules[measureId] = {};
+        Object.assign(
+            this.storedMeasuresRules[measureId],
+            originCube.storedMeasuresRules[measureId]
+        );
         const originMemoryStore = originCube.storedMeasures[measureId];
         this.storedMeasures[measureId] = new InMemoryStore(
             this.storeSize,
