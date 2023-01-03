@@ -116,6 +116,27 @@ class GenericDimension extends AbstractDimension {
         return this._items[attribute].map(item => [item, this._itemToLabel[attribute][item]]);
     }
 
+    renameItem(oldItem, newItem, newLabel = null) {
+        Object.keys(this._items).forEach(attr => {
+            const idx = this._items[attr].indexOf(oldItem);
+            if (idx !== -1) {
+                this._items[attr][idx] = newItem;
+            }
+        });
+        Object.keys(this._itemsToIdx).forEach(attr => {
+            if (this._itemsToIdx[attr][oldItem] !== undefined) {
+                this._itemsToIdx[attr][newItem] = this._itemsToIdx[attr][oldItem];
+                delete this._itemsToIdx[attr][oldItem];
+            }
+        });
+        Object.keys(this._itemToLabel).forEach(attr => {
+            if (this._itemToLabel[attr][oldItem]) {
+                this._itemToLabel[attr][newItem] = newLabel || newItem;
+                delete this._itemToLabel[attr][oldItem];
+            }
+        });
+    }
+
     drillUp(targetAttr) {
         if (targetAttr === this._rootAttribute) return this;
 
