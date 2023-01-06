@@ -121,7 +121,7 @@ class InMemoryStore {
     }
 
     reorder(oldDimensions, newDimensions) {
-        const newStore = new InMemoryStore(this._size, this._type);
+        const newStore = new InMemoryStore(this._size, this._type, this._defaultValue);
 
         const numDimensions = newDimensions.length;
         const newToOldDimIdx = newDimensions.map(newDim => oldDimensions.indexOf(newDim));
@@ -163,7 +163,7 @@ class InMemoryStore {
         });
 
         // Rewrite data vector.
-        const newStore = new InMemoryStore(newLength, this._type);
+        const newStore = new InMemoryStore(newLength, this._type, this._defaultValue);
         const newDimIdx = new Uint32Array(numDimensions);
         for (let newIdx = 0; newIdx < newLength; ++newIdx) {
             // Decompose new index into dimensions indexes
@@ -197,7 +197,7 @@ class InMemoryStore {
             return oldDimensions[index].getGroupIndexFromRootIndexMap(newDim.rootAttribute);
         });
 
-        const newStore = new InMemoryStore(newSize, this._type);
+        const newStore = new InMemoryStore(newSize, this._type, this._defaultValue);
         const contributions = new Uint16Array(newSize);
 
         newStore._status.fill(0); // we'll OR the values from the parent buffer, so we need to init at zero.
@@ -284,7 +284,7 @@ class InMemoryStore {
             contributionsTotal[oldIdx] += 1;
         }
 
-        const newStore = new InMemoryStore(newSize, this._type);
+        const newStore = new InMemoryStore(newSize, this._type, this._defaultValue);
 
         for (let newIdx = 0; newIdx < newSize; ++newIdx) {
             const oldIdx = idxNewOld[newIdx];
