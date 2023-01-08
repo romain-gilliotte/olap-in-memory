@@ -36,6 +36,10 @@ class Cube {
         this.computedMeasures = {};
     }
 
+    clone() {
+        return cloneDeep(this);
+    }
+
     getDimension(dimensionId) {
         return this.dimensions.find(d => d.id === dimensionId);
     }
