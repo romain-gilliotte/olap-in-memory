@@ -117,6 +117,11 @@ class GenericDimension extends AbstractDimension {
     }
 
     renameItem(oldItem, newItem, newLabel = null) {
+		// check if newItem does not exist
+		if (this._items[this._rootAttribute].includes(newItem)) {
+			throw new Error(`Item ${newItem} already exists`);
+		}
+
         Object.keys(this._items).forEach(attr => {
             const idx = this._items[attr].indexOf(oldItem);
             if (idx !== -1) {
