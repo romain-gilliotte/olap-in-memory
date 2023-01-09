@@ -274,7 +274,7 @@ class GenericDimension extends AbstractDimension {
             [
                 ...me.getItems(),
                 ...otherDimension.getItems().filter(item => !me.getItems().includes(item)),
-            ],
+            ].sort(),
             me.label,
             item => anyItemToLabel(me._rootAttribute, item)
         );
