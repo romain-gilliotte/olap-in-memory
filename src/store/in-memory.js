@@ -38,6 +38,7 @@ class InMemoryStore {
     constructor(size, type = 'float32', defaultValue = NaN) {
         this._size = size;
         this._type = type;
+        this._defaultValue = defaultValue;
         this._status = new Int8Array(size);
         this._status.fill(STATUS_EMPTY);
 
@@ -120,7 +121,7 @@ class InMemoryStore {
     }
 
     reorder(oldDimensions, newDimensions) {
-        const newStore = new InMemoryStore(this._size, this._type);
+        const newStore = new InMemoryStore(this._size, this._type, this._defaultValue);
 
         const numDimensions = newDimensions.length;
         const newToOldDimIdx = newDimensions.map(newDim => oldDimensions.indexOf(newDim));
@@ -162,7 +163,7 @@ class InMemoryStore {
         });
 
         // Rewrite data vector.
-        const newStore = new InMemoryStore(newLength, this._type);
+        const newStore = new InMemoryStore(newLength, this._type, this._defaultValue);
         const newDimIdx = new Uint32Array(numDimensions);
         for (let newIdx = 0; newIdx < newLength; ++newIdx) {
             // Decompose new index into dimensions indexes
@@ -196,7 +197,7 @@ class InMemoryStore {
             return oldDimensions[index].getGroupIndexFromRootIndexMap(newDim.rootAttribute);
         });
 
-        const newStore = new InMemoryStore(newSize, this._type);
+        const newStore = new InMemoryStore(newSize, this._type, this._defaultValue);
         const contributions = new Uint16Array(newSize);
 
         newStore._status.fill(0); // we'll OR the values from the parent buffer, so we need to init at zero.
@@ -246,7 +247,7 @@ class InMemoryStore {
     }
 
     /** fixme: This could be more memory efficient by doing like the other, instead of mapping all indexes */
-    drillDown(oldDimensions, newDimensions, method = 'sum') {
+    drillDown(oldDimensions, newDimensions, method = 'sum', distributions) {
         const useRounding = this._type == 'int32' || this._type == 'uint32';
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
@@ -283,7 +284,7 @@ class InMemoryStore {
             contributionsTotal[oldIdx] += 1;
         }
 
-        const newStore = new InMemoryStore(newSize, this._type);
+        const newStore = new InMemoryStore(newSize, this._type, this._defaultValue);
 
         for (let newIdx = 0; newIdx < newSize; ++newIdx) {
             const oldIdx = idxNewOld[newIdx];
@@ -293,23 +294,35 @@ class InMemoryStore {
                 newStore._status[newIdx] = this._status[oldIdx];
                 if (numContributions > 1) newStore._status[newIdx] |= STATUS_INTERPOLATED;
 
-                if (method === 'sum') {
-                    if (useRounding) {
-                        const value = Math.floor(this._data[oldIdx] / numContributions);
-                        const remainder = this._data[oldIdx] % numContributions;
-                        const contributionId = contributionsIds[oldIdx];
-                        const oneOverDistance = remainder / numContributions;
-                        const lastIsSame =
-                            Math.floor(contributionId * oneOverDistance) ===
-                            Math.floor((contributionId - 1) * oneOverDistance);
+                if (distributions) {
+                    const addedDimLength = newSize / oldSize;
+                    const sharedDimSize = distributions.length / addedDimLength;
+                    const distIndex =
+                        Math.floor(newIdx / (newSize / sharedDimSize)) * addedDimLength +
+                        (newIdx % addedDimLength);
+                    if (distributions[distIndex] == null)
+                        throw new Error('distribution missing for index ' + distIndex);
 
-                        newStore._data[newIdx] = Math.floor(value);
-                        if (!lastIsSame) newStore._data[newIdx]++;
-                    } else {
-                        newStore._data[newIdx] = this._data[oldIdx] / numContributions;
-                    }
+                    newStore._data[newIdx] = this._data[oldIdx] * distributions[distIndex];
                 } else {
-                    newStore._data[newIdx] = this._data[oldIdx];
+                    if (method === 'sum') {
+                        if (useRounding) {
+                            const value = Math.floor(this._data[oldIdx] / numContributions);
+                            const remainder = this._data[oldIdx] % numContributions;
+                            const contributionId = contributionsIds[oldIdx];
+                            const oneOverDistance = remainder / numContributions;
+                            const lastIsSame =
+                                Math.floor(contributionId * oneOverDistance) ===
+                                Math.floor((contributionId - 1) * oneOverDistance);
+
+                            newStore._data[newIdx] = Math.floor(value);
+                            if (!lastIsSame) newStore._data[newIdx]++;
+                        } else {
+                            newStore._data[newIdx] = this._data[oldIdx] / numContributions;
+                        }
+                    } else {
+                        newStore._data[newIdx] = this._data[oldIdx];
+                    }
                 }
 
                 contributionsIds[oldIdx]++;

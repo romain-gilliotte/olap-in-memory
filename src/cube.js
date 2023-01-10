@@ -36,6 +36,10 @@ class Cube {
         this.computedMeasures = {};
     }
 
+    clone() {
+        return cloneDeep(this);
+    }
+
     getDimension(dimensionId) {
         return this.dimensions.find(d => d.id === dimensionId);
     }
@@ -87,6 +91,29 @@ class Cube {
         this.storedMeasuresRules[measureId] = rules;
     }
 
+    cloneStoredMeasure(originCube, measureId) {
+        if (!/^[a-z][_a-z0-9]*$/i.test(measureId))
+            throw new Error(`Invalid measureId: ${measureId}`);
+
+        if (this.storedMeasures[measureId] !== undefined)
+            throw new Error('This measure already exists');
+
+        if (originCube.storedMeasures[measureId] === undefined)
+            throw new Error('This measure does not exists in originCube');
+
+        this.storedMeasuresRules[measureId] = {};
+        Object.assign(
+            this.storedMeasuresRules[measureId],
+            originCube.storedMeasuresRules[measureId]
+        );
+        const originMemoryStore = originCube.storedMeasures[measureId];
+        this.storedMeasures[measureId] = new InMemoryStore(
+            this.storeSize,
+            originMemoryStore._type,
+            originMemoryStore._defaultValue
+        );
+    }
+
     copyToStoredMeasure(
         computedMeasureId,
         storedMeasureId,
@@ -99,23 +126,16 @@ class Cube {
         this.setData(storedMeasureId, data);
     }
 
-    convertToStoredMeasure(
-        measureId,
-        rules = {},
-        type = 'float32',
-        defaultValue = NaN,
-      ) {
+    convertToStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = NaN) {
         if (!this.computedMeasures[measureId]) {
-          throw new Error(
-            `convertToStoredMeasure: no such computed measure: ${measureId}`,
-          );
+            throw new Error(`convertToStoredMeasure: no such computed measure: ${measureId}`);
         }
-    
+
         const data = this.getData(measureId);
         this.dropMeasure(measureId);
         this.createStoredMeasure(measureId, rules, type, defaultValue);
         this.setData(measureId, data);
-      }
+    }
 
     renameMeasure(oldMeasureId, newMeasureId) {
         if (oldMeasureId == newMeasureId) return this;
@@ -299,8 +319,8 @@ class Cube {
         // Write a new cube
         const newDimensions = dimensionIds.map(id => this.dimensions.find(dim => dim.id === id));
         const newCube = new Cube(newDimensions);
-        newCube.computedMeasures = this.computedMeasures;
-        newCube.storedMeasuresRules = this.storedMeasuresRules;
+        Object.assign(newCube.computedMeasures, this.computedMeasures);
+        Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
         for (let measureId in this.storedMeasures)
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].reorder(
                 this.dimensions,
@@ -338,8 +358,8 @@ class Cube {
         }
 
         const newCube = new Cube(newDimensions);
-        newCube.computedMeasures = this.computedMeasures;
-        newCube.storedMeasuresRules = this.storedMeasuresRules;
+        Object.assign(newCube.computedMeasures, this.computedMeasures);
+        Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
         for (let measureId in this.storedMeasures)
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].dice(
                 this.dimensions,
@@ -358,8 +378,8 @@ class Cube {
         }
 
         const newCube = new Cube(newDimensions);
-        newCube.computedMeasures = this.computedMeasures;
-        newCube.storedMeasuresRules = this.storedMeasuresRules;
+        Object.assign(newCube.computedMeasures, this.computedMeasures);
+        Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
         for (let measureId in this.storedMeasures)
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].dice(
                 this.dimensions,
@@ -389,7 +409,7 @@ class Cube {
         return cube;
     }
 
-    addDimension(newDimension, aggregation = {}, index = null) {
+    addDimension(newDimension, aggregation = {}, index = null, distributions = {}) {
         // If index is not provided, we append the dimension
         index = index === null ? this.dimensions.length : index;
 
@@ -400,7 +420,7 @@ class Cube {
         newDimensions[index] = newDimension;
 
         const newCube = new Cube(newDimensions);
-        newCube.computedMeasures = this.computedMeasures;
+        Object.assign(newCube.computedMeasures, this.computedMeasures);
         newCube.storedMeasuresRules = cloneDeep(this.storedMeasuresRules);
         for (let measureId in this.storedMeasuresRules) {
             newCube.storedMeasuresRules[measureId][newDimension.id] = aggregation[measureId];
@@ -410,7 +430,8 @@ class Cube {
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillDown(
                 oldDimensions,
                 newDimensions,
-                aggregation[measureId]
+                aggregation[measureId],
+                distributions[measureId]
             );
 
         return newCube;
@@ -420,7 +441,7 @@ class Cube {
         const newDimensions = this.dimensions.filter(dim => dim.id !== dimensionId);
         const newCube = new Cube(newDimensions);
         newCube.storedMeasures = this.drillUp(dimensionId, 'all').storedMeasures;
-        newCube.computedMeasures = this.computedMeasures;
+        Object.assign(newCube.computedMeasures, this.computedMeasures);
         newCube.storedMeasuresRules = cloneDeep(this.storedMeasuresRules);
 
         for (let measureId in newCube.storedMeasuresRules) {
@@ -439,8 +460,8 @@ class Cube {
         if (newDimensions[dimIdx] == this.dimensions[dimIdx]) return this;
 
         const newCube = new Cube(newDimensions);
-        newCube.computedMeasures = this.computedMeasures;
-        newCube.storedMeasuresRules = this.storedMeasuresRules;
+        Object.assign(newCube.computedMeasures, this.computedMeasures);
+        Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
         for (let measureId in this.storedMeasures) {
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillDown(
                 this.dimensions,
@@ -465,8 +486,8 @@ class Cube {
         if (newDimensions[dimIdx] == this.dimensions[dimIdx]) return this;
 
         const newCube = new Cube(newDimensions);
-        newCube.computedMeasures = this.computedMeasures;
-        newCube.storedMeasuresRules = this.storedMeasuresRules;
+        Object.assign(newCube.computedMeasures, this.computedMeasures);
+        Object.assign(newCube.storedMeasuresRules, this.storedMeasuresRules);
         for (let measureId in this.storedMeasures) {
             newCube.storedMeasures[measureId] = this.storedMeasures[measureId].drillUp(
                 this.dimensions,
