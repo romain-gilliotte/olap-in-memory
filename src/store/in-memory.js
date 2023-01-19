@@ -35,7 +35,7 @@ class InMemoryStore {
         }
     }
 
-    constructor(size, type = 'float32', defaultValue = NaN) {
+    constructor(size, type = 'float32', defaultValue = NaN, data = undefined) {
         this._size = size;
         this._type = type;
         this._defaultValue = defaultValue;
@@ -48,10 +48,19 @@ class InMemoryStore {
         else if (type == 'float64') this._data = new Float64Array(size);
         else throw new Error('Invalid type');
 
-        if (!Number.isNaN(defaultValue)) {
+        if (!data && !Number.isNaN(defaultValue)) {
             this._data.fill(defaultValue);
             this._status.fill(STATUS_SET);
         }
+
+        if (data) {
+            this._data = data.slice();
+            this._status.fill(STATUS_SET);
+        }
+    }
+
+    clone() {
+        return new InMemoryStore(this._size, this._type, this._defaultValue, this._data);
     }
 
     serialize() {
