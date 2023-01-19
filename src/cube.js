@@ -37,7 +37,15 @@ class Cube {
     }
 
     clone() {
-        return cloneDeep(this);
+        const clone = new Cube(cloneDeep(this.dimensions));
+        clone.computedMeasures = Object.assign({}, this.computedMeasures);
+
+        this.storedMeasureIds.forEach(measureId => {
+            clone.storedMeasures[measureId] = this.storedMeasures[measureId].clone();
+        })
+        clone.storedMeasuresRules = cloneDeep(this.storedMeasuresRules);
+
+        return clone;
     }
 
     getDimension(dimensionId) {
