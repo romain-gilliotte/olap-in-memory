@@ -69,6 +69,7 @@ class InMemoryStore {
             type: this._type,
             status: this._status,
             data: this._data,
+            defaultValue: this._defaultValue,
         });
     }
 
@@ -79,6 +80,7 @@ class InMemoryStore {
         store._type = data.type;
         store._status = data.status;
         store._data = data.data;
+        store._defaultValue = data.defaultValue;
         return store;
     }
 
