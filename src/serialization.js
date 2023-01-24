@@ -26,13 +26,12 @@ const NUMBER = 7;
 function toBuffer(obj) {
     let result;
 
-    /*
-        TODO: invistigate why the serialization fails when the first case is `=== null`
-        in some cases the obj passed is undefined, it could be a bug somewhere else.
-    */
-    if (obj == null) {
+    if (obj === null) {
         result = new ArrayBuffer(4);
         new Uint32Array(result, 0, 1).set([NULL]);
+    } else if (obj === undefined) {
+        result = new ArrayBuffer(4);
+        new Uint32Array(result, 0, 1).set([undefined]);
     } else if (obj instanceof ArrayBuffer) {
         // We waste some space by padding the end of each arraybuffer with zeros
         // to avoid breaking alignment in the blob.
