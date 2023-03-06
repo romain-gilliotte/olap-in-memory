@@ -42,7 +42,7 @@ class Cube {
 
         this.storedMeasureIds.forEach(measureId => {
             clone.storedMeasures[measureId] = this.storedMeasures[measureId].clone();
-        })
+        });
         clone.storedMeasuresRules = cloneDeep(this.storedMeasuresRules);
 
         return clone;
@@ -287,6 +287,35 @@ class Cube {
                 this.hydrateFromSparseNestedObject(measureId, obj[key], newOffset, dimOffset + 1);
             }
         }
+    }
+
+    setSingleData(measureId, coords, value) {
+        const position = this.getPosition(coords);
+
+        // validate there is a value for all dimensions
+        if (!this.dimensionIds.every(dimensionId => Boolean(coords[dimensionId]))) {
+            throw new Error(`setData: no value for all dimensions`);
+        }
+
+        if (this.storedMeasures[measureId] === undefined) {
+            throw new Error(`setData: no such measure ${measureId}`);
+        }
+
+        this.storedMeasures[measureId].setValue(position, value);
+    }
+
+    getPosition(coords) {
+        let position = 0;
+        for (let i = 0; i < this.dimensions.length; ++i) {
+            const dimension = this.dimensions[i];
+            const item = coords[dimension.id];
+            if (item === undefined)
+                throw new Error(`getPosition: no such dimension ${dimension.id}`);
+            const itemIndex = dimension.getRootIndexFromRootItem(item);
+            if (itemIndex === -1) throw new Error(`getPosition: no such item ${item}`);
+            position = position * dimension.numItems + itemIndex;
+        }
+        return position;
     }
 
     hydrateFromCube(otherCube) {
