@@ -290,17 +290,15 @@ class Cube {
     }
 
     setSingleData(measureId, coords, value) {
-        const position = this.getPosition(coords);
-
-        // validate there is a value for all dimensions
         if (!this.dimensionIds.every(dimensionId => Boolean(coords[dimensionId]))) {
-            throw new Error(`setData: no value for all dimensions`);
+            throw new Error(`setSingleData: no value for all dimensions`);
         }
 
         if (this.storedMeasures[measureId] === undefined) {
-            throw new Error(`setData: no such measure ${measureId}`);
+            throw new Error(`setSingleData: no such measure ${measureId}`);
         }
 
+        const position = this.getPosition(coords);
         this.storedMeasures[measureId].setValue(position, value);
     }
 
