@@ -35,7 +35,7 @@ class InMemoryStore {
         }
     }
 
-    constructor(size, type = 'float32', defaultValue = NaN, data = undefined) {
+    constructor(size, type = 'float32', defaultValue = NaN, data = undefined, status = undefined) {
         this._size = size;
         this._type = type;
         this._defaultValue = defaultValue;
@@ -53,14 +53,20 @@ class InMemoryStore {
             this._status.fill(STATUS_SET);
         }
 
-        if (data) {
+        if (data && status) {
             this._data = data.slice();
-            this._status.fill(STATUS_SET);
+            this._status = status.slice();
         }
     }
 
     clone() {
-        return new InMemoryStore(this._size, this._type, this._defaultValue, this._data);
+        return new InMemoryStore(
+            this._size,
+            this._type,
+            this._defaultValue,
+            this._data,
+            this._status
+        );
     }
 
     serialize() {
