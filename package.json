@@ -5,6 +5,7 @@
     "license": "Unlicense",
     "description": "An implementation of in-memory OLAP cubes for NodeJS and the browser.",
     "main": "src/index.js",
+    "types": "src/index.d.ts",
     "repository": "https://github.com/Growblocks/olap-in-memory.git",
     "dependencies": {
         "expr-eval": "^2.0.2",
