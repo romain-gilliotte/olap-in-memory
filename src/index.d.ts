@@ -52,6 +52,7 @@ declare module '@growblocks/olap-in-memory' {
         cloneStoredMeasure(originCube: Cube, measureId: string): void;
         computedMeasures: Object;
         static deserialize(buffer: ArrayBuffer): Cube;
+        static deserializeFromBase64String(base64Str: string): Cube;
         dice(dimensionId: string, attribute: string, value: string[]): Cube;
         diceRange(dimensionId: string, attribute: string, start: string, end: string): Cube;
         dimensionIds: string[];
@@ -70,6 +71,7 @@ declare module '@growblocks/olap-in-memory' {
         renameMeasure(oldName: string, newName: string): Cube;
         reorderDimensions(dimensionIds: string[]): Cube;
         serialize(): ArrayBuffer;
+        serializeToBase64String(): string;
         setData(measure: string, data: number[]): void;
         setNestedArray(measure: string, data: NestedNumberArray): void;
         setNestedObject(measure: string, obj: NestedNumberObject): void;

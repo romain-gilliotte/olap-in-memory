@@ -4,7 +4,7 @@ const DimensionFactory = require('./dimension/factory');
 const CatchAllDimension = require('./dimension/catch-all');
 const { fromNestedArray, toNestedArray } = require('./formatter/nested-array');
 const { fromNestedObject, toNestedObject } = require('./formatter/nested-object');
-const { toBuffer, fromBuffer } = require('./serialization');
+const { toBuffer, fromBuffer, toArrayBuffer } = require('./serialization');
 const InMemoryStore = require('./store/in-memory');
 const getParser = require('./parser');
 
@@ -629,6 +629,10 @@ class Cube {
         });
     }
 
+    serializeToBase64String() {
+        return Buffer.from(this.serialize()).toString('base64');
+    }
+
     static deserialize(buffer) {
         const data = fromBuffer(buffer);
         const dimensions = data.dimensions.map(data => DimensionFactory.deserialize(data));
@@ -644,6 +648,11 @@ class Cube {
             return acc;
         }, {});
         return cube;
+    }
+
+    static deserializeFromBase64String(serializedBase64) {
+        const buffer = Buffer.from(serializedBase64, 'base64');
+        return this.deserialize(toArrayBuffer(buffer));
     }
 }
 
