@@ -8,13 +8,13 @@ declare module '@growblocks/olap-in-memory' {
     export class TimeDimension {
         id: string;
         constructor(name: string, granularity: string, start: string, end: string);
-        getItems(attribute: string | null): string[];
+        getItems(attribute?: string | null): string[];
         union(other: TimeDimension): TimeDimension;
     }
     export class GenericDimension {
         id: string;
         constructor(name: string, attributes: string | string[], values: string[]);
-        getItems(attribute: string | null): string[];
+        getItems(attribute?: string | null): string[];
         renameItem(item: string, newName: string, newLabel?: string): void;
         union(other: GenericDimension): GenericDimension;
     }
