@@ -8,6 +8,25 @@ const { toBuffer, fromBuffer, toArrayBuffer } = require('./serialization');
 const InMemoryStore = require('./store/in-memory');
 const getParser = require('./parser');
 
+function mapValues(obj, fn) {
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v)]));
+}
+
+export function getCombinations(options) {
+    const crossproduct = xss =>
+        xss.reduce(
+            (xs, ys) =>
+                xs.flatMap(x => {
+                    return ys.map(y => [...x, y]);
+                }),
+            [[]]
+        );
+
+    return crossproduct(Object.values(options)).map(xs =>
+        Object.fromEntries(xs.map((x, i) => [Object.keys(options)[i], x]))
+    );
+}
+
 class Cube {
     get storeSize() {
         return this.dimensions.reduce((m, d) => m * d.numItems, 1);
@@ -300,6 +319,70 @@ class Cube {
 
         const position = this.getPosition(coords);
         this.storedMeasures[measureId].setValue(position, value);
+    }
+
+    getSingleData(measureId, coords) {
+        if (!this.dimensionIds.every(dimensionId => Boolean(coords[dimensionId]))) {
+            throw new Error(`getSingleData: no value for all dimensions`);
+        }
+
+        const position = this.getPosition(coords);
+
+        if (this.storedMeasures[measureId] !== undefined)
+            return this.storedMeasures[measureId].getValue(position);
+        else if (this.computedMeasures[measureId] !== undefined) {
+            const measureIds = this.storedMeasureIds;
+
+            const params = measureIds.reduce((acc, measureId) => {
+                acc[measureId] = this.storedMeasures[measureId].getValue(position);
+                return acc;
+            }, {});
+
+            return this.computedMeasures[measureId].evaluate(params);
+        }
+
+        throw new Error(`getSingleData: no such measure ${measureId}`);
+    }
+
+    getDistribution(measureId, dimensionsFilter = {}) {
+        const spaceSum = this.getTotalForDimensionItems(measureId, dimensionsFilter);
+        const totalSum = this.getTotal(measureId);
+
+        return totalSum === 0 ? spaceSum : spaceSum / totalSum;
+    }
+
+    getTotal(measureId) {
+        return this.getData(measureId).reduce((acc, value) => acc + value, 0);
+    }
+
+    getTotalForDimensionItems(measureId, dimensionsFilter = {}) {
+        const _dimensionsFilter = mapValues(dimensionsFilter, value => {
+            if (typeof value === 'string') {
+                return [value];
+            }
+            return value;
+        });
+
+        const unspecifiedDimensions = this.dimensionIds.filter(
+            dimensionId => dimensionsFilter[dimensionId] === undefined
+        );
+
+        const combinations = getCombinations(
+            unspecifiedDimensions.reduce(
+                (acc, dimensionId) => ({
+                    ...acc,
+                    [dimensionId]: this.getDimension(dimensionId).getItems(),
+                }),
+                _dimensionsFilter
+            )
+        );
+
+        const spaceSum = combinations.reduce((acc, combination) => {
+            const value = this.getSingleData(measureId, combination);
+            return acc + value;
+        }, 0);
+
+        return spaceSum;
     }
 
     getPosition(coords) {
