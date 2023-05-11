@@ -12,7 +12,7 @@ function mapValues(obj, fn) {
     return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v)]));
 }
 
-export function getCombinations(options) {
+function getCombinations(options) {
     const crossproduct = xss =>
         xss.reduce(
             (xs, ys) =>
