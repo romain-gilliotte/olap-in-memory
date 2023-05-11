@@ -19,6 +19,9 @@ declare module '@growblocks/olap-in-memory' {
         union(other: GenericDimension): GenericDimension;
     }
     export class Cube {
+        constructor(dimensions: (TimeDimension | GenericDimension)[]);
+        static deserialize(buffer: ArrayBuffer): Cube;
+        static deserializeFromBase64String(base64Str: string): Cube;
         addDimension(
             dimension: GenericDimension | TimeDimension,
             aggregation?: Record<string, Record<string, string>>,
@@ -27,7 +30,6 @@ declare module '@growblocks/olap-in-memory' {
         ): Cube;
         compose(cube: Cube, union: boolean): Cube;
         computedMeasureIds: string[];
-        constructor(dimensions: (TimeDimension | GenericDimension)[]);
         convertToStoredMeasure(
             measureId: string,
             opts?: Record<string, string>,
@@ -51,8 +53,6 @@ declare module '@growblocks/olap-in-memory' {
         clone(): Cube;
         cloneStoredMeasure(originCube: Cube, measureId: string): void;
         computedMeasures: Object;
-        static deserialize(buffer: ArrayBuffer): Cube;
-        static deserializeFromBase64String(base64Str: string): Cube;
         dice(dimensionId: string, attribute: string, value: string[]): Cube;
         diceRange(dimensionId: string, attribute: string, start: string, end: string): Cube;
         dimensionIds: string[];
@@ -60,12 +60,16 @@ declare module '@growblocks/olap-in-memory' {
         drillUp(dimensionId: string, attribute: string, values?: string[]): Cube;
         dropMeasure(measure: string): void;
         getData(measure: string): number[];
-        getSingleData(measure: string, coords: Record<string, string>): number;
         getDimension(dimensionId: string): GenericDimension | TimeDimension;
         getDistribution(measure: string, filter: Record<string, string[]>): number;
-        getTotalForDimensionItems(measure: string, filter: Record<string, string[]>): number;
         getNestedArray(measure: string): NestedNumberArray;
         getNestedObject(measure: string): NestedNumberObject;
+        getSingleData(measure: string, coords: Record<string, string>): number;
+        getTotal(measureId): number;
+        getTotalForDimensionItems(
+            measure: string,
+            filter: Record<string, string[] | string>
+        ): number;
         hydrateFromCube(cube: Cube): void;
         hydrateFromSparseNestedObject(measure: string, data: NestedNumberObject): void;
         keepDimensions(dimensionIds: string[]): Cube;
@@ -80,8 +84,8 @@ declare module '@growblocks/olap-in-memory' {
         setNestedObject(measure: string, obj: NestedNumberObject): void;
         setSingleData(measure: string, coords: Record<string, string>, value: number): void;
         slice(dimensionId: string, attribute: string, value: string): Cube;
-        storeSize: number;
         storedMeasureIds: string[];
+        storeSize: number;
         swapDimensions(dim1: string, dim2: string): Cube;
     }
 }
