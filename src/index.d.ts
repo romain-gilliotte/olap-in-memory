@@ -60,7 +60,10 @@ declare module '@growblocks/olap-in-memory' {
         drillUp(dimensionId: string, attribute: string, values?: string[]): Cube;
         dropMeasure(measure: string): void;
         getData(measure: string): number[];
+        getSingleData(measure: string, coords: Record<string, string>): number;
         getDimension(dimensionId: string): GenericDimension | TimeDimension;
+        getDistribution(measure: string, filter: Record<string, string[]>): number;
+        getTotalForDimensionItems(measure: string, filter: Record<string, string[]>): number;
         getNestedArray(measure: string): NestedNumberArray;
         getNestedObject(measure: string): NestedNumberObject;
         hydrateFromCube(cube: Cube): void;
