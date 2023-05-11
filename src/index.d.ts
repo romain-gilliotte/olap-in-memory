@@ -19,6 +19,9 @@ declare module '@growblocks/olap-in-memory' {
         union(other: GenericDimension): GenericDimension;
     }
     export class Cube {
+        constructor(dimensions: (TimeDimension | GenericDimension)[]);
+        static deserialize(buffer: ArrayBuffer): Cube;
+        static deserializeFromBase64String(base64Str: string): Cube;
         addDimension(
             dimension: GenericDimension | TimeDimension,
             aggregation?: Record<string, Record<string, string>>,
@@ -27,7 +30,6 @@ declare module '@growblocks/olap-in-memory' {
         ): Cube;
         compose(cube: Cube, union: boolean): Cube;
         computedMeasureIds: string[];
-        constructor(dimensions: (TimeDimension | GenericDimension)[]);
         convertToStoredMeasure(
             measureId: string,
             opts?: Record<string, string>,
@@ -82,8 +84,6 @@ declare module '@growblocks/olap-in-memory' {
         setNestedObject(measure: string, obj: NestedNumberObject): void;
         setSingleData(measure: string, coords: Record<string, string>, value: number): void;
         slice(dimensionId: string, attribute: string, value: string): Cube;
-        static deserialize(buffer: ArrayBuffer): Cube;
-        static deserializeFromBase64String(base64Str: string): Cube;
         storedMeasureIds: string[];
         storeSize: number;
         swapDimensions(dim1: string, dim2: string): Cube;
