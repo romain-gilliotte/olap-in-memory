@@ -636,11 +636,21 @@ class Cube {
         const newCube = new Cube(newDimensions);
 
         this.storedMeasureIds.forEach(measureId => {
-            newCube.createStoredMeasure(measureId, this.storedMeasuresRules[measureId]);
+            newCube.createStoredMeasure(
+                measureId,
+                this.storedMeasuresRules[measureId],
+                this.storedMeasures[measureId]._type,
+                this.storedMeasures[measureId]._defaultValue
+            );
             newCube.hydrateFromCube(this);
         });
         otherCube.storedMeasureIds.forEach(measureId => {
-            newCube.createStoredMeasure(measureId, otherCube.storedMeasuresRules[measureId]);
+            newCube.createStoredMeasure(
+                measureId,
+                otherCube.storedMeasuresRules[measureId],
+                otherCube.storedMeasures[measureId]._type,
+                otherCube.storedMeasures[measureId]._defaultValue
+            );
             newCube.hydrateFromCube(otherCube);
         });
 
