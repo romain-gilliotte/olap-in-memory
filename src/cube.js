@@ -107,7 +107,7 @@ class Cube {
         this.computedMeasures[measureId] = expression;
     }
 
-    createStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = NaN) {
+    createStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = 0) {
         if (!/^[a-z][_a-z0-9]*$/i.test(measureId))
             throw new Error(`Invalid measureId: ${measureId}`);
 
@@ -146,14 +146,14 @@ class Cube {
         storedMeasureId,
         rules = {},
         type = 'float32',
-        defaultValue = NaN
+        defaultValue = 0
     ) {
         const data = this.getData(computedMeasureId);
         this.createStoredMeasure(storedMeasureId, rules, type, defaultValue);
         this.setData(storedMeasureId, data);
     }
 
-    convertToStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = NaN) {
+    convertToStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = 0) {
         if (!this.computedMeasures[measureId]) {
             throw new Error(`convertToStoredMeasure: no such computed measure: ${measureId}`);
         }
