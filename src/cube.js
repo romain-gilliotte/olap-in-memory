@@ -344,6 +344,67 @@ class Cube {
         throw new Error(`getSingleData: no such measure ${measureId}`);
     }
 
+    scan(filterDimensions, cb) {
+        const combinations = getCombinations(
+            this.getDimensionItemsMap(filterDimensions),
+        );
+
+        combinations.forEach((combination) => {
+            const dicedCube = this.diceByDimensionsItem(combination);
+            cb(dicedCube, combination);
+        });
+    }
+
+    aggregateByDimensions(dimensions) {
+        return this.dimensionIds
+            .filter((d) => !dimensions.includes(d))
+            .reduce((acc, dimension) => {
+                return acc.slice(dimension, 'all', 'all');
+            }, this);
+    }
+
+
+    getDimensionItemsMap(filterDimensions = []) {
+        const dimensions = filterDimensions?.length
+            ? this.dimensionIds.filter((d) => filterDimensions.includes(d))
+            : this.dimensionIds;
+        return dimensions.reduce(
+            (acc, cur) => ({
+                ...acc,
+                [cur]: this.getDimension(cur).getItems(),
+            }),
+            {},
+        )
+    }
+
+    diceByDimensionsItem(dimensions) {
+        return Object.keys(dimensions).reduce((acc, dimension) => {
+            const values = [dimensions[dimension]].flat();
+            if (values.length > 0 && acc.dimensionIds.includes(dimension)) {
+                return acc.dice(dimension, 'root', values);
+            }
+
+            return acc;
+        }, this);
+    }
+
+    iterateOverTimeSeries(cb) {
+        const filteredDimensions = this.dimensionIds.filter((id) => id !== 'time');
+        if (filteredDimensions.length === this.dimensionIds.length) {
+            throw new Error('Cube has no time dimension');
+        }
+
+        if (filteredDimensions.length === 0) {
+            cb(this, {});
+            return;
+        }
+
+        this.scan(filteredDimensions, (dicedCube, dimensionItems) => {
+            const slicedCube = dicedCube.aggregateByDimensions(['time']);
+            cb(slicedCube, dimensionItems);
+        })
+    }
+
     getDistribution(measureId, dimensionsFilter = {}) {
         const spaceSum = this.getTotalForDimensionItems(measureId, dimensionsFilter);
         const totalSum = this.getTotal(measureId);

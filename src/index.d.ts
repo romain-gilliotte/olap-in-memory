@@ -65,6 +65,11 @@ declare module '@growblocks/olap-in-memory' {
         getNestedArray(measure: string): NestedNumberArray;
         getNestedObject(measure: string): NestedNumberObject;
         getSingleData(measure: string, coords: Record<string, string>): number;
+        scan(filterDimensions: string[], cb: (dicedCube: Cube, dimensionItems: Record<string, string>) => void): void;
+        aggregateByDimensions(dimensions: string[]): Cube;
+        diceByDimensionItems(dimensions: Record<string, string | string[]>): Cube;
+        getDimensionItemsMap(filterDimensions?: string[]): Record<string, string[]>;
+        iterateOverTimeSeries(cb: (timeSeriesCube: Cube, dimensionItems: Record<string, string>) => void);
         getTotal(measureId): number;
         getTotalForDimensionItems(
             measure: string,
