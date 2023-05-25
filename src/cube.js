@@ -405,10 +405,10 @@ class Cube {
     /*
     * This function iterates over all possible combinations of dimension items and calls the callback function with the sliced cube for each combination of dimension items
     */
-    iterateOverTimeSeries(cb) {
-        const excludeDimensionIds = this.dimensionIds.filter((id) => id !== 'time');
+    iterateOverDimension(dimension, cb) {
+        const excludeDimensionIds = this.dimensionIds.filter((id) => id !== dimension);
         if (excludeDimensionIds.length === this.dimensionIds.length) {
-            throw new Error('Cube has no time dimension');
+            throw new Error(`Cube has no ${dimension} dimension`);
         }
 
         if (excludeDimensionIds.length === 0) {
@@ -417,7 +417,7 @@ class Cube {
         }
 
         this.scan(excludeDimensionIds, (dicedCube, dimensionItems) => {
-            const slicedCube = dicedCube.aggregateByDimensions(['time']);
+            const slicedCube = dicedCube.aggregateByDimensions([dimension]);
             cb(slicedCube, dimensionItems);
         })
     }
