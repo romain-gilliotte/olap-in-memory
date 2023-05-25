@@ -344,6 +344,84 @@ class Cube {
         throw new Error(`getSingleData: no such measure ${measureId}`);
     }
 
+    /* 
+    * This function returns an array of all possible combinations of dimension items
+    * It takes an array of dimension ids to exclude from the combinations generation process
+    */
+    scan(excludeDimensionIds, cb) {
+        const combinations = getCombinations(
+            this.getDimensionItemsMap(excludeDimensionIds),
+        );
+
+        combinations.forEach((combination) => {
+            const dicedCube = this.diceByDimensionItems(combination);
+            cb(dicedCube, combination);
+        });
+    }
+
+    /*
+    * This function takes an array of dimension ids and returns a new cube with the specified dimensions sliced by the specified dimension items
+    */
+    aggregateByDimensions(excludeDimensionIds) {
+        return this.dimensionIds
+            .filter((d) => !excludeDimensionIds.includes(d))
+            .reduce((acc, dimension) => {
+                return acc.slice(dimension, 'all', 'all');
+            }, this);
+    }
+
+    /*
+    * This function returns an object with dimension id as key and dimension items as value
+    * It takes an array of dimension ids to exclude from the result
+    */
+    getDimensionItemsMap(excludeDimensionIds) {
+        const dimensions = excludeDimensionIds?.length
+            ? this.dimensionIds.filter((d) => excludeDimensionIds.includes(d))
+            : this.dimensionIds;
+        return dimensions.reduce(
+            (acc, cur) => ({
+                ...acc,
+                [cur]: this.getDimension(cur).getItems(),
+            }),
+            {},
+        )
+    }
+
+    /*
+    * This function takes dimensions and rootAttribute as arguments and returns a new cube with diced dimensions
+    */
+    diceByDimensionItems(dimensions) {
+        return Object.keys(dimensions).reduce((acc, dimension) => {
+            const values = [dimensions[dimension]].flat();
+            if (values.length > 0 && acc.dimensionIds.includes(dimension)) {
+                const rootAttribute = this.getDimension(dimension).rootAttribute
+                return acc.dice(dimension, rootAttribute, values);
+            }
+
+            return acc;
+        }, this);
+    }
+
+    /*
+    * This function iterates over all possible combinations of dimension items and calls the callback function with the sliced cube for each combination of dimension items
+    */
+    iterateOverDimension(dimension, cb) {
+        const excludeDimensionIds = this.dimensionIds.filter((id) => id !== dimension);
+        if (excludeDimensionIds.length === this.dimensionIds.length) {
+            throw new Error(`Cube has no ${dimension} dimension`);
+        }
+
+        if (excludeDimensionIds.length === 0) {
+            cb(this, {});
+            return;
+        }
+
+        this.scan(excludeDimensionIds, (dicedCube, dimensionItems) => {
+            const slicedCube = dicedCube.aggregateByDimensions([dimension]);
+            cb(slicedCube, dimensionItems);
+        })
+    }
+
     getDistribution(measureId, dimensionsFilter = {}) {
         const spaceSum = this.getTotalForDimensionItems(measureId, dimensionsFilter);
         const totalSum = this.getTotal(measureId);
