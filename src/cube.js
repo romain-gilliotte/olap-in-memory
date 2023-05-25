@@ -348,13 +348,13 @@ class Cube {
     * This function returns an array of all possible combinations of dimension items
     * It takes an array of dimension ids to exclude from the combinations generation process
     */
-    scan(excludeDimensionIds, rootAttribute, cb) {
+    scan(excludeDimensionIds, cb) {
         const combinations = getCombinations(
             this.getDimensionItemsMap(excludeDimensionIds),
         );
 
         combinations.forEach((combination) => {
-            const dicedCube = this.diceByDimensionsItem(combination, rootAttribute);
+            const dicedCube = this.diceByDimensionItems(combination);
             cb(dicedCube, combination);
         });
     }
@@ -362,9 +362,9 @@ class Cube {
     /*
     * This function takes an array of dimension ids and returns a new cube with the specified dimensions sliced by the specified dimension items
     */
-    aggregateByDimensions(dimensions) {
+    aggregateByDimensions(excludeDimensionIds) {
         return this.dimensionIds
-            .filter((d) => !dimensions.includes(d))
+            .filter((d) => !excludeDimensionIds.includes(d))
             .reduce((acc, dimension) => {
                 return acc.slice(dimension, 'all', 'all');
             }, this);
@@ -390,10 +390,11 @@ class Cube {
     /*
     * This function takes dimensions and rootAttribute as arguments and returns a new cube with diced dimensions
     */
-    diceByDimensionsItem(dimensions, rootAttribute) {
+    diceByDimensionItems(dimensions) {
         return Object.keys(dimensions).reduce((acc, dimension) => {
             const values = [dimensions[dimension]].flat();
             if (values.length > 0 && acc.dimensionIds.includes(dimension)) {
+                const rootAttribute = this.getDimension(dimension).rootAttribute
                 return acc.dice(dimension, rootAttribute, values);
             }
 
@@ -404,7 +405,7 @@ class Cube {
     /*
     * This function iterates over all possible combinations of dimension items and calls the callback function with the sliced cube for each combination of dimension items
     */
-    iterateOverTimeSeries(rootAttribute, cb) {
+    iterateOverTimeSeries(cb) {
         const excludeDimensionIds = this.dimensionIds.filter((id) => id !== 'time');
         if (excludeDimensionIds.length === this.dimensionIds.length) {
             throw new Error('Cube has no time dimension');
@@ -415,7 +416,7 @@ class Cube {
             return;
         }
 
-        this.scan(excludeDimensionIds, rootAttribute, (dicedCube, dimensionItems) => {
+        this.scan(excludeDimensionIds, (dicedCube, dimensionItems) => {
             const slicedCube = dicedCube.aggregateByDimensions(['time']);
             cb(slicedCube, dimensionItems);
         })
