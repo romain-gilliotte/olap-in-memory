@@ -236,7 +236,7 @@ Stored measures are responsible for holding the data which is contained in cube.
 
 When adding a new measure to a cube, optional parameters can be provided:
 
--   By dimensions aggregation rule. This will tell the cube which operations need to be applied when drilling-up. Possible values are: `sum`, `average`, `first`, `last`, `highest`, `lowest`. It defaults to `sum` on all dimensions.
+-   By dimensions aggregation rule. This will tell the cube which operations need to be applied when drilling-up. Possible values are: `sum`, `average`, `first`, `last`, `highest`, `lowest`, `product`. It defaults to `sum` on all dimensions.
 -   A storage type, which can be `float32`, `float64`, `int32` and `uint32`.
 -   A default value which will be used to initialize the cube, and which defaults to `NaN`.
 
