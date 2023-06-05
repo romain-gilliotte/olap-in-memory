@@ -247,6 +247,7 @@ class InMemoryStore {
                             newStore._data[newIdx] < oldValue ? newStore._data[newIdx] : oldValue;
                     else if (method == 'sum' || method == 'average')
                         newStore._data[newIdx] += oldValue;
+                    else if (method == 'product') newStore._data[newIdx] *= oldValue;
                 }
 
                 newStore._status[newIdx] |= this._status[oldIdx];
