@@ -92,7 +92,9 @@ class Cube {
         // if yes, replace those with their actual expressions
         const processedFormula = computedMeasureIdsInFormula.reduce((formula, measureId) => {
             const expression = this.computedMeasures[measureId];
-            return formula.replace(measureId, `(${expression.toString()})`);
+            // make sure to match only strings that are not part of a longer string
+            const regex = new RegExp(`\\b${measureId}\\b`, 'g');
+            return formula.replace(regex, `(${expression.toString()})`);
         }, formula);
 
         const expression = getParser().parse(processedFormula);
