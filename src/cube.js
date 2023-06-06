@@ -83,7 +83,7 @@ class Cube {
             this.storedMeasures[measureId] !== undefined ||
             this.computedMeasures[measureId] !== undefined
         )
-            throw new Error('This measure already exists');
+            throw new Error(`This measure already exists ${measureId}`);
 
         // check if formula contains any of the computed measures
         const computedMeasureIdsInFormula = this.computedMeasureIds.filter(id =>
@@ -112,7 +112,7 @@ class Cube {
             throw new Error(`Invalid measureId: ${measureId}`);
 
         if (this.storedMeasures[measureId] !== undefined)
-            throw new Error('This measure already exists');
+            throw new Error(`This measure already exists: ${measureId}`);
 
         this.storedMeasures[measureId] = new InMemoryStore(this.storeSize, type, defaultValue);
         this.storedMeasuresRules[measureId] = rules;
@@ -123,10 +123,10 @@ class Cube {
             throw new Error(`Invalid measureId: ${measureId}`);
 
         if (this.storedMeasures[measureId] !== undefined)
-            throw new Error('This measure already exists');
+            throw new Error(`This measure already exists: ${measureId}`);
 
         if (originCube.storedMeasures[measureId] === undefined)
-            throw new Error('This measure does not exists in originCube');
+            throw new Error(`This measure does not exists in originCube: ${measureId}`);
 
         this.storedMeasuresRules[measureId] = {};
         Object.assign(
@@ -253,7 +253,7 @@ class Cube {
     setData(measureId, values) {
         if (this.storedMeasures[measureId]) {
             this.storedMeasures[measureId].data = values;
-        } else throw new Error('setData can only be called on stored measures');
+        } else throw new Error(`setData can only be called on stored measures: ${measureId}`);
     }
 
     getNestedArray(measureId) {
