@@ -86,13 +86,16 @@ class Cube {
             throw new Error(`This measure already exists ${measureId}`);
 
         // check if formula contains any of the computed measures
-        const computedMeasureIdsInFormula = this.computedMeasureIds.filter(id =>
-            formula.includes(id)
-        );
-        // if yes, replace those with their actual expressions
-        const processedFormula = computedMeasureIdsInFormula.reduce((formula, measureId) => {
-            const expression = this.computedMeasures[measureId];
-            return formula.replace(measureId, `(${expression.toString()})`);
+        // for example a = b + c, where c is a computed measure with formula c = d + e
+        // then this formula will be processed as a = b + d + e
+        // NOTE: make sure to match only strings that are not part of a longer string
+        const processedFormula = this.computedMeasureIds.reduce((acc, computedMeasureId) => {
+            const regex = new RegExp(`\\b${computedMeasureId}\\b`, 'g');
+            if (acc.match(regex)) {
+                const expression = this.computedMeasures[computedMeasureId];
+                return acc.replace(regex, `(${expression.toString()})`);
+            }
+            return acc;
         }, formula);
 
         const expression = getParser().parse(processedFormula);
