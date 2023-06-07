@@ -88,17 +88,14 @@ class Cube {
         // check if formula contains any of the computed measures
         // for example a = b + c, where c is a computed measure with formula c = d + e
         // then this formula will be processed as a = b + d + e
-        // NOTE: make sure not to match on expressions which are substrings of other expressions
-        const computedMeasureIdsInFormula = this.computedMeasureIds.filter(computedMeasureId =>
-            formula.match(new RegExp(`\\b${computedMeasureId}\\b`, 'g'))
-        );
-
-        // if yes, replace those with their actual expressions
-        const processedFormula = computedMeasureIdsInFormula.reduce((formula, measureId) => {
-            const expression = this.computedMeasures[measureId];
-            // make sure to match only strings that are not part of a longer string
-            const regex = new RegExp(`\\b${measureId}\\b`, 'g');
-            return formula.replace(regex, `(${expression.toString()})`);
+        // NOTE: make sure to match only strings that are not part of a longer string
+        const processedFormula = this.computedMeasureIds.reduce((acc, computedMeasureId) => {
+            const regex = new RegExp(`\\b${computedMeasureId}\\b`, 'g');
+            if (acc.match(regex)) {
+                const expression = this.computedMeasures[computedMeasureId];
+                return acc.replace(regex, `(${expression.toString()})`);
+            }
+            return acc;
         }, formula);
 
         const expression = getParser().parse(processedFormula);
