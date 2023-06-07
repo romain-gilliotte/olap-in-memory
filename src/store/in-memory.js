@@ -25,7 +25,8 @@ class InMemoryStore {
     }
 
     set data(values) {
-        if (this._size !== values.length) throw new Error('value length is invalid');
+        if (this._size !== values.length)
+            throw new Error(`value length is invalid: ${this._size} !== ${values.length}`);
 
         this._status.fill(STATUS_SET);
         for (let i = 0; i < this._size; ++i) {
