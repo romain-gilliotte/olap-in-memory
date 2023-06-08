@@ -207,10 +207,10 @@ class Cube {
             delete this.storedMeasures[measureId];
             delete this.storedMeasuresRules[measureId];
 
-            for (let measureId in this.computedMeasures) {
-                const expression = this.computedMeasures[measureId];
+            for (let computedMeasureId in this.computedMeasures) {
+                const expression = this.computedMeasures[computedMeasureId];
                 if (expression.variables().includes(measureId)) {
-                    delete this.computedMeasures[measureId];
+                    delete this.computedMeasures[computedMeasureId];
                 }
             }
         } else throw new Error(`dropMeasure: no such measure: ${measureId}`);
