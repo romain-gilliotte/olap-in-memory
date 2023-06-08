@@ -207,7 +207,7 @@ class Cube {
             delete this.storedMeasures[measureId];
             delete this.storedMeasuresRules[measureId];
 
-            for (let computedMeasureId in this.computedMeasureIds) {
+            for (let computedMeasureId in this.computedMeasures) {
                 const expression = this.computedMeasures[computedMeasureId];
                 if (expression.variables().includes(measureId)) {
                     delete this.computedMeasures[computedMeasureId];
