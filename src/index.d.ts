@@ -65,11 +65,17 @@ declare module '@growblocks/olap-in-memory' {
         getNestedArray(measure: string): NestedNumberArray;
         getNestedObject(measure: string): NestedNumberObject;
         getSingleData(measure: string, coords: Record<string, string>): number;
-        scan(excludeDimensionIds: string[], cb: (dicedCube: Cube, dimensionItems: Record<string, string>) => void): void;
+        scan(
+            excludeDimensionIds: string[],
+            cb: (dicedCube: Cube, dimensionItems: Record<string, string>) => void
+        ): void;
         aggregateByDimensions(excludeDimensionIds: string[]): Cube;
         diceByDimensionItems(dimensions: Record<string, string | string[]>): Cube;
         getDimensionItemsMap(excludeDimensionIds?: string[]): Record<string, string[]>;
-        iterateOverDimension(dimension: string, cb: (cube: Cube, dimensionItems: Record<string, string>) => void);
+        iterateOverDimension(
+            dimension: string,
+            cb: (cube: Cube, dimensionItems: Record<string, string>) => void
+        );
         getTotal(measureId): number;
         getTotalForDimensionItems(
             measure: string,
@@ -80,7 +86,7 @@ declare module '@growblocks/olap-in-memory' {
         keepDimensions(dimensionIds: string[]): Cube;
         removeDimension(dimensionId: string): Cube;
         removeDimensions(dimensionIds: string[]): Cube;
-        renameMeasure(oldName: string, newName: string): Cube;
+        renameMeasure(oldName: string, newName: string): void;
         reorderDimensions(dimensionIds: string[]): Cube;
         serialize(): ArrayBuffer;
         serializeToBase64String(): string;

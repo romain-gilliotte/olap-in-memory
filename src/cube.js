@@ -178,10 +178,11 @@ class Cube {
             this.storedMeasuresRules[newMeasureId] = this.storedMeasuresRules[oldMeasureId];
             delete this.storedMeasures[oldMeasureId];
 
-            for (let measureId in this.computedMeasures) {
-                const expression = this.computedMeasures[measureId];
-                if (expression.variables().includes(oldMeasureId)) {
-                    this.computedMeasures[measureId] = expression.substitute(
+            for (let computedMeasureId in this.computedMeasures) {
+                const expression = this.computedMeasures[computedMeasureId];
+                const regex = new RegExp(`\\b${computedMeasureId}\\b`, 'g');
+                if (expression.toString().match(regex)) {
+                    this.computedMeasures[computedMeasureId] = expression.substitute(
                         oldMeasureId,
                         newMeasureId
                     );
