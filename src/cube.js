@@ -168,27 +168,20 @@ class Cube {
     }
 
     renameMeasure(oldMeasureId, newMeasureId) {
-        if (oldMeasureId == newMeasureId) return this;
+        if (oldMeasureId == newMeasureId) return;
 
-        const cube = new Cube(this.dimensions);
-        Object.assign(cube.storedMeasures, this.storedMeasures);
-        Object.assign(cube.storedMeasuresRules, this.storedMeasuresRules);
-        Object.assign(cube.computedMeasures, this.computedMeasures);
+        if (this.computedMeasures[oldMeasureId]) {
+            this.computedMeasures[newMeasureId] = this.computedMeasures[oldMeasureId];
+            delete this.computedMeasures[oldMeasureId];
+        } else if (this.storedMeasures[oldMeasureId]) {
+            this.storedMeasures[newMeasureId] = this.storedMeasures[oldMeasureId];
+            this.storedMeasuresRules[newMeasureId] = this.storedMeasuresRules[oldMeasureId];
+            delete this.storedMeasures[oldMeasureId];
 
-        if (cube.computedMeasures[oldMeasureId]) {
-            cube.computedMeasures[newMeasureId] = cube.computedMeasures[oldMeasureId];
-            delete cube.computedMeasures[oldMeasureId];
-        } else if (cube.storedMeasures[oldMeasureId]) {
-            cube.storedMeasures[newMeasureId] = cube.storedMeasures[oldMeasureId];
-            cube.storedMeasuresRules[newMeasureId] = cube.storedMeasuresRules[oldMeasureId];
-            delete cube.storedMeasures[oldMeasureId];
-            delete cube.storedMeasuresRules[oldMeasureId];
-
-            for (let measureId in cube.computedMeasures) {
-                const expression = cube.computedMeasures[measureId];
-
+            for (let measureId in this.computedMeasures) {
+                const expression = this.computedMeasures[measureId];
                 if (expression.variables().includes(oldMeasureId)) {
-                    cube.computedMeasures[measureId] = expression.substitute(
+                    this.computedMeasures[measureId] = expression.substitute(
                         oldMeasureId,
                         newMeasureId
                     );
@@ -197,8 +190,6 @@ class Cube {
         } else {
             throw new Error(`renameMeasure: no such measure ${oldMeasureId} -> ${newMeasureId}`);
         }
-
-        return cube;
     }
 
     dropMeasure(measureId) {
