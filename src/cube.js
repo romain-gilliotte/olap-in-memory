@@ -177,6 +177,7 @@ class Cube {
             this.storedMeasures[newMeasureId] = this.storedMeasures[oldMeasureId];
             this.storedMeasuresRules[newMeasureId] = this.storedMeasuresRules[oldMeasureId];
             delete this.storedMeasures[oldMeasureId];
+            delete this.storedMeasuresRules[oldMeasureId];
 
             for (let computedMeasureId in this.computedMeasures) {
                 const expression = this.computedMeasures[computedMeasureId];
