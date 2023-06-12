@@ -181,7 +181,7 @@ class Cube {
 
             for (let computedMeasureId in this.computedMeasures) {
                 const expression = this.computedMeasures[computedMeasureId];
-                const regex = new RegExp(`\\b${computedMeasureId}\\b`, 'g');
+                const regex = new RegExp(`\\b${oldMeasureId}\\b`, 'g');
                 if (expression.toString().match(regex)) {
                     this.computedMeasures[computedMeasureId] = expression.substitute(
                         oldMeasureId,
