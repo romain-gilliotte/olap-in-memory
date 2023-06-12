@@ -342,10 +342,10 @@ class Cube {
 
     /*
      * This function returns an array of all possible combinations of dimension items
-     * It takes an array of dimension ids to exclude from the combinations generation process
+     * It takes an array of dimension ids to include from the combinations generation process
      */
-    scan(excludeDimensionIds, cb) {
-        const combinations = getCombinations(this.getDimensionItemsMap(excludeDimensionIds));
+    scan(dimensionIds, cb) {
+        const combinations = getCombinations(this.getDimensionItemsMap(dimensionIds));
 
         combinations.forEach(combination => {
             const dicedCube = this.diceByDimensionItems(combination);
@@ -354,7 +354,8 @@ class Cube {
     }
 
     /*
-     * This function takes an array of dimension ids and returns a new cube with the specified dimensions sliced by the specified dimension items
+     * This function takes an array of dimension ids and returns a new cube with
+     * the specified dimensions sliced by the specified dimension items
      */
     aggregateByDimensions(excludeDimensionIds) {
         return this.dimensionIds
@@ -365,28 +366,35 @@ class Cube {
     }
 
     /*
-     * This function returns an object with dimension id as key and dimension items as value
-     * It takes an array of dimension ids to exclude from the result
+     * This function returns an object with dimension id as key and dimension items as value.
+     * It takes optionally an oarray of dimension ids which will be used to filter the dimensions.
+     * If no dimension ids are provided, all dimensions will be used.
      */
-    getDimensionItemsMap(excludeDimensionIds) {
-        const dimensions = excludeDimensionIds?.length
-            ? this.dimensionIds.filter(d => excludeDimensionIds.includes(d))
-            : this.dimensionIds;
-        return dimensions.reduce(
+    getDimensionItemsMap(dimensionIds) {
+        const filteredDimensionIds =
+            dimensionIds != null
+                ? this.dimensionIds.filter(d => dimensionIds.includes(d))
+                : this.dimensionIds;
+
+        const dimensionItemsMap = filteredDimensionIds.reduce(
             (acc, cur) => ({
                 ...acc,
                 [cur]: this.getDimension(cur).getItems(),
             }),
             {}
         );
+
+        return dimensionItemsMap;
     }
 
     /*
-     * This function takes dimensions and rootAttribute as arguments and returns a new cube with diced dimensions
+     * This function takes dimensionItemsMap as arguments and returns a new cube with diced dimensions.
+     * Dimensions here is an object with dimension id as key and dimension items as value.
+     * (similar to the output of getDimensionItemsMap)
      */
-    diceByDimensionItems(dimensions) {
-        return Object.keys(dimensions).reduce((acc, dimension) => {
-            const values = [dimensions[dimension]].flat();
+    diceByDimensionItems(dimensionItemsMap) {
+        return Object.keys(dimensionItemsMap).reduce((acc, dimension) => {
+            const values = [dimensionItemsMap[dimension]].flat();
             if (values.length > 0 && acc.dimensionIds.includes(dimension)) {
                 const rootAttribute = this.getDimension(dimension).rootAttribute;
                 return acc.dice(dimension, rootAttribute, values);
@@ -397,7 +405,8 @@ class Cube {
     }
 
     /*
-     * This function iterates over all possible combinations of dimension items and calls the callback function with the sliced cube for each combination of dimension items
+     * This function iterates over all possible combinations of dimension items and
+     * calls the callback function with the sliced cube for each combination of dimension items
      */
     iterateOverDimension(dimension, cb) {
         const excludeDimensionIds = this.dimensionIds.filter(id => id !== dimension);
