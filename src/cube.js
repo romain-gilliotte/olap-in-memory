@@ -209,6 +209,12 @@ class Cube {
         } else throw new Error(`dropMeasure: no such measure: ${measureId}`);
     }
 
+    collapse() {
+        return this.dimensionIds.reduce((acc, curr) => {
+            return acc.slice(curr, 'all', 'all');
+        }, this);
+    }
+
     getData(measureId) {
         if (this.storedMeasures[measureId] !== undefined)
             return this.storedMeasures[measureId].data;
