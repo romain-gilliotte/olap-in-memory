@@ -283,6 +283,13 @@ class Cube {
         return result;
     }
 
+    getNestedObjects(measureIds) {
+        return measureIds.reduce((acc, measure) => {
+            acc[measure] = this.getNestedObject(measure);
+            return acc;
+        }, {});
+    }
+
     setNestedObject(measureId, value) {
         const data = fromNestedObject(value, this.dimensions);
         this.setData(measureId, data);

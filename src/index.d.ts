@@ -64,6 +64,7 @@ declare module '@growblocks/olap-in-memory' {
         getDistribution(measure: string, filter: Record<string, string[]>): number;
         getNestedArray(measure: string): NestedNumberArray;
         getNestedObject(measure: string): NestedNumberObject;
+        getNestedObjects(measureIds: string[]): NestedNumberObject;
         getSingleData(measure: string, coords: Record<string, string>): number;
         scan(
             excludeDimensionIds: string[],
