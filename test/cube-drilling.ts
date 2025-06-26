@@ -1,11 +1,12 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const createTestCube = require('./helpers/create-test-cube');
-const { Cube, TimeDimension } = require('../src');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import createTestCube from './helpers/create-test-cube';
+import { Cube, TimeDimension } from '../src';
 
 describe('Drilling', function () {
     describe('drillUp', function () {
         describe('no op', function () {
-            let cube, newCube;
+            let cube: Cube;
+            let newCube: Cube;
 
             beforeAll(function () {
                 cube = createTestCube(true, true);
@@ -18,7 +19,8 @@ describe('Drilling', function () {
         });
 
         describe('cities to continents', function () {
-            let cube, newCube;
+            let cube: Cube;
+            let newCube: Cube;
 
             beforeAll(function () {
                 cube = createTestCube(true, true);
@@ -34,7 +36,8 @@ describe('Drilling', function () {
         });
 
         describe('With incomplete data (data from feb missing)', function () {
-            let cube, newCube;
+            let cube: Cube;
+            let newCube: Cube;
 
             beforeAll(function () {
                 cube = new Cube([new TimeDimension('time', 'month', '2010-01', '2010-06')]);
@@ -47,7 +50,7 @@ describe('Drilling', function () {
             });
 
             it('Drilled up cube should have summed', function () {
-                expect(newCube.getNestedObject('data_sum').toEqual(true, true), {
+                expect(newCube.getNestedObject('data_sum', true, true)).toEqual({
                     '2010-Q1': { v: 3, c: false, r: true },
                     '2010-Q2': { v: NaN, c: false, r: true },
                     all: { v: 3, c: false, r: true },
@@ -55,7 +58,7 @@ describe('Drilling', function () {
             });
 
             it('Drilled up cube should have averaged', function () {
-                expect(newCube.getNestedObject('data_avg').toEqual(true, true), {
+                expect(newCube.getNestedObject('data_avg', true, true)).toEqual({
                     '2010-Q1': { v: 15, c: false, r: true },
                     '2010-Q2': { v: NaN, c: false, r: true },
                     all: { v: 15, c: false, r: true },
@@ -66,7 +69,8 @@ describe('Drilling', function () {
 
     describe('drillDown', function () {
         describe('no op', function () {
-            let cube, newCube;
+            let cube: Cube;
+            let newCube: Cube;
 
             beforeAll(function () {
                 cube = new Cube([new TimeDimension('time', 'month', '2010-01', '2010-02')]);
@@ -80,7 +84,8 @@ describe('Drilling', function () {
         });
 
         describe('months to days', function () {
-            let cube, newCube;
+            let cube: Cube;
+            let newCube: Cube;
 
             beforeAll(function () {
                 cube = new Cube([new TimeDimension('time', 'month', '2010-01', '2010-02')]);
@@ -92,19 +97,22 @@ describe('Drilling', function () {
 
             it('both measures should not have changed when drilled down and up again', function () {
                 expect(
-                    newCube.drillUp('time').toEqual('month').getNestedObject('measure1'),
+                    newCube.drillUp('time', 'month').getNestedObject('measure1')
+                ).toEqual(
                     cube.getNestedObject('measure1')
                 );
 
                 expect(
-                    newCube.drillUp('time').toEqual('month').getNestedObject('measure2'),
+                    newCube.drillUp('time', 'month').getNestedObject('measure2')
+                ).toEqual(
                     cube.getNestedObject('measure2')
                 );
             });
         });
 
         describe('months_week_mon to days', function () {
-            let cube, newCube;
+            let cube: Cube;
+            let newCube: Cube;
 
             beforeAll(function () {
                 cube = new Cube([
@@ -118,19 +126,22 @@ describe('Drilling', function () {
 
             it('both measures should not have changed when drilled down and up again', function () {
                 expect(
-                    newCube.drillUp('time').toEqual('month_week_mon').getNestedObject('measure1'),
+                    newCube.drillUp('time', 'month_week_mon').getNestedObject('measure1')
+                ).toEqual(
                     cube.getNestedObject('measure1')
                 );
 
                 expect(
-                    newCube.drillUp('time').toEqual('month_week_mon').getNestedObject('measure2'),
+                    newCube.drillUp('time', 'month_week_mon').getNestedObject('measure2')
+                ).toEqual(
                     cube.getNestedObject('measure2')
                 );
             });
         });
 
         describe('quarter to month, incomplete cube', function () {
-            let cube, newCube;
+            let cube: Cube;
+            let newCube: Cube;
 
             beforeAll(function () {
                 cube = new Cube([new TimeDimension('time', 'quarter', '2010-Q1', '2010-Q2')]);
@@ -145,7 +156,7 @@ describe('Drilling', function () {
             });
 
             it('newCube should drillup again to same values', function () {
-                expect(newCube.drillUp('time').toEqual('quarter').getData('measure1'), [90, NaN]);
+                expect(newCube.drillUp('time', 'quarter').getData('measure1')).toEqual([90, NaN]);
             });
 
             it('newCube should have divided the quarter in three month, and left the rest', function () {

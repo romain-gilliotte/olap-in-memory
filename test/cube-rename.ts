@@ -1,10 +1,10 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const createTestCube = require('./helpers/create-test-cube');
-const { Cube } = require('../src');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import createTestCube from './helpers/create-test-cube';
+import { Cube } from '../src';
 
 describe('Measures', function () {
     describe('Renaming measures', function () {
-        let cube;
+        let cube: any;
 
         beforeEach(function () {
             cube = createTestCube(true, true);

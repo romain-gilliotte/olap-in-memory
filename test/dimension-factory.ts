@@ -1,7 +1,7 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const dimensionFactory = require('../src/dimension/factory');
-const GenericDimension = require('../src/dimension/generic');
-const TimeDimension = require('../src/dimension/time');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import dimensionFactory from '../src/dimension/factory';
+import GenericDimension from '../src/dimension/generic';
+import TimeDimension from '../src/dimension/time';
 
 describe('Dimension Factory', function () {
     describe('deserialization functionality', function () {

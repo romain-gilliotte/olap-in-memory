@@ -1,10 +1,10 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const createTestCube = require('./helpers/create-test-cube');
-const { Cube, GenericDimension, TimeDimension } = require('../src');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import createTestCube from './helpers/create-test-cube';
+import { Cube, GenericDimension, TimeDimension } from '../src';
 
 describe('Accessors', function () {
     describe('getting data', function () {
-        let cube;
+        let cube: any;
 
         beforeEach(function () {
             cube = createTestCube(true, true);
@@ -68,7 +68,7 @@ describe('Accessors', function () {
     });
 
     describe('setting data', function () {
-        let cube;
+        let cube: any;
 
         beforeEach(function () {
             cube = createTestCube(true, false);

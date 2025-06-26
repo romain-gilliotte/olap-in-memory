@@ -1,6 +1,6 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const createTestCube = require('./helpers/create-test-cube');
-const { Cube, GenericDimension, TimeDimension } = require('../src');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import createTestCube from './helpers/create-test-cube';
+import { Cube, GenericDimension, TimeDimension } from '../src';
 
 describe('Dimension', function () {
     describe('addDimension', function () {
@@ -55,14 +55,15 @@ describe('Dimension', function () {
     });
 
     describe('removeDimension', function () {
-        let cube;
+        let cube: Cube;
 
         beforeEach(function () {
             const period = new GenericDimension('period', 'season', ['summer', 'winter']);
             const location = new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo']);
 
             cube = new Cube([location, period]);
-            for (let agg of ['sum', 'average', 'highest', 'lowest', 'first', 'last']) {
+            const aggregations = ['sum', 'average', 'highest', 'lowest', 'first', 'last'] as const;
+            for (let agg of aggregations) {
                 cube.createStoredMeasure(
                     `antennas_${agg}`,
                     { period: agg, location: agg },
@@ -105,7 +106,7 @@ describe('Dimension', function () {
     });
 
     describe('reorderDimensions', function () {
-        let cube;
+        let cube: Cube;
 
         beforeEach(function () {
             cube = createTestCube(true, true);
@@ -113,12 +114,11 @@ describe('Dimension', function () {
 
         it('should inverse the dimensions', function () {
             expect(
-                cube.reorderDimensions(['period').toEqual('location']).getNestedArray('antennas'),
-                [
-                    [1, 4, 16],
-                    [2, 8, 32],
-                ]
-            );
+                cube.reorderDimensions(['period', 'location']).getNestedArray('antennas')
+            ).toEqual([
+                [1, 4, 16],
+                [2, 8, 32],
+            ]);
         });
 
         it('should work with more dimensions', function () {
@@ -132,36 +132,32 @@ describe('Dimension', function () {
             cube.setData('main', [1, 2, 3, 4, 5, 6, 7, 8]);
 
             expect(
-                cube.reorderDimensions(['dim1').toEqual('dim2', 'dim3']).getNestedObject('main'),
-                {
-                    11: { 21: { 31: 1, 32: 2 }, 22: { 31: 3, 32: 4 } },
-                    12: { 21: { 31: 5, 32: 6 }, 22: { 31: 7, 32: 8 } },
-                }
-            );
+                cube.reorderDimensions(['dim1', 'dim2', 'dim3']).getNestedObject('main')
+            ).toEqual({
+                11: { 21: { 31: 1, 32: 2 }, 22: { 31: 3, 32: 4 } },
+                12: { 21: { 31: 5, 32: 6 }, 22: { 31: 7, 32: 8 } },
+            });
 
             expect(
-                cube.reorderDimensions(['dim1').toEqual('dim3', 'dim2']).getNestedObject('main'),
-                {
-                    11: { 31: { 21: 1, 22: 3 }, 32: { 21: 2, 22: 4 } },
-                    12: { 31: { 21: 5, 22: 7 }, 32: { 21: 6, 22: 8 } },
-                }
-            );
+                cube.reorderDimensions(['dim1', 'dim3', 'dim2']).getNestedObject('main')
+            ).toEqual({
+                11: { 31: { 21: 1, 22: 3 }, 32: { 21: 2, 22: 4 } },
+                12: { 31: { 21: 5, 22: 7 }, 32: { 21: 6, 22: 8 } },
+            });
 
             expect(
-                cube.reorderDimensions(['dim3').toEqual('dim2', 'dim1']).getNestedObject('main'),
-                {
-                    31: { 21: { 11: 1, 12: 5 }, 22: { 11: 3, 12: 7 } },
-                    32: { 21: { 11: 2, 12: 6 }, 22: { 11: 4, 12: 8 } },
-                }
-            );
+                cube.reorderDimensions(['dim3', 'dim2', 'dim1']).getNestedObject('main')
+            ).toEqual({
+                31: { 21: { 11: 1, 12: 5 }, 22: { 11: 3, 12: 7 } },
+                32: { 21: { 11: 2, 12: 6 }, 22: { 11: 4, 12: 8 } },
+            });
 
             expect(
-                cube.reorderDimensions(['dim3').toEqual('dim1', 'dim2']).getNestedObject('main'),
-                {
-                    31: { 11: { 21: 1, 22: 3 }, 12: { 21: 5, 22: 7 } },
-                    32: { 11: { 21: 2, 22: 4 }, 12: { 21: 6, 22: 8 } },
-                }
-            );
+                cube.reorderDimensions(['dim3', 'dim1', 'dim2']).getNestedObject('main')
+            ).toEqual({
+                31: { 11: { 21: 1, 22: 3 }, 12: { 21: 5, 22: 7 } },
+                32: { 11: { 21: 2, 22: 4 }, 12: { 21: 6, 22: 8 } },
+            });
         });
     });
 });

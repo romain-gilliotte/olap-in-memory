@@ -1,5 +1,5 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const { Cube, GenericDimension, TimeDimension } = require('../src');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import { Cube, GenericDimension, TimeDimension } from '../src';
 
 describe('Cube Edge Cases', function () {
     describe('error handling', function () {
@@ -8,49 +8,33 @@ describe('Cube Edge Cases', function () {
             cube.createStoredMeasure('antennas');
             cube.createComputedMeasure('computed', 'antennas * 2');
 
-            expect(
-                () => {
-                    cube.setData('computed', [1, 2]);
-                },
-                Error,
-                'setData can only be called on stored measures'
-            );
+            expect(() => {
+                cube.setData('computed', [1, 2]);
+            }).toThrow('setData can only be called on stored measures');
         });
 
         it('should throw error when getData is called on non-existent measure', function () {
             const cube = new Cube([new GenericDimension('location', 'city', ['paris', 'tokyo'])]);
 
-            expect(
-                () => {
-                    cube.getData('nonexistent');
-                },
-                Error,
-                'No such measure'
-            );
+            expect(() => {
+                cube.getData('nonexistent');
+            }).toThrow('No such measure');
         });
 
         it('should throw error when getStatus is called on non-existent measure', function () {
             const cube = new Cube([new GenericDimension('location', 'city', ['paris', 'tokyo'])]);
 
-            expect(
-                () => {
-                    cube.getStatus('nonexistent');
-                },
-                Error,
-                'No such measure'
-            );
+            expect(() => {
+                cube.getStatus('nonexistent');
+            }).toThrow('No such measure');
         });
 
         it('should throw error when slice is called on non-existent dimension', function () {
             const cube = new Cube([new GenericDimension('location', 'city', ['paris', 'tokyo'])]);
 
-            expect(
-                () => {
-                    cube.slice('nonexistent', 'city', 'paris');
-                },
-                Error,
-                'No such dimension.'
-            );
+            expect(() => {
+                cube.slice('nonexistent', 'city', 'paris');
+            }).toThrow('No such dimension.');
         });
     });
 
@@ -77,13 +61,9 @@ describe('Cube Edge Cases', function () {
         it('should throw error when dropping non-existent measure', function () {
             const cube = new Cube([new GenericDimension('location', 'city', ['paris', 'tokyo'])]);
 
-            expect(
-                () => {
-                    cube.dropMeasure('nonexistent');
-                },
-                Error,
-                'No such measure'
-            );
+            expect(() => {
+                cube.dropMeasure('nonexistent');
+            }).toThrow('No such measure');
         });
     });
 
@@ -146,7 +126,9 @@ describe('Cube Edge Cases', function () {
 
             const result = cube.dice('location', 'city', ['paris', 'tokyo']);
             expect(result).not.toBe(cube);
-            expect(result.getDimension('location').getItems()).toEqual(['paris', 'tokyo']);
+            const locationDim = result.getDimension('location');
+            expect(locationDim).toBeDefined();
+            expect(locationDim!.getItems()).toEqual(['paris', 'tokyo']);
         });
     });
 

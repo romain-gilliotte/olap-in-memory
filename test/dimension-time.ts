@@ -1,8 +1,8 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const { TimeDimension } = require('../src');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import { TimeDimension } from '../src';
 
 describe('TimeDimension', function () {
-    let dimension;
+    let dimension: any;
 
     beforeAll(function () {
         dimension = new TimeDimension('time', 'month', '2009-12', '2010-02');

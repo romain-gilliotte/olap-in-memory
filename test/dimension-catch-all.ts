@@ -1,6 +1,6 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const CatchAllDimension = require('../src/dimension/catch-all');
-const GenericDimension = require('../src/dimension/generic');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import CatchAllDimension from '../src/dimension/catch-all';
+import GenericDimension from '../src/dimension/generic';
 
 describe('CatchAllDimension', function () {
     describe('constructor', function () {
@@ -24,26 +24,18 @@ describe('CatchAllDimension', function () {
     describe('attributes', function () {
         it('should throw error when accessing attributes', function () {
             const catchAll = new CatchAllDimension('test');
-            expect(
-                () => {
-                    catchAll.attributes;
-                },
-                Error,
-                'Unsupported'
-            );
+            expect(() => {
+                catchAll.attributes;
+            }).toThrow('Unsupported');
         });
     });
 
     describe('serialize', function () {
         it('should throw error when serializing', function () {
             const catchAll = new CatchAllDimension('test');
-            expect(
-                () => {
-                    catchAll.serialize();
-                },
-                Error,
-                'Unsupported'
-            );
+            expect(() => {
+                catchAll.serialize();
+            }).toThrow('Unsupported');
         });
     });
 
@@ -60,7 +52,7 @@ describe('CatchAllDimension', function () {
             const catchAll = new CatchAllDimension('test');
             expect(catchAll.getEntries()).toEqual([['_total', 'Total']]);
             expect(catchAll.getEntries('any-attribute')).toEqual([['_total', 'Total']]);
-            expect(catchAll.getEntries('any-attribute').toEqual('fr'), [['_total', 'Total']]);
+            expect(catchAll.getEntries('any-attribute', 'fr')).toEqual([['_total', 'Total']]);
         });
     });
 
@@ -75,13 +67,9 @@ describe('CatchAllDimension', function () {
     describe('drillDown', function () {
         it('should throw error when no child dimension is set', function () {
             const catchAll = new CatchAllDimension('test');
-            expect(
-                () => {
-                    catchAll.drillDown('any-attribute');
-                },
-                Error,
-                'Must set child dimension.'
-            );
+            expect(() => {
+                catchAll.drillDown('any-attribute');
+            }).toThrow('Must set child dimension.');
         });
 
         it('should delegate to child dimension when set', function () {
@@ -104,46 +92,35 @@ describe('CatchAllDimension', function () {
 
         it('should throw error when dicing on non-root attribute', function () {
             const catchAll = new CatchAllDimension('test');
-            expect(
-                () => {
-                    catchAll.dice('other-attribute', ['_total']);
-                },
-                Error,
-                'Unsupported'
-            );
+            expect(() => {
+                catchAll.dice('other-attribute', ['_total']);
+            }).toThrow('Unsupported');
         });
 
         it('should throw error when dicing without total', function () {
             const catchAll = new CatchAllDimension('test');
-            expect(
-                () => {
-                    catchAll.dice('all', ['other-item']);
-                },
-                Error,
-                'Unsupported'
-            );
+            expect(() => {
+                catchAll.dice('all', ['other-item']);
+            }).toThrow('Unsupported');
         });
     });
 
     describe('diceRange', function () {
         it('should throw error for dice range', function () {
             const catchAll = new CatchAllDimension('test');
-            expect(
-                () => {
-                    catchAll.diceRange('any-attribute', 'start', 'end');
-                },
-                Error,
-                'Unsupported'
-            );
+            expect(() => {
+                catchAll.diceRange('any-attribute', 'start', 'end');
+            }).toThrow('Unsupported');
         });
     });
 
     describe('getGroupIndexFromRootIndex', function () {
         it('should always return 0 for any attribute and index', function () {
             const catchAll = new CatchAllDimension('test');
-            expect(catchAll.getGroupIndexFromRootIndex(0)).toBe($3);
-            expect(catchAll.getGroupIndexFromRootIndex(0)).toBe($3);
-            expect(catchAll.getGroupIndexFromRootIndex(0)).toBe($3);
+            // getGroupIndexFromRootIndex is protected, but we can test via getGroupIndexFromRootItem
+            expect(catchAll.getGroupIndexFromRootItem('any-attribute', '_total')).toBe(0);
+            expect(catchAll.getGroupIndexFromRootItem('other-attribute', '_total')).toBe(0);
+            expect(catchAll.getGroupIndexFromRootItem('all', '_total')).toBe(0);
         });
     });
 

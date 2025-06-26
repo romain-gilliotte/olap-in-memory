@@ -1,36 +1,62 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 
 // Create a concrete implementation of AbstractDimension for testing
-const AbstractDimension = require('../src/dimension/abstract');
+import AbstractDimension from '../src/dimension/abstract';
 
 class TestDimension extends AbstractDimension {
-    constructor(id, rootAttribute, label = null) {
+    private _items: string[];
+    
+    constructor(id: string, rootAttribute: string, label: string | null = null) {
         super(id, rootAttribute, label);
         this._items = ['item1', 'item2', 'item3'];
     }
 
-    get attributes() {
+    get attributes(): string[] {
         return ['attr1', 'attr2'];
     }
 
-    getItems(attribute = null) {
+    getItems(attribute: string | null = null): string[] {
         return this._items;
     }
 
-    drillUp(newAttribute) {
+    drillUp(newAttribute: string): AbstractDimension {
         return new TestDimension(this.id, newAttribute, this.label);
     }
+    
+    drillDown(newAttribute: string): AbstractDimension {
+        return new TestDimension(this.id, newAttribute, this.label);
+    }
+    
+    union(other: AbstractDimension): AbstractDimension {
+        return new TestDimension(this.id, this.rootAttribute, this.label);
+    }
+    
+    intersect(other: AbstractDimension): AbstractDimension {
+        return new TestDimension(this.id, this.rootAttribute, this.label);
+    }
+    
+    serialize(): ArrayBuffer {
+        return new ArrayBuffer(0);
+    }
 
-    dice(attribute, items, reorder = false) {
+    dice(attribute: string, items: string[], reorder: boolean = false): AbstractDimension {
         return new TestDimension(this.id, attribute, this.label);
     }
 
-    diceRange(attribute, start, end) {
+    diceRange(attribute: string, start: string | null, end: string | null): AbstractDimension {
         return new TestDimension(this.id, attribute, this.label);
     }
 
-    getGroupIndexFromRootIndex(groupAttr, rootIndex) {
+    protected getGroupIndexFromRootIndex(groupAttr: string, rootIndex: number): number {
         return rootIndex % 2;
+    }
+    
+    getGroupIndexFromRootIndexMap(groupAttr: string): number[] {
+        const result: number[] = [];
+        for (let i = 0; i < this._items.length; i++) {
+            result.push(i % 2);
+        }
+        return result;
     }
 }
 
@@ -132,14 +158,14 @@ describe('AbstractDimension', function () {
     describe('getGroupIndexFromRootItem', function () {
         it('should return correct group index for existing item', function () {
             const dimension = new TestDimension('test', 'rootAttr');
-            expect(dimension.getGroupIndexFromRootItem(0)).toBe($3);
-            expect(dimension.getGroupIndexFromRootItem(1)).toBe($3);
-            expect(dimension.getGroupIndexFromRootItem(0)).toBe($3);
+            expect(dimension.getGroupIndexFromRootItem('groupAttr', 'item1')).toBe(0);
+            expect(dimension.getGroupIndexFromRootItem('groupAttr', 'item2')).toBe(1);
+            expect(dimension.getGroupIndexFromRootItem('groupAttr', 'item3')).toBe(0);
         });
 
         it('should return -1 for non-existing item', function () {
             const dimension = new TestDimension('test', 'rootAttr');
-            expect(dimension.getGroupIndexFromRootItem(-1)).toBe($3);
+            expect(dimension.getGroupIndexFromRootItem('groupAttr', 'nonexistent')).toBe(-1);
         });
     });
 });
