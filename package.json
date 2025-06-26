@@ -20,6 +20,6 @@
     },
     "scripts": {
         "test": "mocha",
-        "coverage": "nyc --reporter=lcov npm test"
+        "coverage": "nyc --reporter=text npm test"
     }
 }
