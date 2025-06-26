@@ -1,15 +1,38 @@
-const AbstractDimension = require('./abstract');
-const { toBuffer, fromBuffer } = require('../serialization');
+import AbstractDimension from './abstract';
+import { toBuffer, fromBuffer } from '../serialization';
+
+type ItemToLabelMap = Record<string, string> | ((item: string) => string) | null;
+type BaseToNewMap = Record<string, string> | ((baseItem: string) => string);
+
+interface SerializedGenericDimension {
+    id: string;
+    label: string | null;
+    rootAttribute: string;
+    rootItems: string[];
+    attributeItems: Record<string, string[]>;
+    attributeLabels: Record<string, Record<string, string>>;
+    attributeMappings: Record<string, Uint32Array>;
+}
 
 class GenericDimension extends AbstractDimension {
-    get attributes() {
+    private _items: Record<string, string[]>;
+    private _rootIdxToGroupIdx: Record<string, Uint32Array>;
+    private _itemToLabel: Record<string, Record<string, string>>;
+
+    get attributes(): string[] {
         return Object.keys(this._rootIdxToGroupIdx);
     }
 
     /**
      * Create a simple dimension
      */
-    constructor(id, rootAttribute, items, label = null, itemToLabelMap = null) {
+    constructor(
+        id: string,
+        rootAttribute: string,
+        items: string[],
+        label: string | null = null,
+        itemToLabelMap: ItemToLabelMap = null
+    ) {
         super(id, rootAttribute, label);
 
         // Items for all attributes
@@ -39,8 +62,8 @@ class GenericDimension extends AbstractDimension {
         });
     }
 
-    static deserialize(buffer) {
-        const data = fromBuffer(buffer);
+    static deserialize(buffer: Buffer): GenericDimension {
+        const data = fromBuffer(buffer) as unknown as SerializedGenericDimension;
         const dimension = new GenericDimension(
             data.id,
             data.rootAttribute,
@@ -54,7 +77,7 @@ class GenericDimension extends AbstractDimension {
         return dimension;
     }
 
-    serialize() {
+    serialize(): Buffer {
         return toBuffer({
             id: this.id,
             label: this.label,
@@ -72,16 +95,21 @@ class GenericDimension extends AbstractDimension {
      *
      * @param {string} baseAttr ie: "zipCode"
      * @param {string} newAttr   ie: "city"
-     * @param {Record<string, string> | (string): string} parentToGroup ie: {"12345": "paris", "54321": "paris"}
-     * @param {Record<string, string> | (string): string} groupToLabelMap  ie: {'paris': "Ville de Paris"}
+     * @param {Record<string, string> | (string): string} baseToNew ie: {"12345": "paris", "54321": "paris"}
+     * @param {Record<string, string> | (string): string} newToNewLabel  ie: {'paris': "Ville de Paris"}
      */
-    addAttribute(baseAttr, newAttr, baseToNew, newToNewLabel = null) {
-        const newItem_to_newIdx = {};
+    addAttribute(
+        baseAttr: string,
+        newAttr: string,
+        baseToNew: BaseToNewMap,
+        newToNewLabel: ItemToLabelMap = null
+    ): void {
+        const newItem_to_newIdx: Record<string, number> = {};
 
         // Initialize data
-        const items = [];
+        const items: string[] = [];
         const rootIdxToGroupIdx = new Uint32Array(this.numItems);
-        const itemToLabels = {};
+        const itemToLabels: Record<string, string> = {};
 
         for (let rootIndex = 0; rootIndex < this.numItems; ++rootIndex) {
             // Convert baseItem to newItem
@@ -106,17 +134,19 @@ class GenericDimension extends AbstractDimension {
         this._itemToLabel[newAttr] = itemToLabels;
     }
 
-    getItems(attribute = null) {
+    getItems(attribute: string | null = null): string[] {
         return this._items[attribute || this._rootAttribute];
     }
 
-    getEntries(attribute = null) {
-        attribute = attribute || this._rootAttribute;
+    getEntries(attribute: string | null = null): [string, string][] {
+        const attr = attribute || this._rootAttribute;
 
-        return this._items[attribute].map(item => [item, this._itemToLabel[attribute][item]]);
+        return this._items[attr].map(
+            item => [item, this._itemToLabel[attr][item]] as [string, string]
+        );
     }
 
-    drillUp(targetAttr) {
+    drillUp(targetAttr: string): GenericDimension {
         if (targetAttr === this._rootAttribute) return this;
 
         const newDimension = new GenericDimension(
@@ -136,7 +166,7 @@ class GenericDimension extends AbstractDimension {
 
             const childItems = this._items[childAttribute];
             const childMapping = this._rootIdxToGroupIdx[childAttribute];
-            const mapping = {};
+            const mapping: Record<string, string> = {};
 
             for (let i = 0; i < rootItems.length; ++i) {
                 let childItem = childItems[childMapping[i]],
@@ -159,9 +189,13 @@ class GenericDimension extends AbstractDimension {
         return newDimension;
     }
 
-    dice(attribute, items, reorder = false) {
+    drillDown(attribute: string): GenericDimension {
+        throw new Error('Generic dimensions cannot drill down');
+    }
+
+    dice(attribute: string, items: string[], reorder: boolean = false): GenericDimension {
         let oldItems = this._items[this._rootAttribute],
-            newItems = null;
+            newItems: string[];
 
         if (this._rootAttribute === attribute) {
             if (reorder) newItems = items.filter(i => oldItems.includes(i));
@@ -204,25 +238,29 @@ class GenericDimension extends AbstractDimension {
         return dimension;
     }
 
-    getGroupIndexFromRootIndexMap(groupAttr) {
-        this._checkAttribute(groupAttr);
-
-        return this._rootIdxToGroupIdx[groupAttr];
+    diceRange(attribute: string, start: any, end: any): never {
+        throw new Error('diceRange is not supported on generic dimensions');
     }
 
-    getGroupIndexFromRootIndex(groupAttr, rootIdx) {
+    getGroupIndexFromRootIndexMap(groupAttr: string): number[] {
+        this._checkAttribute(groupAttr);
+
+        return Array.from(this._rootIdxToGroupIdx[groupAttr]);
+    }
+
+    protected getGroupIndexFromRootIndex(groupAttr: string, rootIdx: number): number {
         this._checkAttribute(groupAttr);
         this._checkRootIndex(rootIdx);
 
         return this._rootIdxToGroupIdx[groupAttr][rootIdx];
     }
 
-    union(otherDimension) {
+    union(otherDimension: GenericDimension): GenericDimension {
         if (this.id !== otherDimension.id) throw new Error('not the same dimension');
 
         // Choose rootAttribute
-        let me = this,
-            other = otherDimension;
+        let me: GenericDimension = this,
+            other: GenericDimension = otherDimension;
         if (this.attributes.includes(otherDimension._rootAttribute))
             me = me.drillUp(otherDimension._rootAttribute);
         else if (otherDimension.attributes.includes(this._rootAttribute))
@@ -230,7 +268,7 @@ class GenericDimension extends AbstractDimension {
         else throw new Error(`The dimensions are not compatible`);
 
         // Mapping functions
-        const anyItemToGroup = (groupAttr, rootItem) => {
+        const anyItemToGroup = (groupAttr: string, rootItem: string): string => {
             try {
                 return me.getGroupItemFromRootItem(groupAttr, rootItem);
             } catch (e) {
@@ -238,7 +276,7 @@ class GenericDimension extends AbstractDimension {
             }
         };
 
-        const anyItemToLabel = (attr, item) => {
+        const anyItemToLabel = (attr: string, item: string): string => {
             if (me._itemToLabel[attr] && me._itemToLabel[attr][item])
                 return me._itemToLabel[attr][item];
             else if (other._itemToLabel[attr] && other._itemToLabel[attr][item])
@@ -260,7 +298,7 @@ class GenericDimension extends AbstractDimension {
 
         // List all groups
         // fixme: would look better using sets
-        let groupAttrs = {};
+        let groupAttrs: Record<string, boolean> = {};
         for (let attribute of me.attributes)
             if (attribute !== me._rootAttribute) groupAttrs[attribute] = true;
         for (let attribute of other.attributes)
@@ -279,10 +317,10 @@ class GenericDimension extends AbstractDimension {
         return dimension;
     }
 
-    intersect(otherDimension) {
+    intersect(otherDimension: GenericDimension): GenericDimension {
         if (this.id !== otherDimension.id) throw new Error('not the same dimension');
 
-        let rootAttribute;
+        let rootAttribute: string;
         if (this.attributes.includes(otherDimension._rootAttribute))
             rootAttribute = otherDimension._rootAttribute;
         else if (otherDimension.attributes.includes(this._rootAttribute))
@@ -295,11 +333,11 @@ class GenericDimension extends AbstractDimension {
         return this.drillUp(rootAttribute).dice(rootAttribute, commonItems);
     }
 
-    _getOrCall(objfun, param) {
+    private _getOrCall(objfun: ItemToLabelMap | BaseToNewMap, param: string): string {
         if (!objfun) return param;
         else if (typeof objfun == 'function') return objfun(param);
         else return objfun[param];
     }
 }
 
-module.exports = GenericDimension;
+export default GenericDimension;

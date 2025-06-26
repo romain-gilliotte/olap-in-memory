@@ -1,50 +1,78 @@
-const merge = require('lodash.merge');
-const cloneDeep = require('lodash.clonedeep');
-const DimensionFactory = require('./dimension/factory');
-const CatchAllDimension = require('./dimension/catch-all');
-const { fromNestedArray, toNestedArray } = require('./formatter/nested-array');
-const { fromNestedObject, toNestedObject } = require('./formatter/nested-object');
-const { toBuffer, fromBuffer } = require('./serialization');
-const InMemoryStore = require('./store/in-memory');
-const getParser = require('./parser');
+import merge from 'lodash.merge';
+import cloneDeep from 'lodash.clonedeep';
+import DimensionFactory from './dimension/factory';
+import CatchAllDimension from './dimension/catch-all';
+import AbstractDimension from './dimension/abstract';
+import nestedArrayFormatter from './formatter/nested-array';
+import nestedObjectFormatter from './formatter/nested-object';
+import { toBuffer, fromBuffer } from './serialization';
+import InMemoryStore from './store/in-memory';
+import { getParser, Expression } from './parser';
+
+const { fromNestedArray, toNestedArray } = nestedArrayFormatter;
+const { fromNestedObject, toNestedObject } = nestedObjectFormatter;
+
+type DataType = 'int32' | 'uint32' | 'float32' | 'float64';
+type AggregationMethod = 'sum' | 'average' | 'highest' | 'lowest' | 'first' | 'last';
+
+interface MeasureRules {
+    [dimensionId: string]: AggregationMethod | undefined;
+}
+
+interface StoredMeasuresRules {
+    [measureId: string]: MeasureRules;
+}
+
+interface SerializedCube {
+    dimensions: Buffer[];
+    storedMeasuresKeys: string[];
+    storedMeasures: Buffer[];
+    storedMeasuresRules: StoredMeasuresRules;
+    computedMeasures: Record<string, string>;
+}
 
 class Cube {
-    get storeSize() {
+    dimensions: AbstractDimension[];
+    storedMeasures: Record<string, InMemoryStore>;
+    storedMeasuresRules: StoredMeasuresRules;
+    computedMeasures: Record<string, Expression>;
+
+    get storeSize(): number {
         return this.dimensions.reduce((m, d) => m * d.numItems, 1);
     }
 
-    get byteLength() {
+    get byteLength(): number {
         return Object.values(this.storedMeasures).reduce((m, store) => m + store.byteLength, 0);
     }
 
-    get dimensionIds() {
+    get dimensionIds(): string[] {
         return this.dimensions.map(d => d.id);
     }
 
-    get storedMeasureIds() {
+    get storedMeasureIds(): string[] {
         return Object.keys(this.storedMeasures);
     }
 
-    get computedMeasureIds() {
+    get computedMeasureIds(): string[] {
         return Object.keys(this.computedMeasures);
     }
 
-    constructor(dimensions) {
+    constructor(dimensions: AbstractDimension[]) {
         this.dimensions = dimensions;
         this.storedMeasures = {};
         this.storedMeasuresRules = {};
         this.computedMeasures = {};
     }
 
-    getDimension(dimensionId) {
+    getDimension(dimensionId: string): AbstractDimension | undefined {
         return this.dimensions.find(d => d.id === dimensionId);
     }
 
-    getDimensionIndex(dimensionId) {
+    getDimensionIndex(dimensionId: string): number {
         return this.dimensions.findIndex(d => d.id === dimensionId);
     }
 
-    createComputedMeasure(measureId, formula) {
+    createComputedMeasure(measureId: string, formula: string): void {
         if (!/^[a-z][_a-z0-9]+$/i.test(measureId))
             throw new Error(`Invalid measureId: ${measureId}`);
 
@@ -57,12 +85,19 @@ class Cube {
         const expression = getParser().parse(formula);
         const variables = expression.variables({ withMembers: true });
         if (!variables.every(variable => this.storedMeasureIds.includes(variable)))
-            throw new Error(`Unknown measure: ${variable}`);
+            throw new Error(
+                `Unknown measure: ${variables.find(v => !this.storedMeasureIds.includes(v))}`
+            );
 
         this.computedMeasures[measureId] = expression;
     }
 
-    createStoredMeasure(measureId, rules = {}, type = 'float32', defaultValue = NaN) {
+    createStoredMeasure(
+        measureId: string,
+        rules: MeasureRules = {},
+        type: DataType = 'float32',
+        defaultValue: number = NaN
+    ): void {
         if (!/^[a-z][_a-z0-9]*$/i.test(measureId))
             throw new Error(`Invalid measureId: ${measureId}`);
 
@@ -73,7 +108,7 @@ class Cube {
         this.storedMeasuresRules[measureId] = rules;
     }
 
-    renameMeasure(oldMeasureId, newMeasureId) {
+    renameMeasure(oldMeasureId: string, newMeasureId: string): Cube {
         if (oldMeasureId == newMeasureId) return this;
 
         const cube = new Cube(this.dimensions);
@@ -107,22 +142,22 @@ class Cube {
         return cube;
     }
 
-    dropMeasure(measureId) {
+    dropMeasure(measureId: string): void {
         if (this.computedMeasures[measureId] !== undefined) delete this.computedMeasures[measureId];
         else if (this.storedMeasures[measureId] !== undefined) {
             delete this.storedMeasures[measureId];
             delete this.storedMeasuresRules[measureId];
 
-            for (let measureId in cube.computedMeasures) {
-                const expression = cube.computedMeasures[measureId];
+            for (let measureIdKey in this.computedMeasures) {
+                const expression = this.computedMeasures[measureIdKey];
                 if (expression.variables().includes(measureId)) {
-                    delete cube.computedMeasures[measureId];
+                    delete this.computedMeasures[measureIdKey];
                 }
             }
         } else throw new Error('No such measure');
     }
 
-    getData(measureId) {
+    getData(measureId: string): number[] {
         if (this.storedMeasures[measureId] !== undefined)
             return this.storedMeasures[measureId].data;
         else if (this.computedMeasures[measureId] !== undefined) {
@@ -133,7 +168,7 @@ class Cube {
 
             // Fill result array
             const result = new Array(storeSize);
-            const params = {};
+            const params: Record<string, number> = {};
             for (let i = 0; i < storeSize; ++i) {
                 for (let j = 0; j < numMeasures; ++j)
                     params[measureIds[j]] = measures[j].getValue(i);
@@ -145,7 +180,7 @@ class Cube {
         } else throw new Error('No such measure');
     }
 
-    getStatus(measureId) {
+    getStatus(measureId: string): number[] {
         if (this.storedMeasures[measureId] !== undefined)
             return this.storedMeasures[measureId].status;
         else if (this.computedMeasures[measureId] !== undefined) {
@@ -159,34 +194,43 @@ class Cube {
         } else throw new Error('No such measure');
     }
 
-    setData(measureId, values) {
+    setData(measureId: string, values: number[]): void {
         if (this.storedMeasures[measureId]) {
             this.storedMeasures[measureId].data = values;
         } else throw new Error('setData can only be called on stored measures');
     }
 
-    getNestedArray(measureId) {
+    getNestedArray(measureId: string): unknown {
         const data = this.getData(measureId);
         const status = this.getStatus(measureId);
 
-        return toNestedArray(data, status, this.dimensions);
+        return toNestedArray(data as number[], status as unknown as Uint8Array, this.dimensions);
     }
 
-    setNestedArray(measureId, values) {
-        const data = fromNestedArray(values, this.dimensions);
+    setNestedArray(measureId: string, values: unknown[]): void {
+        const data = fromNestedArray(values, this.dimensions) as number[];
         this.setData(measureId, data);
     }
 
-    getNestedObject(measureId, withTotals = false, withMetadata = false) {
+    getNestedObject(
+        measureId: string,
+        withTotals: boolean = false,
+        withMetadata: boolean = false
+    ): unknown {
         if (!withTotals || this.dimensions.length == 0) {
             const data = this.getData(measureId);
             const status = this.getStatus(measureId);
-            return toNestedObject(data, status, this.dimensions, withMetadata);
+            return toNestedObject(
+                data as number[],
+                status as unknown as Uint8Array,
+                this.dimensions,
+                withMetadata
+            );
         }
 
-        const result = {};
+        const result: Record<string, unknown> = {};
         for (let j = 0; j < 2 ** this.dimensions.length; ++j) {
-            let subCube = this;
+            let subCube: Cube = this;
             for (let i = 0; i < this.dimensions.length; ++i)
                 if (j & (1 << i)) subCube = subCube.drillUp(this.dimensions[i].id, 'all');
 
@@ -196,14 +240,20 @@ class Cube {
         return result;
     }
 
-    setNestedObject(measureId, value) {
-        const data = fromNestedObject(value, this.dimensions);
+    setNestedObject(measureId: string, value: Record<string, unknown>): void {
+        const data = fromNestedObject(value, this.dimensions) as number[];
         this.setData(measureId, data);
     }
 
-    hydrateFromSparseNestedObject(measureId, obj, offset = 0, dimOffset = 0) {
+    hydrateFromSparseNestedObject(
+        measureId: string,
+        obj: Record<string, unknown>,
+        offset: number = 0,
+        dimOffset: number = 0
+    ): void {
         if (dimOffset === this.dimensions.length) {
-            this.storedMeasures[measureId].setValue(offset, obj);
+            // obj is a leaf value, expected to be a number
+            this.storedMeasures[measureId].setValue(offset, obj as unknown as number);
             return;
         }
 
@@ -212,14 +262,19 @@ class Cube {
             const itemOffset = dimension.getRootIndexFromRootItem(key);
             if (itemOffset !== -1) {
                 const newOffset = offset * dimension.numItems + itemOffset;
-                this.hydrateFromSparseNestedObject(measureId, obj[key], newOffset, dimOffset + 1);
+                this.hydrateFromSparseNestedObject(
+                    measureId,
+                    obj[key] as Record<string, unknown>,
+                    newOffset,
+                    dimOffset + 1
+                );
             }
         }
     }
 
-    hydrateFromCube(otherCube) {
+    hydrateFromCube(otherCube: Cube): void {
         // Exception == the cubes have no overlap, it is safe to skip this one.
-        let compatibleCube;
+        let compatibleCube: Cube;
         try {
             compatibleCube = otherCube.reshape(this.dimensions);
         } catch (e) {
@@ -235,11 +290,11 @@ class Cube {
                 );
     }
 
-    project(dimensionIds) {
+    project(dimensionIds: string[]): Cube {
         return this.keepDimensions(dimensionIds).reorderDimensions(dimensionIds);
     }
 
-    reorderDimensions(dimensionIds) {
+    reorderDimensions(dimensionIds: string[]): Cube {
         // Check for no-op
         let dimIdx = 0;
         for (; dimIdx < this.dimensions.length; ++dimIdx) {
@@ -253,7 +308,7 @@ class Cube {
         }
 
         // Write a new cube
-        const newDimensions = dimensionIds.map(id => this.dimensions.find(dim => dim.id === id));
+        const newDimensions = dimensionIds.map(id => this.dimensions.find(dim => dim!.id === id)!);
         const newCube = new Cube(newDimensions);
         newCube.computedMeasures = this.computedMeasures;
         newCube.storedMeasuresRules = this.storedMeasuresRules;
@@ -266,14 +321,19 @@ class Cube {
         return newCube;
     }
 
-    slice(dimensionId, attribute, value) {
+    slice(dimensionId: string, attribute: string, value: string): Cube {
         let dimIndex = this.getDimensionIndex(dimensionId);
         if (dimIndex === -1) throw new Error('No such dimension.');
 
         return this.dice(dimensionId, attribute, [value]).removeDimension(dimensionId);
     }
 
-    diceRange(dimensionId, attribute, start, end) {
+    diceRange(
+        dimensionId: string,
+        attribute: string,
+        start: string | null,
+        end: string | null
+    ): Cube {
         const dimIdx = this.getDimensionIndex(dimensionId);
         const newDimensions = this.dimensions.slice();
         newDimensions[dimIdx] = newDimensions[dimIdx].diceRange(attribute, start, end);
@@ -293,7 +353,7 @@ class Cube {
         return newCube;
     }
 
-    dice(dimensionId, attribute, items, reorder = false) {
+    dice(dimensionId: string, attribute: string, items: string[], reorder: boolean = false): Cube {
         const dimIdx = this.getDimensionIndex(dimensionId);
         const newDimensions = this.dimensions.slice();
         newDimensions[dimIdx] = newDimensions[dimIdx].dice(attribute, items, reorder);
@@ -313,8 +373,8 @@ class Cube {
         return newCube;
     }
 
-    keepDimensions(dimensionIds) {
-        let cube = this;
+    keepDimensions(dimensionIds: string[]): Cube {
+        let cube: Cube = this;
         for (let dimension of this.dimensions) {
             if (!dimensionIds.includes(dimension.id)) {
                 cube = cube.removeDimension(dimension.id);
@@ -324,8 +384,8 @@ class Cube {
         return cube;
     }
 
-    removeDimensions(dimensionIds) {
-        let cube = this;
+    removeDimensions(dimensionIds: string[]): Cube {
+        let cube: Cube = this;
         for (let dimensionId of dimensionIds) {
             cube = cube.removeDimension(dimensionId);
         }
@@ -333,15 +393,19 @@ class Cube {
         return cube;
     }
 
-    addDimension(newDimension, aggregation = {}, index = null) {
+    addDimension(
+        newDimension: AbstractDimension,
+        aggregation: Record<string, AggregationMethod> = {},
+        index: number | null = null
+    ): Cube {
         // If index is not provided, we append the dimension
-        index = index === null ? this.dimensions.length : index;
+        const actualIndex = index === null ? this.dimensions.length : index;
 
         const oldDimensions = this.dimensions.slice();
-        oldDimensions.splice(index, 0, new CatchAllDimension(newDimension.id, newDimension));
+        oldDimensions.splice(actualIndex, 0, new CatchAllDimension(newDimension.id, newDimension));
 
         const newDimensions = oldDimensions.slice();
-        newDimensions[index] = newDimension;
+        newDimensions[actualIndex] = newDimension;
 
         const newCube = new Cube(newDimensions);
         newCube.computedMeasures = this.computedMeasures;
@@ -360,7 +424,7 @@ class Cube {
         return newCube;
     }
 
-    removeDimension(dimensionId) {
+    removeDimension(dimensionId: string): Cube {
         const newDimensions = this.dimensions.filter(dim => dim.id !== dimensionId);
         const newCube = new Cube(newDimensions);
         newCube.storedMeasures = this.drillUp(dimensionId, 'all').storedMeasures;
@@ -374,7 +438,7 @@ class Cube {
         return newCube;
     }
 
-    drillDown(dimensionId, attribute) {
+    drillDown(dimensionId: string, attribute: string): Cube {
         const dimIdx = this.getDimensionIndex(dimensionId);
         if (this.dimensions[dimIdx].rootAttribute === attribute) return this;
 
@@ -400,7 +464,7 @@ class Cube {
      * Aggregate a dimension by group values.
      * ie: minutes by hour, or cities by region.
      */
-    drillUp(dimensionId, attribute) {
+    drillUp(dimensionId: string, attribute: string): Cube {
         const dimIdx = this.getDimensionIndex(dimensionId);
         if (this.dimensions[dimIdx].rootAttribute === attribute) return this;
 
@@ -429,8 +493,8 @@ class Cube {
      * For instance, composing a cube with sells by day, and number of open hour per week,
      * to compute average sell by opening hour per week.
      */
-    compose(otherCube, union = false) {
-        let newDimensions = this.dimensions.reduce((m, myDimension) => {
+    compose(otherCube: Cube, union: boolean = false): Cube {
+        let newDimensions = this.dimensions.reduce((m: AbstractDimension[], myDimension) => {
             const otherDimension = otherCube.getDimension(myDimension.id);
 
             if (!otherDimension) return m;
@@ -453,8 +517,8 @@ class Cube {
         return newCube;
     }
 
-    reshape(targetDims) {
-        let newCube = this;
+    reshape(targetDims: AbstractDimension[]): Cube {
+        let newCube: Cube = this;
 
         // Remove unneeded dimensions, and reorder.
         {
@@ -504,18 +568,23 @@ class Cube {
         return newCube;
     }
 
-    serialize() {
+    serialize(): Buffer {
         return toBuffer({
             dimensions: this.dimensions.map(dim => dim.serialize()),
             storedMeasuresKeys: Object.keys(this.storedMeasures),
             storedMeasures: Object.values(this.storedMeasures).map(measure => measure.serialize()),
             storedMeasuresRules: this.storedMeasuresRules,
-            computedMeasures: this.computedMeasures,
+            computedMeasures: Object.fromEntries(
+                Object.entries(this.computedMeasures).map(([key, expression]) => [
+                    key,
+                    expression.toString(),
+                ])
+            ),
         });
     }
 
-    static deserialize(buffer) {
-        const data = fromBuffer(buffer);
+    static deserialize(buffer: Buffer): Cube {
+        const data = fromBuffer(buffer) as unknown as SerializedCube;
         const dimensions = data.dimensions.map(data => DimensionFactory.deserialize(data));
 
         const cube = new Cube(dimensions);
@@ -524,9 +593,17 @@ class Cube {
         data.storedMeasuresKeys.forEach((key, i) => {
             cube.storedMeasures[key] = InMemoryStore.deserialize(data.storedMeasures[i]);
         });
-        cube.computedMeasures = data.computedMeasures;
+
+        // Rebuild expressions from strings
+        cube.computedMeasures = Object.fromEntries(
+            Object.entries(data.computedMeasures).map(([key, formula]) => [
+                key,
+                getParser().parse(formula),
+            ])
+        );
+
         return cube;
     }
 }
 
-module.exports = Cube;
+export default Cube;

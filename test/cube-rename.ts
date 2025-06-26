@@ -1,40 +1,40 @@
-const assert = require('chai').assert;
-const createTestCube = require('./helpers/create-test-cube');
+import createTestCube from './helpers/create-test-cube';
+import Cube from '../src/cube';
 
 describe('Measures', function () {
     describe('Renaming measures', function () {
-        let cube;
+        let cube: any;
 
         beforeEach(function () {
             cube = createTestCube(true, true);
         });
 
         it('should throw on non existent measure', function () {
-            assert.throws(() => cube.renameMeasure('missing', 'missing2'));
+            expect(() => cube.renameMeasure('missing', 'missing2')).toThrow();
         });
 
         it('should update only computed measure', function () {
             const newCube = cube.renameMeasure('router_by_antennas', 'router_by_receivers');
 
             // all measures still work
-            assert.doesNotThrow(() => newCube.getData('routers'));
-            assert.doesNotThrow(() => newCube.getData('antennas'));
-            assert.doesNotThrow(() => newCube.getData('router_by_receivers'));
+            expect(() => newCube.getData('routers')).not.toThrow();
+            expect(() => newCube.getData('antennas')).not.toThrow();
+            expect(() => newCube.getData('router_by_receivers')).not.toThrow();
 
             // former measure does not work any longer
-            assert.throws(() => newCube.getData('router_by_antennas'));
+            expect(() => newCube.getData('router_by_antennas')).toThrow();
         });
 
         it('should update formulas of computed measures', function () {
             const newCube = cube.renameMeasure('antennas', 'receivers');
 
             // all measures still work
-            assert.doesNotThrow(() => newCube.getData('routers'));
-            assert.doesNotThrow(() => newCube.getData('receivers'));
-            assert.doesNotThrow(() => newCube.getData('router_by_antennas'));
+            expect(() => newCube.getData('routers')).not.toThrow();
+            expect(() => newCube.getData('receivers')).not.toThrow();
+            expect(() => newCube.getData('router_by_antennas')).not.toThrow();
 
             // former measure does not work any longer
-            assert.throws(() => newCube.getData('antennas'));
+            expect(() => newCube.getData('antennas')).toThrow();
         });
 
         it('should not change anything when renaming twice', function () {
@@ -42,7 +42,7 @@ describe('Measures', function () {
                 .renameMeasure('antennas', 'receivers')
                 .renameMeasure('receivers', 'antennas');
 
-            assert.deepEqual(cube, newCube);
+            expect(cube).toEqual(newCube);
         });
     });
 });

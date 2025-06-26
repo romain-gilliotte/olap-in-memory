@@ -1,8 +1,8 @@
-const assert = require('chai').assert;
-const createTestCube = require('./helpers/create-test-cube');
+import createTestCube from './helpers/create-test-cube';
+import Cube from '../src/cube';
 
 describe('Filtering', function () {
-    let cube;
+    let cube: any;
 
     beforeEach(function () {
         cube = createTestCube(true, true);
@@ -12,17 +12,17 @@ describe('Filtering', function () {
         it('should remove cities', function () {
             const parisCube = cube.slice('location', 'city', 'paris');
 
-            assert.deepEqual(parisCube.getNestedArray('antennas'), [1, 2]);
-            assert.equal(parisCube.dimensions.length, 1);
-            assert.equal(parisCube.dimensions[0].id, 'period');
+            expect(parisCube.getNestedArray('antennas')).toEqual([1, 2]);
+            expect(parisCube.dimensions.length).toBe(1);
+            expect(parisCube.dimensions[0].id).toBe('period');
         });
 
         it('should remove seasons', function () {
             const winterCube = cube.slice('period', 'season', 'winter');
 
-            assert.deepEqual(winterCube.getNestedArray('antennas'), [2, 8, 32]);
-            assert.equal(winterCube.dimensions.length, 1);
-            assert.equal(winterCube.dimensions[0].id, 'location');
+            expect(winterCube.getNestedArray('antennas')).toEqual([2, 8, 32]);
+            expect(winterCube.dimensions.length).toBe(1);
+            expect(winterCube.dimensions[0].id).toBe('location');
         });
 
         it('should remove both cities and seasons', function () {
@@ -30,8 +30,8 @@ describe('Filtering', function () {
                 .slice('period', 'season', 'winter')
                 .slice('location', 'city', 'toledo');
 
-            assert.deepEqual(tolWinCube.getNestedArray('antennas'), 8);
-            assert.equal(tolWinCube.dimensions.length, 0);
+            expect(tolWinCube.getNestedArray('antennas')).toEqual(8);
+            expect(tolWinCube.dimensions.length).toBe(0);
         });
     });
 
@@ -39,13 +39,13 @@ describe('Filtering', function () {
         it('should work on noop', function () {
             let newCube = cube.dice('location', 'city', ['paris', 'toledo', 'tokyo']);
 
-            assert.equal(newCube, cube);
+            expect(newCube).toBe(cube);
         });
 
         it('should dice on cities', function () {
             const parTolCube = cube.dice('location', 'city', ['paris', 'toledo']);
 
-            assert.deepEqual(parTolCube.getNestedArray('antennas'), [
+            expect(parTolCube.getNestedArray('antennas')).toEqual([
                 [1, 2],
                 [4, 8],
             ]);
@@ -54,7 +54,7 @@ describe('Filtering', function () {
         it('should dice on cities conserving order', function () {
             const parTolCube = cube.dice('location', 'city', ['toledo', 'paris']);
 
-            assert.deepEqual(parTolCube.getNestedArray('antennas'), [
+            expect(parTolCube.getNestedArray('antennas')).toEqual([
                 [1, 2],
                 [4, 8],
             ]);
@@ -63,7 +63,7 @@ describe('Filtering', function () {
         it('should dice on continents', function () {
             const parTolCube = cube.dice('location', 'continent', ['europe']);
 
-            assert.deepEqual(parTolCube.getNestedArray('antennas'), [
+            expect(parTolCube.getNestedArray('antennas')).toEqual([
                 [1, 2],
                 [4, 8],
             ]);
@@ -72,31 +72,30 @@ describe('Filtering', function () {
         it('should filter the other dimension', function () {
             const winterCube = cube.dice('period', 'season', ['winter']);
 
-            assert.deepEqual(winterCube.getNestedArray('antennas'), [[2], [8], [32]]);
+            expect(winterCube.getNestedArray('antennas')).toEqual([[2], [8], [32]]);
         });
 
         it('should work dicing on non existent item', function () {
-            assert.equal(
-                cube.dice('location', 'city', ['nonexisting', 'paris']).storeSize,
+            expect(cube.dice('location', 'city', ['nonexisting', 'paris']).storeSize).toBe(
                 cube.storeSize / 3
             );
         });
 
         it('should work dicing on empty array', function () {
-            assert.equal(cube.dice('location', 'city', []).storeSize, 0);
+            expect(cube.dice('location', 'city', []).storeSize).toBe(0);
         });
 
         it('should dice on cities reversed', function () {
             const parTolCube = cube.dice('location', 'city', ['toledo', 'paris'], true);
 
-            assert.deepEqual(parTolCube.getNestedArray('antennas'), [
+            expect(parTolCube.getNestedArray('antennas')).toEqual([
                 [4, 8],
                 [1, 2],
             ]);
         });
 
         it('should not allow reordering on continents', function () {
-            assert.throws(() => cube.dice('location', 'continent', ['europe'], true));
+            expect(() => cube.dice('location', 'continent', ['europe'], true)).toThrow();
         });
     });
 });

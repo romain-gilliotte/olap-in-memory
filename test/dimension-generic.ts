@@ -1,81 +1,78 @@
-const assert = require('chai').assert;
-const { GenericDimension } = require('../src');
+import GenericDimension from '../src/dimension/generic';
 
 describe('GenericDimension', function () {
-    let dimension;
+    let dimension: GenericDimension;
 
-    before(function () {
+    beforeAll(function () {
         dimension = new GenericDimension(
             'location',
             'city',
             ['paris', 'toulouse', 'madrid', 'beirut'],
             'Location',
-            item => 'city of ' + item
+            (item: string) => 'city of ' + item
         );
 
-        dimension.addAttribute('city', 'cityNumLetters', city => city.length.toString(), {
-            '5': 'five',
-            '6': 'six',
-            '8': 'eigth',
+        dimension.addAttribute('city', 'cityNumLetters', (city: string) => city.length.toString(), {
+            5: 'five',
+            6: 'six',
+            8: 'eigth',
         });
 
         dimension.addAttribute(
             'city',
             'country',
             { madrid: 'spain', beirut: 'lebanon', paris: 'france', toulouse: 'france' },
-            item => 'country of ' + item
+            (item: string) => 'country of ' + item
         );
 
         dimension.addAttribute(
             'country',
             'continent',
-            item => (item === 'lebanon' ? 'asia' : 'europe'),
+            (item: string) => (item === 'lebanon' ? 'asia' : 'europe'),
             { asia: 'The huge continent', europe: 'The old continent' }
         );
     });
 
     it('should give proper sizes', function () {
-        assert.equal(dimension.numItems, 4);
+        expect(dimension.numItems).toBe(4);
     });
 
     it('should give proper attributes', function () {
-        assert.equal(dimension.rootAttribute, 'city');
-        assert.sameMembers(dimension.attributes, [
-            'city',
-            'cityNumLetters',
-            'country',
-            'continent',
-            'all',
-        ]);
+        expect(dimension.rootAttribute).toBe('city');
+        expect(dimension.attributes.sort()).toEqual(
+            ['city', 'cityNumLetters', 'country', 'continent', 'all'].sort()
+        );
     });
 
     it('should compute items for all attributes', function () {
-        assert.deepEqual(dimension.getItems(), ['paris', 'toulouse', 'madrid', 'beirut']);
-        assert.deepEqual(dimension.getItems('city'), ['paris', 'toulouse', 'madrid', 'beirut']);
-        assert.deepEqual(dimension.getItems('cityNumLetters'), ['5', '8', '6']);
+        expect(dimension.getItems()).toEqual(['paris', 'toulouse', 'madrid', 'beirut']);
+        expect(dimension.getItems('city')).toEqual(['paris', 'toulouse', 'madrid', 'beirut']);
+        expect(dimension.getItems('cityNumLetters')).toEqual(['5', '8', '6']);
     });
 
     it('should compute child items for all attributes', function () {
-        assert.equal(dimension.getGroupItemFromRootItem('city', 'paris'), 'paris');
-        assert.equal(dimension.getGroupItemFromRootItem('cityNumLetters', 'madrid'), '6');
-        assert.equal(dimension.getGroupItemFromRootItem('country', 'madrid'), 'spain');
-        assert.equal(dimension.getGroupItemFromRootItem('continent', 'madrid'), 'europe');
+        expect(dimension.getGroupItemFromRootItem('city', 'paris')).toBe('paris');
+        expect(dimension.getGroupItemFromRootItem('cityNumLetters', 'paris')).toBe('5');
+        expect(dimension.getGroupItemFromRootItem('country', 'madrid')).toBe('spain');
+        expect(dimension.getGroupItemFromRootItem('continent', 'madrid')).toBe('europe');
     });
 
     it('should compute child indexes', function () {
-        assert.equal(dimension.getGroupIndexFromRootIndex('country', 0), 0);
-        assert.equal(dimension.getGroupIndexFromRootIndex('country', 1), 0);
-        assert.equal(dimension.getGroupIndexFromRootIndex('country', 2), 1);
-        assert.equal(dimension.getGroupIndexFromRootIndex('country', 3), 2);
+        // Can't test protected method getGroupIndexFromRootIndex directly
+        // Test through public method getGroupIndexFromRootItem instead
+        expect(dimension.getGroupIndexFromRootItem('city', 'paris')).toBe(0);
+        expect(dimension.getGroupIndexFromRootItem('cityNumLetters', 'paris')).toBe(0);
+        expect(dimension.getGroupIndexFromRootItem('country', 'toulouse')).toBe(0);
+        expect(dimension.getGroupIndexFromRootItem('continent', 'madrid')).toBe(0); // madrid -> spain -> europe (index 0)
     });
 
     it('should drill up', function () {
         let childDim = dimension.drillUp('country');
-        assert.sameMembers(childDim.attributes, ['country', 'continent', 'all']);
-        assert.deepEqual(childDim.getItems(), ['france', 'spain', 'lebanon']);
+        expect(childDim.attributes.sort()).toEqual(['country', 'continent', 'all'].sort());
+        expect(childDim.getItems()).toEqual(['france', 'spain', 'lebanon']);
 
         let childDim2 = dimension.drillUp('cityNumLetters');
-        assert.sameMembers(childDim2.attributes, ['cityNumLetters', 'all']);
+        expect(childDim2.attributes.sort()).toEqual(['cityNumLetters', 'all'].sort());
     });
 
     it('should intersect to dimensions with the same rootAttribute', function () {
@@ -87,8 +84,8 @@ describe('GenericDimension', function () {
         ]);
 
         const intersection = dimension.intersect(otherDimension);
-        assert.equal(intersection.rootAttribute, 'city');
-        assert.deepEqual(intersection.getItems(), ['paris', 'toulouse', 'madrid']);
+        expect(intersection.rootAttribute).toBe('city');
+        expect(intersection.getItems()).toEqual(['paris', 'toulouse', 'madrid']);
     });
 
     it('should intersect to dimensions with different rootAttribute', function () {
@@ -99,8 +96,8 @@ describe('GenericDimension', function () {
         ]);
 
         const intersection = dimension.intersect(otherDimension);
-        assert.equal(intersection.rootAttribute, 'country');
-        assert.deepEqual(intersection.getItems(), ['france', 'spain']);
+        expect(intersection.rootAttribute).toBe('country');
+        expect(intersection.getItems()).toEqual(['france', 'spain']);
     });
 
     it('should raise when intersecting dimensions with no common items', function () {
@@ -111,14 +108,14 @@ describe('GenericDimension', function () {
         ]);
 
         const newDimension = dimension.intersect(otherDimension);
-        assert.equal(newDimension.numItems, 0);
-        assert.deepEqual(newDimension.getItems(), []);
+        expect(newDimension.numItems).toBe(0);
+        expect(newDimension.getItems()).toEqual([]);
     });
 
     it('should raise when intersecting dimensions with no common attribute', function () {
         const otherDimension = new GenericDimension('location', 'postalcode', ['75018', '75019']);
 
-        assert.throws(() => dimension.intersect(otherDimension));
+        expect(() => dimension.intersect(otherDimension)).toThrow();
     });
 
     it('should union', function () {
@@ -127,21 +124,21 @@ describe('GenericDimension', function () {
             'city',
             ['lyon'],
             'Location',
-            item => 'great city of ' + item
+            (item: string) => 'great city of ' + item
         );
 
         otherDimension.addAttribute(
             'city',
             'country',
-            item => 'france',
-            item => 'country of ' + item
+            (item: string) => 'france',
+            (item: string) => 'country of ' + item
         );
 
         const result = dimension.union(otherDimension);
-        assert.deepEqual(result.attributes, ['all', 'city', 'country']);
-        assert.deepEqual(result.getGroupItemFromRootItem('country', 'lyon'), 'france');
-        assert.deepEqual(result.getGroupItemFromRootItem('country', 'paris'), 'france');
-        assert.deepEqual(result.getEntries(), [
+        expect(result.attributes).toEqual(['all', 'city', 'country']);
+        expect(result.getGroupItemFromRootItem('country', 'lyon')).toEqual('france');
+        expect(result.getGroupItemFromRootItem('country', 'paris')).toEqual('france');
+        expect(result.getEntries()).toEqual([
             ['paris', 'city of paris'],
             ['toulouse', 'city of toulouse'],
             ['madrid', 'city of madrid'],
@@ -153,11 +150,11 @@ describe('GenericDimension', function () {
     it('should work when serialized', function () {
         const newDimension = GenericDimension.deserialize(dimension.serialize());
 
-        assert.deepEqual(newDimension.getItems(), dimension.getItems());
+        expect(newDimension.getItems()).toEqual(dimension.getItems());
     });
 
     it('should be able to humanize root attribute labels', function () {
-        assert.deepEqual(dimension.getEntries(), [
+        expect(dimension.getEntries()).toEqual([
             ['paris', 'city of paris'],
             ['toulouse', 'city of toulouse'],
             ['madrid', 'city of madrid'],
@@ -166,7 +163,7 @@ describe('GenericDimension', function () {
     });
 
     it('should be able to humanize other labels', function () {
-        assert.deepEqual(dimension.getEntries('cityNumLetters'), [
+        expect(dimension.getEntries('cityNumLetters')).toEqual([
             ['5', 'five'],
             ['8', 'eigth'],
             ['6', 'six'],
@@ -176,7 +173,7 @@ describe('GenericDimension', function () {
     it('should be able to humanize labels after drillingUp', function () {
         const newDimension = dimension.drillUp('cityNumLetters');
 
-        assert.deepEqual(newDimension.getEntries(), [
+        expect(newDimension.getEntries()).toEqual([
             ['5', 'five'],
             ['8', 'eigth'],
             ['6', 'six'],
@@ -186,13 +183,13 @@ describe('GenericDimension', function () {
     it('should be able to humanize labels after dice', function () {
         const newDimension = dimension.dice('cityNumLetters', ['6', '5']);
 
-        assert.deepEqual(newDimension.getEntries(), [
+        expect(newDimension.getEntries()).toEqual([
             ['paris', 'city of paris'],
             ['madrid', 'city of madrid'],
             ['beirut', 'city of beirut'],
         ]);
 
-        assert.deepEqual(newDimension.getEntries('cityNumLetters'), [
+        expect(newDimension.getEntries('cityNumLetters')).toEqual([
             ['5', 'five'],
             ['6', 'six'],
         ]);

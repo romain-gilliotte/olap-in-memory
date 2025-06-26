@@ -1,30 +1,49 @@
-const { toBuffer, fromBuffer } = require('../serialization');
+import { toBuffer, fromBuffer } from '../serialization';
 
-const STATUS_EMPTY = 1;
-const STATUS_SET = 2;
-const STATUS_INTERPOLATED = 4;
+type DataType = 'int32' | 'uint32' | 'float32' | 'float64';
+
+type TypedArrayType = Int32Array | Uint32Array | Float32Array | Float64Array;
+
+type AggregationMethod = 'sum' | 'average' | 'highest' | 'lowest' | 'first' | 'last';
+
+interface Dimension {
+    readonly numItems: number;
+    readonly rootAttribute: string;
+    getItems(): string[];
+    getItemsToIdx(): Record<string, number>;
+    getGroupIndexFromRootIndexMap(attribute: string): number[];
+}
+
+export const STATUS_EMPTY = 1;
+export const STATUS_SET = 2;
+export const STATUS_INTERPOLATED = 4;
 
 /**
  * The data array can be millions of items.
  * => Avoid allocations in the loops to keep things acceptably fast.
  */
 class InMemoryStore {
-    get byteLength() {
+    private _size: number;
+    private _type: DataType;
+    private _data: TypedArrayType;
+    private _status: Int8Array;
+
+    get byteLength(): number {
         return this._data.byteLength;
     }
 
-    get data() {
+    get data(): number[] {
         const result = new Array(this._data.length);
         for (let i = 0; i < this._data.length; ++i) result[i] = this.getValue(i);
 
         return result;
     }
 
-    get status() {
+    get status(): number[] {
         return Array.from(this._status);
     }
 
-    set data(values) {
+    set data(values: number[]) {
         if (this._size !== values.length) throw new Error('value length is invalid');
 
         this._status.fill(STATUS_SET);
@@ -35,16 +54,16 @@ class InMemoryStore {
         }
     }
 
-    constructor(size, type = 'float32', defaultValue = NaN) {
+    constructor(size: number, type: DataType = 'float32', defaultValue: number = NaN) {
         this._size = size;
         this._type = type;
         this._status = new Int8Array(size);
         this._status.fill(STATUS_EMPTY);
 
-        if (type == 'int32') this._data = new Int32Array(size);
-        else if (type == 'uint32') this._data = new Uint32Array(size);
-        else if (type == 'float32') this._data = new Float32Array(size);
-        else if (type == 'float64') this._data = new Float64Array(size);
+        if (type === 'int32') this._data = new Int32Array(size);
+        else if (type === 'uint32') this._data = new Uint32Array(size);
+        else if (type === 'float32') this._data = new Float32Array(size);
+        else if (type === 'float64') this._data = new Float64Array(size);
         else throw new Error('Invalid type');
 
         if (!Number.isNaN(defaultValue)) {
@@ -53,7 +72,7 @@ class InMemoryStore {
         }
     }
 
-    serialize() {
+    serialize(): Buffer {
         return toBuffer({
             size: this._size,
             type: this._type,
@@ -62,31 +81,50 @@ class InMemoryStore {
         });
     }
 
-    static deserialize(buffer) {
-        const data = fromBuffer(buffer);
-        const store = new InMemoryStore(0);
-        store._size = data.size;
-        store._type = data.type;
-        store._status = data.status;
-        store._data = data.data;
+    static deserialize(buffer: Buffer): InMemoryStore {
+        const data = fromBuffer(buffer) as unknown as {
+            size: number;
+            type: DataType;
+            status: any;
+            data: any;
+        };
+
+        // Convert objects with numeric keys to arrays
+        const statusArr = Array.isArray(data.status) ? data.status : Object.values(data.status);
+        const dataArr = Array.isArray(data.data) ? data.data : Object.values(data.data);
+
+        // Create a new store with the correct size and type
+        const store = new InMemoryStore(data.size, data.type);
+
+        store._status = new Int8Array(statusArr);
+        if (data.type === 'int32') {
+            store._data = new Int32Array(dataArr);
+        } else if (data.type === 'uint32') {
+            store._data = new Uint32Array(dataArr);
+        } else if (data.type === 'float32') {
+            store._data = new Float32Array(dataArr);
+        } else if (data.type === 'float64') {
+            store._data = new Float64Array(dataArr);
+        }
+
         return store;
     }
 
-    getValue(index) {
+    getValue(index: number): number {
         return this._status[index] & STATUS_SET ? this._data[index] : NaN;
     }
 
-    getStatus(index) {
+    getStatus(index: number): number {
         return this._status[index];
     }
 
-    setValue(index, value, status = STATUS_SET) {
+    setValue(index: number, value: number, status: number = STATUS_SET): void {
         this._data[index] = value;
         this._status[index] =
             typeof value === 'number' && !Number.isNaN(value) ? status : STATUS_EMPTY;
     }
 
-    load(otherStore, myDimensions, hisDimensions) {
+    load(otherStore: InMemoryStore, myDimensions: Dimension[], hisDimensions: Dimension[]): void {
         const hisLength = otherStore._size;
         const numDimensions = myDimensions.length;
         const hisDimLengths = hisDimensions.map(dim => dim.numItems);
@@ -110,7 +148,7 @@ class InMemoryStore {
             // Compute what the old index was
             let myIdx = 0;
             for (let i = 0; i < numDimensions; ++i) {
-                let offset = dimIdxHisMineMap[i][hisDimIdx[i]];
+                const offset = dimIdxHisMineMap[i][hisDimIdx[i]];
                 myIdx = myIdx * myDimLengths[i] + offset;
             }
 
@@ -119,7 +157,7 @@ class InMemoryStore {
         }
     }
 
-    reorder(oldDimensions, newDimensions) {
+    reorder(oldDimensions: Dimension[], newDimensions: Dimension[]): InMemoryStore {
         const newStore = new InMemoryStore(this._size, this._type);
 
         const numDimensions = newDimensions.length;
@@ -137,7 +175,7 @@ class InMemoryStore {
             // Compute what the old index was
             let newIdx = 0;
             for (let i = 0; i < numDimensions; ++i) {
-                let oldDimIndex = newToOldDimIdx[i];
+                const oldDimIndex = newToOldDimIdx[i];
                 newIdx = newIdx * newDimensions[i].numItems + oldDimIdx[oldDimIndex];
             }
 
@@ -148,7 +186,7 @@ class InMemoryStore {
         return newStore;
     }
 
-    dice(oldDimensions, newDimensions) {
+    dice(oldDimensions: Dimension[], newDimensions: Dimension[]): InMemoryStore {
         // Cache
         const newLength = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
@@ -175,7 +213,7 @@ class InMemoryStore {
             // Compute what the old index was
             let oldIdx = 0;
             for (let i = 0; i < numDimensions; ++i) {
-                let offset = dimIdxNewOldMap[i][newDimIdx[i]];
+                const offset = dimIdxNewOldMap[i][newDimIdx[i]];
                 oldIdx = oldIdx * oldDimLength[i] + offset;
             }
 
@@ -186,7 +224,11 @@ class InMemoryStore {
         return newStore;
     }
 
-    drillUp(oldDimensions, newDimensions, method = 'sum') {
+    drillUp(
+        oldDimensions: Dimension[],
+        newDimensions: Dimension[],
+        method: AggregationMethod = 'sum'
+    ): InMemoryStore {
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
@@ -201,7 +243,7 @@ class InMemoryStore {
 
         newStore._status.fill(0); // we'll OR the values from the parent buffer, so we need to init at zero.
 
-        let oldDimensionIndex = new Uint32Array(numDimensions);
+        const oldDimensionIndex = new Uint32Array(numDimensions);
         for (let oldIdx = 0; oldIdx < oldSize; ++oldIdx) {
             // Decompose old index into dimensions indexes
             let oldIndexCopy = oldIdx;
@@ -212,22 +254,22 @@ class InMemoryStore {
 
             let newIdx = 0;
             for (let i = 0; i < numDimensions; ++i) {
-                let offset = dimIdxOldNewMap[i][oldDimensionIndex[i]];
+                const offset = dimIdxOldNewMap[i][oldDimensionIndex[i]];
                 newIdx = newIdx * newDimLength[i] + offset;
             }
 
             if (this._status[oldIdx] & STATUS_SET) {
-                let oldValue = this._data[oldIdx];
+                const oldValue = this._data[oldIdx];
                 if (contributions[newIdx] === 0) newStore._data[newIdx] = oldValue;
                 else {
-                    if (method == 'last') newStore._data[newIdx] = oldValue;
-                    else if (method == 'highest')
+                    if (method === 'last') newStore._data[newIdx] = oldValue;
+                    else if (method === 'highest')
                         newStore._data[newIdx] =
                             newStore._data[newIdx] < oldValue ? oldValue : newStore._data[newIdx];
-                    else if (method == 'lowest')
+                    else if (method === 'lowest')
                         newStore._data[newIdx] =
                             newStore._data[newIdx] < oldValue ? newStore._data[newIdx] : oldValue;
-                    else if (method == 'sum' || method == 'average')
+                    else if (method === 'sum' || method === 'average')
                         newStore._data[newIdx] += oldValue;
                 }
 
@@ -246,8 +288,12 @@ class InMemoryStore {
     }
 
     /** fixme: This could be more memory efficient by doing like the other, instead of mapping all indexes */
-    drillDown(oldDimensions, newDimensions, method = 'sum') {
-        const useRounding = this._type == 'int32' || this._type == 'uint32';
+    drillDown(
+        oldDimensions: Dimension[],
+        newDimensions: Dimension[],
+        method: AggregationMethod = 'sum'
+    ): InMemoryStore {
+        const useRounding = this._type === 'int32' || this._type === 'uint32';
         const oldSize = this._size;
         const newSize = newDimensions.reduce((m, d) => m * d.numItems, 1);
         const numDimensions = newDimensions.length;
@@ -274,7 +320,7 @@ class InMemoryStore {
             // Compute corresponding old index
             let oldIdx = 0;
             for (let j = 0; j < numDimensions; ++j) {
-                let offset = dimIdxNewOldMap[j][newDimensionIndex[j]];
+                const offset = dimIdxNewOldMap[j][newDimensionIndex[j]];
                 oldIdx = oldIdx * oldDimLength[j] + offset;
             }
 
@@ -322,4 +368,4 @@ class InMemoryStore {
     }
 }
 
-module.exports = InMemoryStore;
+export default InMemoryStore;

@@ -4,22 +4,37 @@
     "author": "Romain Gilliotte",
     "license": "Unlicense",
     "description": "An implementation of in-memory OLAP cubes for NodeJS and the browser.",
-    "main": "src/index.js",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
     "repository": "github:romain-gilliotte/olap-in-memory",
     "dependencies": {
         "expr-eval": "^2.0.2",
         "lodash.clonedeep": "^4.5.0",
         "lodash.merge": "^4.6.2",
-        "timeslot-dag": "^2.1.3"
+        "msgpackr": "^1.11.4",
+        "timeslot-dag": "^2.4.0"
     },
     "devDependencies": {
-        "chai": "^5.1.2",
-        "mocha": "^11.0.1",
-        "nyc": "^17.1.0",
-        "semantic-release": "^24.2.1"
+        "@jest/globals": "^30.0.3",
+        "@types/expr-eval": "^1.0.2",
+        "@types/jest": "^30.0.0",
+        "@types/lodash.clonedeep": "^4.5.9",
+        "@types/lodash.merge": "^4.6.9",
+        "@types/node": "^24.0.4",
+        "jest": "^30.0.3",
+        "semantic-release": "^24.2.1",
+        "ts-jest": "^29.4.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.8.3"
     },
     "scripts": {
-        "test": "mocha",
-        "coverage": "nyc --reporter=lcov npm test"
+        "build": "tsc",
+        "clean": "rm -rf dist",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:dist": "npm run build && jest",
+        "coverage": "jest --coverage",
+        "coverage:dist": "npm run build && jest --coverage",
+        "prepublishOnly": "npm run build"
     }
 }

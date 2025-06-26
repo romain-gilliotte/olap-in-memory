@@ -3,3 +3,4 @@ test
 .prettierrc
 .nyc_output
 coverage
+src

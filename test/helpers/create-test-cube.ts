@@ -1,6 +1,7 @@
-const { Cube, GenericDimension } = require('../../src');
+import Cube from '../../src/cube';
+import GenericDimension from '../../src/dimension/generic';
 
-module.exports = (createMesures = true, fill = true) => {
+export default function createTestCube(createMeasures: boolean = true, fill: boolean = true): Cube {
     const period = new GenericDimension('period', 'season', ['summer', 'winter']);
     const location = new GenericDimension('location', 'city', ['paris', 'toledo', 'tokyo']);
     location.addAttribute('city', 'country', { paris: 'france', toledo: 'spain', tokyo: 'japan' });
@@ -14,7 +15,7 @@ module.exports = (createMesures = true, fill = true) => {
     const cube = new Cube([location, period]);
 
     // Create measures
-    if (createMesures) {
+    if (createMeasures) {
         cube.createStoredMeasure('antennas', { period: 'sum', location: 'sum' }, 'uint32');
         cube.createStoredMeasure('routers', { period: 'sum', location: 'sum' }, 'uint32');
         cube.createComputedMeasure('router_by_antennas', 'routers / antennas');
@@ -35,4 +36,4 @@ module.exports = (createMesures = true, fill = true) => {
     }
 
     return cube;
-};
+}
