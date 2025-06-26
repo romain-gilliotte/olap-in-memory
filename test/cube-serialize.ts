@@ -1,6 +1,6 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const { Cube, GenericDimension, TimeDimension } = require('../src');
-const { toBuffer, fromBuffer } = require('../src/serialization');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import { Cube, GenericDimension, TimeDimension } from '../src';
+import { toBuffer, fromBuffer } from '../src/serialization';
 
 describe('Serialization', function () {
     describe('generic serialization', function () {
@@ -27,7 +27,7 @@ describe('Serialization', function () {
     });
 
     describe('cube serialization', function () {
-        let cube;
+        let cube: any;
 
         beforeAll(function () {
             const items = [];

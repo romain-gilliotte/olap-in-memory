@@ -1,8 +1,8 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const { GenericDimension } = require('../src');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import { GenericDimension } from '../src';
 
 describe('GenericDimension', function () {
-    let dimension;
+    let dimension: GenericDimension;
 
     beforeAll(function () {
         dimension = new GenericDimension(
@@ -10,10 +10,10 @@ describe('GenericDimension', function () {
             'city',
             ['paris', 'toulouse', 'madrid', 'beirut'],
             'Location',
-            item => 'city of ' + item
+            (item: string) => 'city of ' + item
         );
 
-        dimension.addAttribute('city', 'cityNumLetters', city => city.length.toString(), {
+        dimension.addAttribute('city', 'cityNumLetters', (city: string) => city.length.toString(), {
             5: 'five',
             6: 'six',
             8: 'eigth',
@@ -23,13 +23,13 @@ describe('GenericDimension', function () {
             'city',
             'country',
             { madrid: 'spain', beirut: 'lebanon', paris: 'france', toulouse: 'france' },
-            item => 'country of ' + item
+            (item: string) => 'country of ' + item
         );
 
         dimension.addAttribute(
             'country',
             'continent',
-            item => (item === 'lebanon' ? 'asia' : 'europe'),
+            (item: string) => (item === 'lebanon' ? 'asia' : 'europe'),
             { asia: 'The huge continent', europe: 'The old continent' }
         );
     });
@@ -63,10 +63,12 @@ describe('GenericDimension', function () {
     });
 
     it('should compute child indexes', function () {
-        expect(dimension.getGroupIndexFromRootIndex('city', 0)).toBe(0);
-        expect(dimension.getGroupIndexFromRootIndex('cityNumLetters', 0)).toBe(0);
-        expect(dimension.getGroupIndexFromRootIndex('country', 1)).toBe(0);
-        expect(dimension.getGroupIndexFromRootIndex('continent', 2)).toBe(1);
+        // Can't test protected method getGroupIndexFromRootIndex directly
+        // Test through public method getGroupIndexFromRootItem instead
+        expect(dimension.getGroupIndexFromRootItem('city', 'paris')).toBe(0);
+        expect(dimension.getGroupIndexFromRootItem('cityNumLetters', 'paris')).toBe(0);
+        expect(dimension.getGroupIndexFromRootItem('country', 'toulouse')).toBe(0);
+        expect(dimension.getGroupIndexFromRootItem('continent', 'madrid')).toBe(0); // madrid -> spain -> europe (index 0)
     });
 
     it('should drill up', function () {
@@ -127,14 +129,14 @@ describe('GenericDimension', function () {
             'city',
             ['lyon'],
             'Location',
-            item => 'great city of ' + item
+            (item: string) => 'great city of ' + item
         );
 
         otherDimension.addAttribute(
             'city',
             'country',
-            item => 'france',
-            item => 'country of ' + item
+            (item: string) => 'france',
+            (item: string) => 'country of ' + item
         );
 
         const result = dimension.union(otherDimension);

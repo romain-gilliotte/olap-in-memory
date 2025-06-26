@@ -1,5 +1,5 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const { Cube, GenericDimension, TimeDimension } = require('../src');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import { Cube, GenericDimension, TimeDimension } from '../src';
 
 describe('Operation between cubes', function () {
     describe('compose - intersection', function () {

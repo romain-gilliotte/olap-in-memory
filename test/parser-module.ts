@@ -1,8 +1,8 @@
-const { describe, it, beforeEach, expect } = require('@jest/globals');
-const getParser = require('../src/parser');
+import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
+import getParser from '../src/parser';
 
 describe('Parser Module', function () {
-    let parser;
+    let parser: any;
 
     beforeEach(function () {
         parser = getParser();
