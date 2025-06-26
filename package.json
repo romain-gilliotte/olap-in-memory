@@ -4,7 +4,8 @@
     "author": "Romain Gilliotte",
     "license": "Unlicense",
     "description": "An implementation of in-memory OLAP cubes for NodeJS and the browser.",
-    "main": "src/index.js",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
     "repository": "github:romain-gilliotte/olap-in-memory",
     "dependencies": {
         "expr-eval": "^2.0.2",
@@ -14,6 +15,9 @@
     },
     "devDependencies": {
         "@types/chai": "^5.2.2",
+        "@types/expr-eval": "^1.0.2",
+        "@types/lodash.clonedeep": "^4.5.9",
+        "@types/lodash.merge": "^4.6.9",
         "@types/mocha": "^10.0.10",
         "@types/node": "^24.0.4",
         "chai": "^5.1.2",

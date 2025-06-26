@@ -1,4 +1,39 @@
-const TypedArraySubClasses = [
+type TypedArrayConstructor =
+    | Int8ArrayConstructor
+    | Uint8ArrayConstructor
+    | Uint8ClampedArrayConstructor
+    | Int16ArrayConstructor
+    | Uint16ArrayConstructor
+    | Int32ArrayConstructor
+    | Uint32ArrayConstructor
+    | Float32ArrayConstructor
+    | Float64ArrayConstructor
+    | BigInt64ArrayConstructor
+    | BigUint64ArrayConstructor;
+
+type TypedArrayInstance =
+    | Int8Array
+    | Uint8Array
+    | Uint8ClampedArray
+    | Int16Array
+    | Uint16Array
+    | Int32Array
+    | Uint32Array
+    | Float32Array
+    | Float64Array
+    | BigInt64Array
+    | BigUint64Array;
+
+type SerializableValue =
+    | null
+    | ArrayBuffer
+    | TypedArrayInstance
+    | any[]
+    | string
+    | number
+    | Record<string, any>;
+
+const TypedArraySubClasses: TypedArrayConstructor[] = [
     Int8Array,
     Uint8Array,
     Uint8ClampedArray,
@@ -23,8 +58,8 @@ const NUMBER = 7;
 /**
  * Serialize a mix of ArrayBuffer, TypedArray, Array, String and plain objects into a buffer.
  */
-function toBuffer(obj) {
-    let result;
+function toBuffer(obj: SerializableValue): ArrayBuffer {
+    let result: ArrayBuffer;
 
     if (obj === null) {
         result = new ArrayBuffer(4);
@@ -35,7 +70,12 @@ function toBuffer(obj) {
         result = new ArrayBuffer(8 + Math.ceil(obj.byteLength / 4) * 4);
         new Uint32Array(result, 0, 2).set([ARRAY_BUFFER, obj.byteLength]);
         new Uint8Array(result, 8, obj.byteLength).set(new Uint8Array(obj));
-    } else if (obj.buffer instanceof ArrayBuffer) {
+    } else if (
+        obj &&
+        typeof obj === 'object' &&
+        'buffer' in obj &&
+        obj.buffer instanceof ArrayBuffer
+    ) {
         const typeIndex = TypedArraySubClasses.findIndex(type => obj instanceof type);
         const payload = toBuffer(obj.buffer);
 
@@ -68,17 +108,20 @@ function toBuffer(obj) {
         new Uint32Array(result, 0, 1).set([NUMBER]);
         new Float32Array(result, 4, 1).set([obj]);
     } else {
-        const payload = toBuffer(Object.entries(obj).map(([key, value]) => [key, toBuffer(value)]));
+        // Object case
+        const payload = toBuffer(
+            Object.entries(obj as Record<string, any>).map(([key, value]) => [key, toBuffer(value)])
+        );
 
         result = new ArrayBuffer(4 + payload.byteLength);
-        new Uint32Array(result, 0, 1).set([5]);
+        new Uint32Array(result, 0, 1).set([OBJECT]);
         new Uint8Array(result, 4, payload.byteLength).set(new Uint8Array(payload));
     }
 
     return result;
 }
 
-function fromBuffer(buffer, offset = 0) {
+function fromBuffer(buffer: ArrayBuffer, offset: number = 0): SerializableValue {
     const header = new Uint32Array(buffer, offset, 1)[0];
 
     if (header === ARRAY_BUFFER) {
@@ -86,11 +129,11 @@ function fromBuffer(buffer, offset = 0) {
         return buffer.slice(offset + 8, offset + 8 + size);
     } else if (header === TYPED_ARRAY) {
         const typeIndex = new Uint32Array(buffer, offset + 4, 1)[0];
-        const payload = fromBuffer(buffer, offset + 8);
+        const payload = fromBuffer(buffer, offset + 8) as ArrayBuffer;
         return new TypedArraySubClasses[typeIndex](payload);
     } else if (header === ARRAY) {
         const size = new Uint32Array(buffer, offset + 4, 1)[0];
-        const result = [];
+        const result: any[] = [];
 
         let itemOffset = offset + 8;
         for (let i = 0; i < size; ++i) {
@@ -103,19 +146,23 @@ function fromBuffer(buffer, offset = 0) {
 
         return result;
     } else if (header === STRING) {
-        const payload = fromBuffer(buffer, offset + 4);
+        const payload = fromBuffer(buffer, offset + 4) as ArrayBuffer;
         return new TextDecoder().decode(payload);
     } else if (header === NULL) {
         return null;
     } else if (header === NUMBER) {
         return new Float32Array(buffer, offset + 4, 1)[0];
     } else if (header === OBJECT) {
-        const result = {};
-        fromBuffer(buffer, offset + 4).forEach(entry => {
+        const result: Record<string, any> = {};
+        const entries = fromBuffer(buffer, offset + 4) as [string, ArrayBuffer][];
+        entries.forEach(entry => {
             result[entry[0]] = fromBuffer(entry[1]);
         });
         return result;
     }
+
+    // This should never happen with valid data
+    throw new Error(`Unknown header value: ${header}`);
 }
 
-module.exports = { toBuffer, fromBuffer };
+export { toBuffer, fromBuffer };
