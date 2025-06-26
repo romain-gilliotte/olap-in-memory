@@ -1,7 +1,7 @@
 const assert = require('chai').assert;
 
 // Create a concrete implementation of AbstractDimension for testing
-const AbstractDimension = require('../src/dimension/abstract');
+const AbstractDimension = require('../dist/dimension/abstract');
 
 class TestDimension extends AbstractDimension {
     constructor(id, rootAttribute, label = null) {

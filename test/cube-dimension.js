@@ -1,6 +1,6 @@
 const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
-const { Cube, GenericDimension, TimeDimension } = require('../src');
+const { Cube, GenericDimension, TimeDimension } = require('../dist');
 
 describe('Dimension', function () {
     describe('addDimension', function () {
@@ -138,32 +138,32 @@ describe('Dimension', function () {
             assert.deepEqual(
                 cube.reorderDimensions(['dim1', 'dim2', 'dim3']).getNestedObject('main'),
                 {
-                    '11': { '21': { '31': 1, '32': 2 }, '22': { '31': 3, '32': 4 } },
-                    '12': { '21': { '31': 5, '32': 6 }, '22': { '31': 7, '32': 8 } },
+                    11: { 21: { 31: 1, 32: 2 }, 22: { 31: 3, 32: 4 } },
+                    12: { 21: { 31: 5, 32: 6 }, 22: { 31: 7, 32: 8 } },
                 }
             );
 
             assert.deepEqual(
                 cube.reorderDimensions(['dim1', 'dim3', 'dim2']).getNestedObject('main'),
                 {
-                    '11': { '31': { '21': 1, '22': 3 }, '32': { '21': 2, '22': 4 } },
-                    '12': { '31': { '21': 5, '22': 7 }, '32': { '21': 6, '22': 8 } },
+                    11: { 31: { 21: 1, 22: 3 }, 32: { 21: 2, 22: 4 } },
+                    12: { 31: { 21: 5, 22: 7 }, 32: { 21: 6, 22: 8 } },
                 }
             );
 
             assert.deepEqual(
                 cube.reorderDimensions(['dim3', 'dim2', 'dim1']).getNestedObject('main'),
                 {
-                    '31': { '21': { '11': 1, '12': 5 }, '22': { '11': 3, '12': 7 } },
-                    '32': { '21': { '11': 2, '12': 6 }, '22': { '11': 4, '12': 8 } },
+                    31: { 21: { 11: 1, 12: 5 }, 22: { 11: 3, 12: 7 } },
+                    32: { 21: { 11: 2, 12: 6 }, 22: { 11: 4, 12: 8 } },
                 }
             );
 
             assert.deepEqual(
                 cube.reorderDimensions(['dim3', 'dim1', 'dim2']).getNestedObject('main'),
                 {
-                    '31': { '11': { '21': 1, '22': 3 }, '12': { '21': 5, '22': 7 } },
-                    '32': { '11': { '21': 2, '22': 4 }, '12': { '21': 6, '22': 8 } },
+                    31: { 11: { 21: 1, 22: 3 }, 12: { 21: 5, 22: 7 } },
+                    32: { 11: { 21: 2, 22: 4 }, 12: { 21: 6, 22: 8 } },
                 }
             );
         });

@@ -1,4 +1,4 @@
-const { Cube, GenericDimension } = require('../../src');
+const { Cube, GenericDimension } = require('../../dist');
 
 module.exports = (createMesures = true, fill = true) => {
     const period = new GenericDimension('period', 'season', ['summer', 'winter']);

@@ -1,6 +1,6 @@
 const assert = require('chai').assert;
 const createTestCube = require('./helpers/create-test-cube');
-const { Cube, GenericDimension, TimeDimension } = require('../src');
+const { Cube, GenericDimension, TimeDimension } = require('../dist');
 
 describe('Accessors', function () {
     describe('getting data', function () {

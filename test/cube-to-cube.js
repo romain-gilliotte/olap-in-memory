@@ -1,5 +1,5 @@
 const assert = require('chai').assert;
-const { Cube, GenericDimension, TimeDimension } = require('../src');
+const { Cube, GenericDimension, TimeDimension } = require('../dist');
 
 describe('Operation between cubes', function () {
     describe('compose - intersection', function () {

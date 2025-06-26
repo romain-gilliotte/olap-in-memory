@@ -1,6 +1,6 @@
 const assert = require('chai').assert;
-const { Cube, GenericDimension, TimeDimension } = require('../src');
-const { toBuffer, fromBuffer } = require('../src/serialization');
+const { Cube, GenericDimension, TimeDimension } = require('../dist');
+const { toBuffer, fromBuffer } = require('../dist/serialization');
 
 describe('Serialization', function () {
     describe('generic serialization', function () {

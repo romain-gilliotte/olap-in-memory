@@ -1,5 +1,5 @@
 const assert = require('chai').assert;
-const { Cube, GenericDimension, TimeDimension } = require('../src');
+const { Cube, GenericDimension, TimeDimension } = require('../dist');
 
 describe('Cube Edge Cases', function () {
     describe('error handling', function () {

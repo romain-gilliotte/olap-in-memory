@@ -1,5 +1,5 @@
 const assert = require('chai').assert;
-const { GenericDimension } = require('../src');
+const { GenericDimension } = require('../dist');
 
 describe('GenericDimension', function () {
     let dimension;
@@ -14,9 +14,9 @@ describe('GenericDimension', function () {
         );
 
         dimension.addAttribute('city', 'cityNumLetters', city => city.length.toString(), {
-            '5': 'five',
-            '6': 'six',
-            '8': 'eigth',
+            5: 'five',
+            6: 'six',
+            8: 'eigth',
         });
 
         dimension.addAttribute(

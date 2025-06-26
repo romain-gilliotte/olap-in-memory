@@ -1,5 +1,5 @@
 const assert = require('chai').assert;
-const { TimeDimension } = require('../src');
+const { TimeDimension } = require('../dist');
 
 describe('TimeDimension', function () {
     let dimension;

@@ -1,6 +1,6 @@
 const assert = require('chai').assert;
-const CatchAllDimension = require('../src/dimension/catch-all');
-const GenericDimension = require('../src/dimension/generic');
+const CatchAllDimension = require('../dist/dimension/catch-all');
+const GenericDimension = require('../dist/dimension/generic');
 
 describe('CatchAllDimension', function () {
     describe('constructor', function () {
