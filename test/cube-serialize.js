@@ -1,6 +1,6 @@
-const assert = require('chai').assert;
-const { Cube, GenericDimension, TimeDimension } = require('../dist');
-const { toBuffer, fromBuffer } = require('../dist/serialization');
+const { describe, it, beforeEach, expect } = require('@jest/globals');
+const { Cube, GenericDimension, TimeDimension } = require('../src');
+const { toBuffer, fromBuffer } = require('../src/serialization');
 
 describe('Serialization', function () {
     describe('generic serialization', function () {
@@ -22,14 +22,14 @@ describe('Serialization', function () {
             const payload = toBuffer(obj);
             const newObj = fromBuffer(payload);
 
-            assert.deepEqual(obj, newObj);
+            expect(obj).toEqual(newObj);
         });
     });
 
     describe('cube serialization', function () {
         let cube;
 
-        before(function () {
+        beforeAll(function () {
             const items = [];
             for (let i = 0; i < 50; ++i) items.push(i.toString());
 
@@ -46,7 +46,7 @@ describe('Serialization', function () {
             const buffer = cube.serialize();
             const newCube = Cube.deserialize(buffer);
 
-            assert.deepEqual(cube.getNestedObject('main'), newCube.getNestedObject('main'));
+            expect(cube.getNestedObject('main')).toEqual(newCube.getNestedObject('main'));
         });
     });
 });
