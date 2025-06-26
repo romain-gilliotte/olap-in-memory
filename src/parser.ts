@@ -1,6 +1,6 @@
 import { Parser } from 'expr-eval';
 
-function getParser(): Parser {
+export function getParser(): Parser {
     const parser = new Parser({
         operators: {
             logical: false,
@@ -28,4 +28,8 @@ function getParser(): Parser {
     return parser;
 }
 
-export default getParser;
+export interface Expression {
+    variables(options?: { withMembers?: boolean }): string[];
+    evaluate(params: Record<string, number>): number;
+    substitute(variable: string, replacement: string): Expression;
+}

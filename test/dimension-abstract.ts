@@ -1,11 +1,9 @@
-import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
-
 // Create a concrete implementation of AbstractDimension for testing
 import AbstractDimension from '../src/dimension/abstract';
 
 class TestDimension extends AbstractDimension {
     private _items: string[];
-    
+
     constructor(id: string, rootAttribute: string, label: string | null = null) {
         super(id, rootAttribute, label);
         this._items = ['item1', 'item2', 'item3'];
@@ -22,21 +20,21 @@ class TestDimension extends AbstractDimension {
     drillUp(newAttribute: string): AbstractDimension {
         return new TestDimension(this.id, newAttribute, this.label);
     }
-    
+
     drillDown(newAttribute: string): AbstractDimension {
         return new TestDimension(this.id, newAttribute, this.label);
     }
-    
+
     union(other: AbstractDimension): AbstractDimension {
         return new TestDimension(this.id, this.rootAttribute, this.label);
     }
-    
+
     intersect(other: AbstractDimension): AbstractDimension {
         return new TestDimension(this.id, this.rootAttribute, this.label);
     }
-    
-    serialize(): ArrayBuffer {
-        return new ArrayBuffer(0);
+
+    serialize(): Buffer {
+        return new Buffer(0);
     }
 
     dice(attribute: string, items: string[], reorder: boolean = false): AbstractDimension {
@@ -50,7 +48,7 @@ class TestDimension extends AbstractDimension {
     protected getGroupIndexFromRootIndex(groupAttr: string, rootIndex: number): number {
         return rootIndex % 2;
     }
-    
+
     getGroupIndexFromRootIndexMap(groupAttr: string): number[] {
         const result: number[] = [];
         for (let i = 0; i < this._items.length; i++) {

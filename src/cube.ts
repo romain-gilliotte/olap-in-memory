@@ -7,7 +7,7 @@ import nestedArrayFormatter from './formatter/nested-array';
 import nestedObjectFormatter from './formatter/nested-object';
 import { toBuffer, fromBuffer } from './serialization';
 import InMemoryStore from './store/in-memory';
-import getParser from './parser';
+import { getParser, Expression } from './parser';
 
 const { fromNestedArray, toNestedArray } = nestedArrayFormatter;
 const { fromNestedObject, toNestedObject } = nestedObjectFormatter;
@@ -23,18 +23,12 @@ interface StoredMeasuresRules {
     [measureId: string]: MeasureRules;
 }
 
-interface Expression {
-    variables(options?: { withMembers?: boolean }): string[];
-    evaluate(params: Record<string, number>): number;
-    substitute(variable: string, replacement: string): Expression;
-}
-
 interface SerializedCube {
-    dimensions: ArrayBuffer[];
+    dimensions: Buffer[];
     storedMeasuresKeys: string[];
-    storedMeasures: ArrayBuffer[];
+    storedMeasures: Buffer[];
     storedMeasuresRules: StoredMeasuresRules;
-    computedMeasures: Record<string, Expression>;
+    computedMeasures: Record<string, string>;
 }
 
 class Cube {
@@ -574,17 +568,22 @@ class Cube {
         return newCube;
     }
 
-    serialize(): ArrayBuffer {
+    serialize(): Buffer {
         return toBuffer({
             dimensions: this.dimensions.map(dim => dim.serialize()),
             storedMeasuresKeys: Object.keys(this.storedMeasures),
             storedMeasures: Object.values(this.storedMeasures).map(measure => measure.serialize()),
             storedMeasuresRules: this.storedMeasuresRules,
-            computedMeasures: this.computedMeasures,
+            computedMeasures: Object.fromEntries(
+                Object.entries(this.computedMeasures).map(([key, expression]) => [
+                    key,
+                    expression.toString(),
+                ])
+            ),
         });
     }
 
-    static deserialize(buffer: ArrayBuffer): Cube {
+    static deserialize(buffer: Buffer): Cube {
         const data = fromBuffer(buffer) as unknown as SerializedCube;
         const dimensions = data.dimensions.map(data => DimensionFactory.deserialize(data));
 
@@ -594,7 +593,15 @@ class Cube {
         data.storedMeasuresKeys.forEach((key, i) => {
             cube.storedMeasures[key] = InMemoryStore.deserialize(data.storedMeasures[i]);
         });
-        cube.computedMeasures = data.computedMeasures;
+
+        // Rebuild expressions from strings
+        cube.computedMeasures = Object.fromEntries(
+            Object.entries(data.computedMeasures).map(([key, formula]) => [
+                key,
+                getParser().parse(formula),
+            ])
+        );
+
         return cube;
     }
 }

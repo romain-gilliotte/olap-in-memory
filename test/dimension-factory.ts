@@ -1,4 +1,3 @@
-import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 import dimensionFactory from '../src/dimension/factory';
 import GenericDimension from '../src/dimension/generic';
 import TimeDimension from '../src/dimension/time';
@@ -18,7 +17,7 @@ describe('Dimension Factory', function () {
         it('should handle factory edge cases', function () {
             // Test that the factory can handle various buffer formats
             try {
-                const invalidBuffer = new ArrayBuffer(4);
+                const invalidBuffer = new Buffer(4);
                 const dimension = dimensionFactory.deserialize(invalidBuffer);
                 // Should either work or throw an error gracefully
                 expect(dimension).toBeDefined();

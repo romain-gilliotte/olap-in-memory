@@ -1,4 +1,3 @@
-import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 import GenericDimension from '../src/dimension/generic';
 
 describe('GenericDimension', function () {

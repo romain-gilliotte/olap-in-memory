@@ -1,6 +1,4 @@
-import Cube from './cube';
-import GenericDimension from './dimension/generic';
-import TimeDimension from './dimension/time';
-import getParser from './parser';
-
-export { Cube, GenericDimension, TimeDimension, getParser };
+export { default as Cube } from './cube';
+export { default as GenericDimension } from './dimension/generic';
+export { default as TimeDimension } from './dimension/time';
+export { getParser, Expression } from './parser';

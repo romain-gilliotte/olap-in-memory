@@ -1,5 +1,4 @@
-import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
-import InMemoryStore from '../src/store/in-memory';
+import InMemoryStore, { STATUS_EMPTY, STATUS_SET } from '../src/store/in-memory';
 
 describe('InMemoryStore', function () {
     let store: InMemoryStore;
@@ -192,6 +191,64 @@ describe('InMemoryStore', function () {
         it('should work with dicing operations', function () {
             // This would test dice method, but requires dimension setup
             expect(typeof store.dice).toBe('function');
+        });
+    });
+
+    describe('serialization', function () {
+        it('should serialize and deserialize correctly', function () {
+            // Set up some test data
+            store.setValue(0, 42);
+            store.setValue(2, 100);
+            store.setValue(5, 200);
+
+            // Serialize the store
+            const serialized = store.serialize();
+            expect(Buffer.isBuffer(serialized)).toBe(true);
+            expect(serialized.length).toBeGreaterThan(0);
+
+            // Deserialize and verify data integrity
+            const deserialized = InMemoryStore.deserialize(serialized);
+            expect(deserialized.data.length).toBe(store.data.length);
+            expect(deserialized.getValue(0)).toBe(42);
+            expect(deserialized.getValue(2)).toBe(100);
+            expect(deserialized.getValue(5)).toBe(200);
+            expect(isNaN(deserialized.getValue(1))).toBe(true); // unset value
+        });
+
+        it('should handle different data types in serialization', function () {
+            const int32Store = new InMemoryStore(5, 'int32');
+            int32Store.setValue(0, 42);
+            int32Store.setValue(2, 100);
+
+            const serialized = int32Store.serialize();
+            const deserialized = InMemoryStore.deserialize(serialized);
+
+            expect(deserialized.data.length).toBe(5);
+            expect(deserialized.getValue(0)).toBe(42);
+            expect(deserialized.getValue(2)).toBe(100);
+
+            const float64Store = new InMemoryStore(3, 'float64');
+            float64Store.setValue(0, 3.14159);
+            float64Store.setValue(1, 2.71828);
+
+            const floatSerialized = float64Store.serialize();
+            const floatDeserialized = InMemoryStore.deserialize(floatSerialized);
+
+            expect(floatDeserialized.data.length).toBe(3);
+            expect(floatDeserialized.getValue(0)).toBeCloseTo(3.14159);
+            expect(floatDeserialized.getValue(1)).toBeCloseTo(2.71828);
+        });
+
+        it('should preserve status information during serialization', function () {
+            store.setValue(0, 42);
+            store.setValue(1, NaN); // This should set STATUS_EMPTY
+
+            const serialized = store.serialize();
+            const deserialized = InMemoryStore.deserialize(serialized);
+
+            // Check that status is preserved
+            expect(deserialized.getStatus(0) & STATUS_SET).toBe(STATUS_SET);
+            expect(deserialized.getStatus(1) & STATUS_EMPTY).toBe(STATUS_EMPTY);
         });
     });
 });

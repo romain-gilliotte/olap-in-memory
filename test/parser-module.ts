@@ -1,5 +1,4 @@
-import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
-import getParser from '../src/parser';
+import { getParser } from '../src/parser';
 
 describe('Parser Module', function () {
     let parser: any;

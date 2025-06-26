@@ -14,9 +14,9 @@ interface Dimension {
     getGroupIndexFromRootIndexMap(attribute: string): number[];
 }
 
-const STATUS_EMPTY = 1;
-const STATUS_SET = 2;
-const STATUS_INTERPOLATED = 4;
+export const STATUS_EMPTY = 1;
+export const STATUS_SET = 2;
+export const STATUS_INTERPOLATED = 4;
 
 /**
  * The data array can be millions of items.
@@ -72,7 +72,7 @@ class InMemoryStore {
         }
     }
 
-    serialize(): ArrayBuffer {
+    serialize(): Buffer {
         return toBuffer({
             size: this._size,
             type: this._type,
@@ -81,18 +81,32 @@ class InMemoryStore {
         });
     }
 
-    static deserialize(buffer: ArrayBuffer): InMemoryStore {
+    static deserialize(buffer: Buffer): InMemoryStore {
         const data = fromBuffer(buffer) as unknown as {
             size: number;
             type: DataType;
-            status: Int8Array;
-            data: TypedArrayType;
+            status: any;
+            data: any;
         };
-        const store = new InMemoryStore(0);
-        store._size = data.size;
-        store._type = data.type;
-        store._status = data.status;
-        store._data = data.data;
+
+        // Convert objects with numeric keys to arrays
+        const statusArr = Array.isArray(data.status) ? data.status : Object.values(data.status);
+        const dataArr = Array.isArray(data.data) ? data.data : Object.values(data.data);
+
+        // Create a new store with the correct size and type
+        const store = new InMemoryStore(data.size, data.type);
+
+        store._status = new Int8Array(statusArr);
+        if (data.type === 'int32') {
+            store._data = new Int32Array(dataArr);
+        } else if (data.type === 'uint32') {
+            store._data = new Uint32Array(dataArr);
+        } else if (data.type === 'float32') {
+            store._data = new Float32Array(dataArr);
+        } else if (data.type === 'float64') {
+            store._data = new Float64Array(dataArr);
+        }
+
         return store;
     }
 

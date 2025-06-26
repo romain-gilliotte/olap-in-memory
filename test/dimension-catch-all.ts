@@ -1,4 +1,3 @@
-import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 import CatchAllDimension from '../src/dimension/catch-all';
 import GenericDimension from '../src/dimension/generic';
 

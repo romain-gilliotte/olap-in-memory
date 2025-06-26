@@ -52,12 +52,12 @@ class TimeDimension extends AbstractDimension {
             throw new Error('Start and end must be dates.');
     }
 
-    static deserialize(buffer: ArrayBuffer): TimeDimension {
+    static deserialize(buffer: Buffer): TimeDimension {
         const data = fromBuffer(buffer) as unknown as SerializedTimeDimension;
         return new TimeDimension(data.id, data.rootAttribute, data.start, data.end, data.label);
     }
 
-    serialize(): ArrayBuffer {
+    serialize(): Buffer {
         return toBuffer({
             id: this.id,
             label: this.label,

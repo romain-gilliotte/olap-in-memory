@@ -62,7 +62,7 @@ class GenericDimension extends AbstractDimension {
         });
     }
 
-    static deserialize(buffer: ArrayBuffer): GenericDimension {
+    static deserialize(buffer: Buffer): GenericDimension {
         const data = fromBuffer(buffer) as unknown as SerializedGenericDimension;
         const dimension = new GenericDimension(
             data.id,
@@ -77,7 +77,7 @@ class GenericDimension extends AbstractDimension {
         return dimension;
     }
 
-    serialize(): ArrayBuffer {
+    serialize(): Buffer {
         return toBuffer({
             id: this.id,
             label: this.label,

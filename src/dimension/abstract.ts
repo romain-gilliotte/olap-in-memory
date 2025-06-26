@@ -46,7 +46,7 @@ abstract class AbstractDimension {
 
     abstract intersect(otherDimension: AbstractDimension): AbstractDimension;
 
-    abstract serialize(): ArrayBuffer;
+    abstract serialize(): Buffer;
 
     protected abstract getGroupIndexFromRootIndex(groupAttr: string, rootIndex: number): number;
 

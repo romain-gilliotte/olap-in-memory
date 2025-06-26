@@ -1,4 +1,3 @@
-import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 import TimeDimension from '../src/dimension/time';
 
 describe('TimeDimension', function () {
