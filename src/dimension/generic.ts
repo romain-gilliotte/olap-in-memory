@@ -248,7 +248,7 @@ class GenericDimension extends AbstractDimension {
         return Array.from(this._rootIdxToGroupIdx[groupAttr]);
     }
 
-    getGroupIndexFromRootIndex(groupAttr: string, rootIdx: number): number {
+    protected getGroupIndexFromRootIndex(groupAttr: string, rootIdx: number): number {
         this._checkAttribute(groupAttr);
         this._checkRootIndex(rootIdx);
 

@@ -48,7 +48,7 @@ abstract class AbstractDimension {
 
     abstract serialize(): ArrayBuffer;
 
-    abstract getGroupIndexFromRootIndex(groupAttr: string, rootIndex: number): number;
+    protected abstract getGroupIndexFromRootIndex(groupAttr: string, rootIndex: number): number;
 
     abstract getGroupIndexFromRootIndexMap(attribute: string): number[];
 
@@ -79,7 +79,7 @@ abstract class AbstractDimension {
         return this.getGroupIndexFromRootIndex(groupAttr, rootIndex);
     }
 
-    getGroupItemFromRootIndex(groupAttr: string, rootIndex: number): string {
+    private getGroupItemFromRootIndex(groupAttr: string, rootIndex: number): string {
         const groupIndex = this.getGroupIndexFromRootIndex(groupAttr, rootIndex);
         const groupItems = this.getItems(groupAttr);
         return groupItems[groupIndex];

@@ -201,7 +201,7 @@ class TimeDimension extends AbstractDimension {
         return this._rootIdxToGroupIdx[groupAttr];
     }
 
-    getGroupIndexFromRootIndex(groupAttr: string, rootIdx: number): number {
+    protected getGroupIndexFromRootIndex(groupAttr: string, rootIdx: number): number {
         if (undefined === this._rootIdxToGroupIdx[groupAttr]) {
             this.getGroupIndexFromRootIndexMap(groupAttr);
         }

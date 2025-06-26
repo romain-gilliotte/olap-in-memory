@@ -51,7 +51,7 @@ class CatchAll extends AbstractDimension {
      * @param  {number} index     32
      * @return {number}           2
      */
-    getGroupIndexFromRootIndex(attribute: string, index: number): number {
+    protected getGroupIndexFromRootIndex(attribute: string, index: number): number {
         return 0;
     }
 
