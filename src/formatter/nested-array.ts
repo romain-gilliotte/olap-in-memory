@@ -1,25 +1,25 @@
-interface Dimension {
+export interface Dimension {
     readonly numItems: number;
     getItems(): string[];
 }
 
-interface NestedArrayFormatter {
-    fromNestedArray(values: any[], dimensions: Dimension[]): any[];
-    toNestedArray(values: any[], status: Uint8Array, dimensions: Dimension[]): any;
+export interface NestedArrayFormatter {
+    fromNestedArray(values: unknown[], dimensions: Dimension[]): unknown[];
+    toNestedArray(values: unknown[], status: Uint8Array, dimensions: Dimension[]): unknown;
 }
 
 const nestedArrayFormatter: NestedArrayFormatter = {
-    fromNestedArray(values: any[], dimensions: Dimension[]): any[] {
+    fromNestedArray(values: unknown[], dimensions: Dimension[]): unknown[] {
         const numSteps = dimensions.length - 1;
 
         for (let i = 0; i < numSteps; ++i) {
-            values = [].concat(...values);
+            values = ([] as unknown[]).concat(...(values as unknown[]));
         }
 
         return values;
     },
 
-    toNestedArray(values: any[], status: Uint8Array, dimensions: Dimension[]): any {
+    toNestedArray(values: unknown[], status: Uint8Array, dimensions: Dimension[]): unknown {
         // numDimensions == 0
         if (dimensions.length === 0) {
             return values[0];
@@ -41,4 +41,4 @@ const nestedArrayFormatter: NestedArrayFormatter = {
     },
 };
 
-export = nestedArrayFormatter;
+export default nestedArrayFormatter;

@@ -82,7 +82,12 @@ class InMemoryStore {
     }
 
     static deserialize(buffer: ArrayBuffer): InMemoryStore {
-        const data = fromBuffer(buffer) as any;
+        const data = fromBuffer(buffer) as unknown as {
+            size: number;
+            type: DataType;
+            status: Int8Array;
+            data: TypedArrayType;
+        };
         const store = new InMemoryStore(0);
         store._size = data.size;
         store._type = data.type;
@@ -349,4 +354,4 @@ class InMemoryStore {
     }
 }
 
-export = InMemoryStore;
+export default InMemoryStore;

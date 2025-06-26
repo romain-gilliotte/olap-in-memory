@@ -38,7 +38,7 @@ abstract class AbstractDimension {
 
     abstract dice(attribute: string, items: string[], reorder?: boolean): AbstractDimension;
 
-    abstract diceRange(attribute: string, start: any, end: any): AbstractDimension;
+    abstract diceRange(attribute: string, start: unknown, end: unknown): AbstractDimension;
 
     abstract drillDown(attribute: string): AbstractDimension;
 
@@ -102,4 +102,4 @@ abstract class AbstractDimension {
     }
 }
 
-export = AbstractDimension;
+export default AbstractDimension;

@@ -1,4 +1,5 @@
-import { Cube, GenericDimension } from '../../src';
+import Cube from '../../src/cube';
+import GenericDimension from '../../src/dimension/generic';
 
 export default function createTestCube(createMeasures: boolean = true, fill: boolean = true): Cube {
     const period = new GenericDimension('period', 'season', ['summer', 'winter']);

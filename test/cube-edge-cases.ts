@@ -1,5 +1,7 @@
 import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
-import { Cube, GenericDimension, TimeDimension } from '../src';
+import Cube from '../src/cube';
+import GenericDimension from '../src/dimension/generic';
+import { TimeDimension } from '../src';
 
 describe('Cube Edge Cases', function () {
     describe('error handling', function () {

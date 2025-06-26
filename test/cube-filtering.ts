@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 import createTestCube from './helpers/create-test-cube';
-import { Cube } from '../src';
+import Cube from '../src/cube';
 
 describe('Filtering', function () {
     let cube: any;
@@ -77,9 +77,9 @@ describe('Filtering', function () {
         });
 
         it('should work dicing on non existent item', function () {
-            expect(
-                cube.dice('location', 'city', ['nonexisting', 'paris']).storeSize
-            ).toBe(cube.storeSize / 3);
+            expect(cube.dice('location', 'city', ['nonexisting', 'paris']).storeSize).toBe(
+                cube.storeSize / 3
+            );
         });
 
         it('should work dicing on empty array', function () {

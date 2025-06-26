@@ -1,5 +1,5 @@
-import GenericDimension = require('./generic');
-import TimeDimension = require('./time');
+import GenericDimension from './generic';
+import TimeDimension from './time';
 import { fromBuffer } from '../serialization';
 
 type AnyDimension = GenericDimension | TimeDimension;
@@ -10,10 +10,10 @@ interface DimensionFactory {
 
 const dimensionFactory: DimensionFactory = {
     deserialize(buffer: ArrayBuffer): AnyDimension {
-        const data = fromBuffer(buffer) as any;
+        const data = fromBuffer(buffer) as unknown as { start?: string };
         if (data.start) return TimeDimension.deserialize(buffer);
         else return GenericDimension.deserialize(buffer);
     },
 };
 
-export = dimensionFactory;
+export default dimensionFactory;

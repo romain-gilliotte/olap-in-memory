@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
-import { TimeDimension } from '../src';
+import TimeDimension from '../src/dimension/time';
 
 describe('TimeDimension', function () {
     let dimension: any;
@@ -14,7 +14,9 @@ describe('TimeDimension', function () {
 
     it('should give proper attributes', function () {
         expect(dimension.rootAttribute).toBe('month');
-        expect(dimension.attributes.sort()).toEqual(['month', 'quarter', 'semester', 'year', 'all'].sort());
+        expect(dimension.attributes.sort()).toEqual(
+            ['month', 'quarter', 'semester', 'year', 'all'].sort()
+        );
     });
 
     it('should compute items for all attributes', function () {
@@ -44,14 +46,9 @@ describe('TimeDimension', function () {
 
     it('should drill down', function () {
         let childDim = dimension.drillDown('week_mon');
-        expect(childDim.attributes.sort()).toEqual([
-            'week_mon',
-            'month',
-            'quarter',
-            'semester',
-            'year',
-            'all',
-        ].sort());
+        expect(childDim.attributes.sort()).toEqual(
+            ['week_mon', 'month', 'quarter', 'semester', 'year', 'all'].sort()
+        );
         expect(childDim.getItems()).toEqual([
             '2009-W49-mon',
             '2009-W50-mon',

@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 import createTestCube from './helpers/create-test-cube';
-import { Cube } from '../src';
+import Cube from '../src/cube';
 
 describe('Measures', function () {
     describe('Renaming measures', function () {

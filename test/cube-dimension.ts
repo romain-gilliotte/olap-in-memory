@@ -1,6 +1,8 @@
 import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 import createTestCube from './helpers/create-test-cube';
-import { Cube, GenericDimension, TimeDimension } from '../src';
+import Cube from '../src/cube';
+import GenericDimension from '../src/dimension/generic';
+import TimeDimension from '../src/dimension/time';
 
 describe('Dimension', function () {
     describe('addDimension', function () {
@@ -19,12 +21,12 @@ describe('Dimension', function () {
                 measure2: 'average',
             });
 
-            expect(
-                newCube.removeDimension('location').getNestedObject('measure1')).toEqual(cube.getNestedObject('measure1')
+            expect(newCube.removeDimension('location').getNestedObject('measure1')).toEqual(
+                cube.getNestedObject('measure1')
             );
 
-            expect(
-                newCube.removeDimension('location').getNestedObject('measure2')).toEqual(cube.getNestedObject('measure2')
+            expect(newCube.removeDimension('location').getNestedObject('measure2')).toEqual(
+                cube.getNestedObject('measure2')
             );
         });
 
@@ -44,12 +46,12 @@ describe('Dimension', function () {
                 measure2: 'average',
             });
 
-            expect(
-                newCube.removeDimension('time2').getNestedObject('measure1')).toEqual(cube.getNestedObject('measure1')
+            expect(newCube.removeDimension('time2').getNestedObject('measure1')).toEqual(
+                cube.getNestedObject('measure1')
             );
 
-            expect(
-                newCube.removeDimension('time2').getNestedObject('measure2')).toEqual(cube.getNestedObject('measure2')
+            expect(newCube.removeDimension('time2').getNestedObject('measure2')).toEqual(
+                cube.getNestedObject('measure2')
             );
         });
     });

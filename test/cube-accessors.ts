@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 import createTestCube from './helpers/create-test-cube';
-import { Cube, GenericDimension, TimeDimension } from '../src';
+import Cube from '../src/cube';
+import { GenericDimension, TimeDimension } from '../src';
 
 describe('Accessors', function () {
     describe('getting data', function () {

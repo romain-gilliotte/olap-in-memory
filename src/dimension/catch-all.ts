@@ -1,4 +1,4 @@
-import AbstractDimension = require('./abstract');
+import AbstractDimension from './abstract';
 
 class CatchAll extends AbstractDimension {
     childDimension: AbstractDimension | null;
@@ -41,7 +41,7 @@ class CatchAll extends AbstractDimension {
         else throw new Error('Unsupported');
     }
 
-    diceRange(attribute: string, start: any, end: any): never {
+    diceRange(attribute: string, start: unknown, end: unknown): never {
         throw new Error('Unsupported');
     }
 
@@ -69,4 +69,4 @@ class CatchAll extends AbstractDimension {
     }
 }
 
-export = CatchAll;
+export default CatchAll;

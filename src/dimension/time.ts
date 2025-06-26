@@ -4,7 +4,7 @@ import {
     getParentPeriodicities,
     getChildPeriodicities,
 } from 'timeslot-dag';
-import AbstractDimension = require('./abstract');
+import AbstractDimension from './abstract';
 import { toBuffer, fromBuffer } from '../serialization';
 
 interface SerializedTimeDimension {
@@ -53,7 +53,7 @@ class TimeDimension extends AbstractDimension {
     }
 
     static deserialize(buffer: ArrayBuffer): TimeDimension {
-        const data = fromBuffer(buffer) as SerializedTimeDimension;
+        const data = fromBuffer(buffer) as unknown as SerializedTimeDimension;
         return new TimeDimension(data.id, data.rootAttribute, data.start, data.end, data.label);
     }
 
@@ -241,4 +241,4 @@ class TimeDimension extends AbstractDimension {
     }
 }
 
-export = TimeDimension;
+export default TimeDimension;

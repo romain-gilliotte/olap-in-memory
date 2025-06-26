@@ -1,4 +1,4 @@
-import AbstractDimension = require('./abstract');
+import AbstractDimension from './abstract';
 import { toBuffer, fromBuffer } from '../serialization';
 
 type ItemToLabelMap = Record<string, string> | ((item: string) => string) | null;
@@ -63,7 +63,7 @@ class GenericDimension extends AbstractDimension {
     }
 
     static deserialize(buffer: ArrayBuffer): GenericDimension {
-        const data = fromBuffer(buffer) as SerializedGenericDimension;
+        const data = fromBuffer(buffer) as unknown as SerializedGenericDimension;
         const dimension = new GenericDimension(
             data.id,
             data.rootAttribute,
@@ -340,4 +340,4 @@ class GenericDimension extends AbstractDimension {
     }
 }
 
-export = GenericDimension;
+export default GenericDimension;

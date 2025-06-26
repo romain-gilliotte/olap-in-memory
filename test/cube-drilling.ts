@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
 import createTestCube from './helpers/create-test-cube';
-import { Cube, TimeDimension } from '../src';
+import Cube from '../src/cube';
+import { TimeDimension } from '../src';
 
 describe('Drilling', function () {
     describe('drillUp', function () {
@@ -96,15 +97,11 @@ describe('Drilling', function () {
             });
 
             it('both measures should not have changed when drilled down and up again', function () {
-                expect(
-                    newCube.drillUp('time', 'month').getNestedObject('measure1')
-                ).toEqual(
+                expect(newCube.drillUp('time', 'month').getNestedObject('measure1')).toEqual(
                     cube.getNestedObject('measure1')
                 );
 
-                expect(
-                    newCube.drillUp('time', 'month').getNestedObject('measure2')
-                ).toEqual(
+                expect(newCube.drillUp('time', 'month').getNestedObject('measure2')).toEqual(
                     cube.getNestedObject('measure2')
                 );
             });
@@ -127,15 +124,11 @@ describe('Drilling', function () {
             it('both measures should not have changed when drilled down and up again', function () {
                 expect(
                     newCube.drillUp('time', 'month_week_mon').getNestedObject('measure1')
-                ).toEqual(
-                    cube.getNestedObject('measure1')
-                );
+                ).toEqual(cube.getNestedObject('measure1'));
 
                 expect(
                     newCube.drillUp('time', 'month_week_mon').getNestedObject('measure2')
-                ).toEqual(
-                    cube.getNestedObject('measure2')
-                );
+                ).toEqual(cube.getNestedObject('measure2'));
             });
         });
 

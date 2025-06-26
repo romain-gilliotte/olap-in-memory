@@ -28,4 +28,4 @@ function getParser(): Parser {
     return parser;
 }
 
-export = getParser;
+export default getParser;

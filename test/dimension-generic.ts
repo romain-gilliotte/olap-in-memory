@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, expect, beforeAll } from '@jest/globals';
-import { GenericDimension } from '../src';
+import GenericDimension from '../src/dimension/generic';
 
 describe('GenericDimension', function () {
     let dimension: GenericDimension;
@@ -40,13 +40,9 @@ describe('GenericDimension', function () {
 
     it('should give proper attributes', function () {
         expect(dimension.rootAttribute).toBe('city');
-        expect(dimension.attributes.sort()).toEqual([
-            'city',
-            'cityNumLetters',
-            'country',
-            'continent',
-            'all',
-        ].sort());
+        expect(dimension.attributes.sort()).toEqual(
+            ['city', 'cityNumLetters', 'country', 'continent', 'all'].sort()
+        );
     });
 
     it('should compute items for all attributes', function () {
