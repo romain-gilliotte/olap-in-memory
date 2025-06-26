@@ -1,28 +1,28 @@
-const assert = require('chai').assert;
-const { toBuffer, fromBuffer } = require('../dist/serialization');
+const { describe, it, beforeEach, expect } = require('@jest/globals');
+const { toBuffer, fromBuffer } = require('../src/serialization');
 const createTestCube = require('./helpers/create-test-cube');
-const Cube = require('../dist/cube');
+const Cube = require('../src/cube');
 
 describe('Serialization Advanced', function () {
     describe('primitive serialization', function () {
         it('should handle null values', function () {
             const serialized = toBuffer(null);
             const deserialized = fromBuffer(serialized);
-            assert.isNull(deserialized);
+            expect(deserialized).toBeNull();
         });
 
         it('should handle empty arrays', function () {
             const original = [];
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
-            assert.deepEqual(deserialized, original);
+            expect(deserialized).toEqual(original);
         });
 
         it('should handle empty objects', function () {
             const original = {};
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
-            assert.deepEqual(deserialized, original);
+            expect(deserialized).toEqual(original);
         });
 
         it('should handle nested structures', function () {
@@ -33,28 +33,28 @@ describe('Serialization Advanced', function () {
             };
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
-            assert.deepEqual(deserialized, original);
+            expect(deserialized).toEqual(original);
         });
 
         it('should handle NaN values', function () {
             const original = NaN;
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
-            assert.isNaN(deserialized);
+            expect(isNaN(deserialized)).toBe(true);
         });
 
         it('should handle Infinity values', function () {
             const original = Infinity;
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
-            assert.equal(deserialized, Infinity);
+            expect(deserialized).toBe(Infinity);
         });
 
         it('should handle -Infinity values', function () {
             const original = -Infinity;
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
-            assert.equal(deserialized, -Infinity);
+            expect(deserialized).toBe(-Infinity);
         });
 
         it('should handle large numbers', function () {
@@ -62,7 +62,7 @@ describe('Serialization Advanced', function () {
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
             // Float32 precision might cause slight differences
-            assert.closeTo(deserialized, original, 100000);
+            expect(deserialized).toBeCloseTo(original, 1);
         });
     });
 
@@ -74,7 +74,7 @@ describe('Serialization Advanced', function () {
             const buffer = cube.serialize();
             const deserialized = Cube.deserialize(buffer);
 
-            assert.instanceOf(deserialized, Cube);
+            expect(deserialized).toBeInstanceOf(Cube);
         });
     });
 
@@ -84,10 +84,10 @@ describe('Serialization Advanced', function () {
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
 
-            assert.equal(deserialized[0], 1);
-            assert.equal(deserialized[1], 'string');
-            assert.isNull(deserialized[2]);
-            assert.deepEqual(deserialized[3], { obj: 'val' });
+            expect(deserialized[0]).toBe(1);
+            expect(deserialized[1]).toBe('string');
+            expect(deserialized[2]).toBeNull();
+            expect(deserialized[3]).toEqual({ obj: 'val' });
         });
 
         it('should handle deeply nested objects', function () {
@@ -102,7 +102,7 @@ describe('Serialization Advanced', function () {
             };
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
-            assert.deepEqual(deserialized, original);
+            expect(deserialized).toEqual(original);
         });
 
         it('should handle medium-sized objects', function () {
@@ -114,9 +114,9 @@ describe('Serialization Advanced', function () {
             const serialized = toBuffer(large);
             const deserialized = fromBuffer(serialized);
 
-            assert.equal(Object.keys(deserialized).length, 50);
-            assert.equal(deserialized.key0, 'value0');
-            assert.equal(deserialized.key49, 'value49');
+            expect(Object.keys(deserialized).length).toBe(50);
+            expect(deserialized.key0).toBe('value0');
+            expect(deserialized.key49).toBe('value49');
         });
     });
 
@@ -131,10 +131,10 @@ describe('Serialization Advanced', function () {
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
 
-            assert.equal(deserialized.int, 42);
-            assert.closeTo(deserialized.float, 3.14, 0.01);
-            assert.equal(deserialized.zero, 0);
-            assert.equal(deserialized.negative, -5);
+            expect(deserialized.int).toBe(42);
+            expect(deserialized.float).toBeCloseTo(3.14, 1);
+            expect(deserialized.zero).toBe(0);
+            expect(deserialized.negative).toBe(-5);
         });
 
         it('should preserve string types', function () {
@@ -146,9 +146,9 @@ describe('Serialization Advanced', function () {
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
 
-            assert.strictEqual(deserialized.empty, '');
-            assert.strictEqual(deserialized.regular, 'hello');
-            assert.strictEqual(deserialized.special, 'with\nnewlines\tand\ttabs');
+            expect(deserialized.empty).toBe('');
+            expect(deserialized.regular).toBe('hello');
+            expect(deserialized.special).toBe('with\nnewlines\tand\ttabs');
         });
 
         it('should handle TypedArrays correctly', function () {
@@ -156,11 +156,11 @@ describe('Serialization Advanced', function () {
             const serialized = toBuffer(original);
             const deserialized = fromBuffer(serialized);
 
-            assert.instanceOf(deserialized, Float32Array);
-            assert.equal(deserialized.length, 3);
-            assert.closeTo(deserialized[0], 1.5, 0.01);
-            assert.closeTo(deserialized[1], 2.5, 0.01);
-            assert.closeTo(deserialized[2], 3.5, 0.01);
+            expect(deserialized).toBeInstanceOf(Float32Array);
+            expect(deserialized.length).toBe(3);
+            expect(deserialized[0]).toBeCloseTo(1.5, 1);
+            expect(deserialized[1]).toBeCloseTo(2.5, 1);
+            expect(deserialized[2]).toBeCloseTo(3.5, 1);
         });
     });
 });

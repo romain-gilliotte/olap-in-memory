@@ -1,5 +1,5 @@
-const assert = require('chai').assert;
-const { Cube, GenericDimension, TimeDimension } = require('../dist');
+const { describe, it, beforeEach, expect } = require('@jest/globals');
+const { Cube, GenericDimension, TimeDimension } = require('../src');
 
 describe('Operation between cubes', function () {
     describe('compose - intersection', function () {
@@ -24,13 +24,13 @@ describe('Operation between cubes', function () {
             ]);
 
             const newCube = cube1.compose(cube2);
-            assert.deepEqual(newCube.dimensionIds, ['location', 'period']);
-            assert.deepEqual(newCube.getNestedArray('routers'), [
+            expect(newCube.dimensionIds).toEqual(['location', 'period']);
+            expect(newCube.getNestedArray('routers')).toEqual([
                 [3, 2],
                 [4, 9],
                 [16, 32],
             ]);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [
+            expect(newCube.getNestedArray('antennas')).toEqual([
                 [1, 2],
                 [4, 8],
                 [16, 32],
@@ -54,9 +54,9 @@ describe('Operation between cubes', function () {
             cube2.setNestedArray('routers', [3, 4, 16]);
 
             const newCube = cube1.compose(cube2);
-            assert.deepEqual(newCube.dimensionIds, ['location']);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [3, 12, 48]);
-            assert.deepEqual(newCube.getNestedArray('routers'), [3, 4, 16]);
+            expect(newCube.dimensionIds).toEqual(['location']);
+            expect(newCube.getNestedArray('antennas')).toEqual([3, 12, 48]);
+            expect(newCube.getNestedArray('routers')).toEqual([3, 4, 16]);
         });
 
         it('should compose cubes if items are missing from both cubes', function () {
@@ -85,12 +85,12 @@ describe('Operation between cubes', function () {
             ]);
 
             const newCube = cube1.compose(cube2);
-            assert.deepEqual(newCube.dimensionIds, ['location', 'period']);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [
+            expect(newCube.dimensionIds).toEqual(['location', 'period']);
+            expect(newCube.getNestedArray('antennas')).toEqual([
                 [1, 2],
                 [16, 32],
             ]);
-            assert.deepEqual(newCube.getNestedArray('routers'), [
+            expect(newCube.getNestedArray('routers')).toEqual([
                 [1024, 2048],
                 [256, 512],
             ]);
@@ -107,9 +107,9 @@ describe('Operation between cubes', function () {
             cube2.setNestedArray('routers', [3, 2]);
 
             const newCube = cube1.compose(cube2);
-            assert.deepEqual(newCube.dimensionIds, ['time']);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [1, 2]);
-            assert.deepEqual(newCube.getNestedArray('routers'), [3, 2]);
+            expect(newCube.dimensionIds).toEqual(['time']);
+            expect(newCube.getNestedArray('antennas')).toEqual([1, 2]);
+            expect(newCube.getNestedArray('routers')).toEqual([3, 2]);
         });
 
         it('should compose cubes with overlapping time dimension', function () {
@@ -124,9 +124,9 @@ describe('Operation between cubes', function () {
             cube2.setNestedArray('routers', [3, 2]);
 
             const newCube = cube1.compose(cube2);
-            assert.deepEqual(newCube.dimensionIds, ['time']);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [2]);
-            assert.deepEqual(newCube.getNestedArray('routers'), [3]);
+            expect(newCube.dimensionIds).toEqual(['time']);
+            expect(newCube.getNestedArray('antennas')).toEqual([2]);
+            expect(newCube.getNestedArray('routers')).toEqual([3]);
         });
 
         it('should return null cube if composing cubes with no overlap in time dimension', function () {
@@ -141,7 +141,7 @@ describe('Operation between cubes', function () {
             cube2.setNestedArray('routers', [3, 2]);
 
             const newCube = cube1.compose(cube2);
-            assert.equal(newCube.storeSize, 0);
+            expect(newCube.storeSize).toBe(0);
         });
 
         it('should compose cubes with overlapping time dimension w/ different root attributes', function () {
@@ -156,9 +156,9 @@ describe('Operation between cubes', function () {
             cube2.setNestedArray('routers', [16, 32, 64]);
 
             const newCube = cube1.compose(cube2);
-            assert.deepEqual(newCube.dimensionIds, ['time']);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [7, 8]);
-            assert.deepEqual(newCube.getNestedArray('routers'), [16, 32]);
+            expect(newCube.dimensionIds).toEqual(['time']);
+            expect(newCube.getNestedArray('antennas')).toEqual([7, 8]);
+            expect(newCube.getNestedArray('routers')).toEqual([16, 32]);
         });
     });
 
@@ -184,13 +184,13 @@ describe('Operation between cubes', function () {
             ]);
 
             const newCube = cube1.compose(cube2, true);
-            assert.deepEqual(newCube.dimensionIds, ['location', 'period']);
-            assert.deepEqual(newCube.getNestedArray('routers'), [
+            expect(newCube.dimensionIds).toEqual(['location', 'period']);
+            expect(newCube.getNestedArray('routers')).toEqual([
                 [3, 2],
                 [4, 9],
                 [16, 32],
             ]);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [
+            expect(newCube.getNestedArray('antennas')).toEqual([
                 [1, 2],
                 [4, 8],
                 [16, 32],
@@ -214,9 +214,9 @@ describe('Operation between cubes', function () {
             cube2.setNestedArray('routers', [3, 4, 16]);
 
             const newCube = cube1.compose(cube2, true);
-            assert.deepEqual(newCube.dimensionIds, ['location']);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [3, 12, 48]);
-            assert.deepEqual(newCube.getNestedArray('routers'), [3, 4, 16]);
+            expect(newCube.dimensionIds).toEqual(['location']);
+            expect(newCube.getNestedArray('antennas')).toEqual([3, 12, 48]);
+            expect(newCube.getNestedArray('routers')).toEqual([3, 4, 16]);
         });
 
         it('should compose cubes if items are missing from both cubes', function () {
@@ -245,14 +245,14 @@ describe('Operation between cubes', function () {
             ]);
 
             const newCube = cube1.compose(cube2, true);
-            assert.deepEqual(newCube.dimensionIds, ['location', 'period']);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [
+            expect(newCube.dimensionIds).toEqual(['location', 'period']);
+            expect(newCube.getNestedArray('antennas')).toEqual([
                 [1, 2],
                 [4, 8],
                 [16, 32],
                 [NaN, NaN],
             ]);
-            assert.deepEqual(newCube.getNestedArray('routers'), [
+            expect(newCube.getNestedArray('routers')).toEqual([
                 [1024, 2048],
                 [NaN, NaN],
                 [256, 512],
@@ -271,9 +271,9 @@ describe('Operation between cubes', function () {
             cube2.setNestedArray('routers', [3, 2]);
 
             const newCube = cube1.compose(cube2, true);
-            assert.deepEqual(newCube.dimensionIds, ['time']);
-            assert.deepEqual(newCube.getNestedArray('antennas'), [1, 2]);
-            assert.deepEqual(newCube.getNestedArray('routers'), [3, 2]);
+            expect(newCube.dimensionIds).toEqual(['time']);
+            expect(newCube.getNestedArray('antennas')).toEqual([1, 2]);
+            expect(newCube.getNestedArray('routers')).toEqual([3, 2]);
         });
 
         it('should compose cubes with overlapping time dimension', function () {
@@ -288,9 +288,9 @@ describe('Operation between cubes', function () {
             cube2.setNestedArray('routers', [3, 2]);
 
             const newCube = cube1.compose(cube2, true);
-            assert.deepEqual(newCube.dimensionIds, ['time']);
-            assert.deepEqual(newCube.getData('antennas'), [1, 2, NaN]);
-            assert.deepEqual(newCube.getData('routers'), [NaN, 3, 2]);
+            expect(newCube.dimensionIds).toEqual(['time']);
+            expect(newCube.getData('antennas')).toEqual([1, 2, NaN]);
+            expect(newCube.getData('routers')).toEqual([NaN, 3, 2]);
         });
 
         it('should work if composing cubes with no overlap in time dimension', function () {
@@ -308,11 +308,11 @@ describe('Operation between cubes', function () {
             newCube.createComputedMeasure('safe_sum', 'antennas + routers');
             newCube.createComputedMeasure('unsafe_sum', 'antennas || routers');
 
-            assert.deepEqual(newCube.dimensionIds, ['time']);
-            assert.deepEqual(newCube.getData('antennas'), [1, 2, NaN, NaN]);
-            assert.deepEqual(newCube.getData('routers'), [NaN, NaN, 3, 2]);
-            assert.deepEqual(newCube.getData('safe_sum'), [NaN, NaN, NaN, NaN]);
-            assert.deepEqual(newCube.getData('unsafe_sum'), [1, 2, 3, 2]);
+            expect(newCube.dimensionIds).toEqual(['time']);
+            expect(newCube.getData('antennas')).toEqual([1, 2, NaN, NaN]);
+            expect(newCube.getData('routers')).toEqual([NaN, NaN, 3, 2]);
+            expect(newCube.getData('safe_sum')).toEqual([NaN, NaN, NaN, NaN]);
+            expect(newCube.getData('unsafe_sum')).toEqual([1, 2, 3, 2]);
         });
 
         it('should compose cubes with overlapping time dimension w/ different root attributes', function () {
@@ -327,9 +327,9 @@ describe('Operation between cubes', function () {
             cube2.setNestedArray('routers', [16, 32, 64]);
 
             const newCube = cube1.compose(cube2, true);
-            assert.deepEqual(newCube.dimensionIds, ['time']);
-            assert.deepEqual(newCube.getData('antennas'), [7, 8, NaN]);
-            assert.deepEqual(newCube.getData('routers'), [16, 32, 64]);
+            expect(newCube.dimensionIds).toEqual(['time']);
+            expect(newCube.getData('antennas')).toEqual([7, 8, NaN]);
+            expect(newCube.getData('routers')).toEqual([16, 32, 64]);
         });
     });
 
@@ -348,7 +348,7 @@ describe('Operation between cubes', function () {
             cube2.createStoredMeasure('otherMeasure', {}, 'uint32', 666);
             cube.hydrateFromCube(cube2);
 
-            assert.deepEqual(cube.getNestedObject('antennas'), {
+            expect(cube.getNestedObject('antennas')).toEqual({
                 summer: { paris: 0, toledo: 0, tokyo: 0 },
                 winter: { paris: 0, toledo: 0, tokyo: 0 },
             });
@@ -370,7 +370,7 @@ describe('Operation between cubes', function () {
 
             cube.hydrateFromCube(cube2);
 
-            assert.deepEqual(cube.getNestedObject('antennas'), {
+            expect(cube.getNestedObject('antennas')).toEqual({
                 summer: { paris: 0, toledo: 0, tokyo: 0 },
                 winter: { paris: 666, toledo: 0, tokyo: 666 },
             });
@@ -392,7 +392,7 @@ describe('Operation between cubes', function () {
 
             cube.hydrateFromCube(cube2);
 
-            assert.deepEqual(cube.getNestedObject('antennas'), {
+            expect(cube.getNestedObject('antennas')).toEqual({
                 summer: { paris: 0, toledo: 0, tokyo: 0 },
                 winter: { paris: 32, toledo: 0, tokyo: 53 },
             });
@@ -415,7 +415,7 @@ describe('Operation between cubes', function () {
 
             cube.hydrateFromCube(cube2);
 
-            assert.deepEqual(cube.getNestedObject('antennas'), {
+            expect(cube.getNestedObject('antennas')).toEqual({
                 summer: { paris: 0, toledo: 0, tokyo: 0 },
                 winter: { paris: 3, toledo: 0, tokyo: 1 },
             });
@@ -445,7 +445,7 @@ describe('Operation between cubes', function () {
 
             cube.hydrateFromCube(cube2);
 
-            assert.deepEqual(cube.getNestedObject('antennas'), {
+            expect(cube.getNestedObject('antennas')).toEqual({
                 summer: { paris: 0, toledo: 0, tokyo: 0 },
                 winter: { paris: 9, toledo: 0, tokyo: 12 },
             });
@@ -465,7 +465,7 @@ describe('Operation between cubes', function () {
 
             cube.hydrateFromCube(cube2);
 
-            assert.deepEqual(cube.getNestedObject('antennas'), {
+            expect(cube.getNestedObject('antennas')).toEqual({
                 summer: { paris: 0, toledo: 0, tokyo: 0 },
                 winter: { paris: 11, toledo: 10, tokyo: 11 },
             });
@@ -492,7 +492,7 @@ describe('Operation between cubes', function () {
 
             cube.hydrateFromCube(cube2);
 
-            assert.deepEqual(cube.getNestedObject('antennas'), {
+            expect(cube.getNestedObject('antennas')).toEqual({
                 '2010-Q1': { paris: 0, toledo: 0, tokyo: 0 },
                 '2010-Q2': { paris: 0, toledo: 6, tokyo: 0 },
                 '2010-Q3': { paris: 0, toledo: 0, tokyo: 0 },
@@ -515,7 +515,7 @@ describe('Operation between cubes', function () {
 
             cube.hydrateFromCube(cube2);
 
-            assert.deepEqual(cube.getNestedObject('antennas'), {
+            expect(cube.getNestedObject('antennas')).toEqual({
                 '2010-01': { paris: 0, toledo: 0, tokyo: 0 },
                 '2010-02': { paris: 0, toledo: 0, tokyo: 0 },
                 '2010-03': { paris: 0, toledo: 0, tokyo: 0 },

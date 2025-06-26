@@ -1,5 +1,5 @@
-const assert = require('chai').assert;
-const { Cube, GenericDimension, TimeDimension } = require('../dist');
+const { describe, it, beforeEach, expect } = require('@jest/globals');
+const { Cube, GenericDimension, TimeDimension } = require('../src');
 
 describe('Cube Edge Cases', function () {
     describe('error handling', function () {
@@ -8,7 +8,7 @@ describe('Cube Edge Cases', function () {
             cube.createStoredMeasure('antennas');
             cube.createComputedMeasure('computed', 'antennas * 2');
 
-            assert.throws(
+            expect(
                 () => {
                     cube.setData('computed', [1, 2]);
                 },
@@ -20,7 +20,7 @@ describe('Cube Edge Cases', function () {
         it('should throw error when getData is called on non-existent measure', function () {
             const cube = new Cube([new GenericDimension('location', 'city', ['paris', 'tokyo'])]);
 
-            assert.throws(
+            expect(
                 () => {
                     cube.getData('nonexistent');
                 },
@@ -32,7 +32,7 @@ describe('Cube Edge Cases', function () {
         it('should throw error when getStatus is called on non-existent measure', function () {
             const cube = new Cube([new GenericDimension('location', 'city', ['paris', 'tokyo'])]);
 
-            assert.throws(
+            expect(
                 () => {
                     cube.getStatus('nonexistent');
                 },
@@ -44,7 +44,7 @@ describe('Cube Edge Cases', function () {
         it('should throw error when slice is called on non-existent dimension', function () {
             const cube = new Cube([new GenericDimension('location', 'city', ['paris', 'tokyo'])]);
 
-            assert.throws(
+            expect(
                 () => {
                     cube.slice('nonexistent', 'city', 'paris');
                 },
@@ -61,8 +61,8 @@ describe('Cube Edge Cases', function () {
             cube.createComputedMeasure('computed', 'antennas * 2');
 
             cube.dropMeasure('computed');
-            assert.isUndefined(cube.computedMeasures['computed']);
-            assert.isDefined(cube.storedMeasures['antennas']);
+            expect(cube.computedMeasures['computed']).toBeUndefined();
+            expect(cube.storedMeasures['antennas']).toBeDefined();
         });
 
         it('should drop stored measure', function () {
@@ -70,14 +70,14 @@ describe('Cube Edge Cases', function () {
             cube.createStoredMeasure('antennas');
 
             cube.dropMeasure('antennas');
-            assert.isUndefined(cube.storedMeasures['antennas']);
-            assert.isUndefined(cube.storedMeasuresRules['antennas']);
+            expect(cube.storedMeasures['antennas']).toBeUndefined();
+            expect(cube.storedMeasuresRules['antennas']).toBeUndefined();
         });
 
         it('should throw error when dropping non-existent measure', function () {
             const cube = new Cube([new GenericDimension('location', 'city', ['paris', 'tokyo'])]);
 
-            assert.throws(
+            expect(
                 () => {
                     cube.dropMeasure('nonexistent');
                 },
@@ -96,7 +96,7 @@ describe('Cube Edge Cases', function () {
             cube.createStoredMeasure('antennas');
 
             const result = cube.reorderDimensions(['location', 'time']);
-            assert.equal(result, cube);
+            expect(result).toBe(cube);
         });
 
         it('should reorder dimensions correctly', function () {
@@ -108,8 +108,8 @@ describe('Cube Edge Cases', function () {
             cube.setData('antennas', [1, 2, 3, 4]);
 
             const result = cube.reorderDimensions(['time', 'location']);
-            assert.deepEqual(result.dimensionIds, ['time', 'location']);
-            assert.notEqual(result, cube);
+            expect(result.dimensionIds).toEqual(['time', 'location']);
+            expect(result).not.toBe(cube);
         });
     });
 
@@ -134,7 +134,7 @@ describe('Cube Edge Cases', function () {
             cube.createStoredMeasure('antennas');
 
             const result = cube.dice('location', 'city', ['paris', 'tokyo']);
-            assert.equal(result, cube);
+            expect(result).toBe(cube);
         });
 
         it('should create new cube when dice changes dimension', function () {
@@ -145,8 +145,8 @@ describe('Cube Edge Cases', function () {
             cube.setData('antennas', [1, 2, 3]);
 
             const result = cube.dice('location', 'city', ['paris', 'tokyo']);
-            assert.notEqual(result, cube);
-            assert.deepEqual(result.getDimension('location').getItems(), ['paris', 'tokyo']);
+            expect(result).not.toBe(cube);
+            expect(result.getDimension('location').getItems()).toEqual(['paris', 'tokyo']);
         });
     });
 
@@ -159,7 +159,7 @@ describe('Cube Edge Cases', function () {
             cube.createStoredMeasure('antennas');
 
             const result = cube.keepDimensions(['location']);
-            assert.deepEqual(result.dimensionIds, ['location']);
+            expect(result.dimensionIds).toEqual(['location']);
         });
     });
 
@@ -172,7 +172,7 @@ describe('Cube Edge Cases', function () {
             cube.createStoredMeasure('antennas');
 
             const result = cube.removeDimensions(['time']);
-            assert.deepEqual(result.dimensionIds, ['location']);
+            expect(result.dimensionIds).toEqual(['location']);
         });
     });
 
@@ -184,7 +184,7 @@ describe('Cube Edge Cases', function () {
             const newDimension = new GenericDimension('time', 'month', ['jan', 'feb']);
             const result = cube.addDimension(newDimension, {}, 0);
 
-            assert.deepEqual(result.dimensionIds, ['time', 'location']);
+            expect(result.dimensionIds).toEqual(['time', 'location']);
         });
 
         it('should add dimension at end when index is null', function () {
@@ -194,7 +194,7 @@ describe('Cube Edge Cases', function () {
             const newDimension = new GenericDimension('time', 'month', ['jan', 'feb']);
             const result = cube.addDimension(newDimension);
 
-            assert.deepEqual(result.dimensionIds, ['location', 'time']);
+            expect(result.dimensionIds).toEqual(['location', 'time']);
         });
     });
 
@@ -207,7 +207,7 @@ describe('Cube Edge Cases', function () {
             cube.createStoredMeasure('antennas');
 
             const result = cube.project(['location']);
-            assert.deepEqual(result.dimensionIds, ['location']);
+            expect(result.dimensionIds).toEqual(['location']);
         });
     });
 
@@ -218,7 +218,7 @@ describe('Cube Edge Cases', function () {
             cube.setData('antennas', [1, 2]);
 
             const result = cube.getNestedObject('antennas', false, true);
-            assert.isObject(result);
+            expect(typeof result).toBe('object');
             // The exact structure depends on the formatter implementation
         });
     });

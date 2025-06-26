@@ -1,18 +1,18 @@
-const assert = require('chai').assert;
-const dimensionFactory = require('../dist/dimension/factory');
-const GenericDimension = require('../dist/dimension/generic');
-const TimeDimension = require('../dist/dimension/time');
+const { describe, it, beforeEach, expect } = require('@jest/globals');
+const dimensionFactory = require('../src/dimension/factory');
+const GenericDimension = require('../src/dimension/generic');
+const TimeDimension = require('../src/dimension/time');
 
 describe('Dimension Factory', function () {
     describe('deserialization functionality', function () {
         it('should have deserialize method', function () {
-            assert.isFunction(dimensionFactory.deserialize);
+            expect(typeof dimensionFactory.deserialize).toBe('function');
         });
 
         it('should handle factory methods', function () {
             // The factory mainly handles deserialization from buffers
             // Testing with actual serialized data requires proper dimension setup
-            assert.isFunction(dimensionFactory.deserialize);
+            expect(typeof dimensionFactory.deserialize).toBe('function');
         });
 
         it('should handle factory edge cases', function () {
@@ -21,10 +21,10 @@ describe('Dimension Factory', function () {
                 const invalidBuffer = new ArrayBuffer(4);
                 const dimension = dimensionFactory.deserialize(invalidBuffer);
                 // Should either work or throw an error gracefully
-                assert.isDefined(dimension);
+                expect(dimension).toBeDefined();
             } catch (error) {
                 // Acceptable to throw for invalid data
-                assert.isDefined(error);
+                expect(error).toBeDefined();
             }
         });
     });
