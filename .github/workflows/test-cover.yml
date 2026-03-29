@@ -30,6 +30,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: coverage
     runs-on: ubuntu-latest
+    environment: npmjs
     permissions:
       contents: write
       issues: write
