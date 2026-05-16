@@ -139,6 +139,39 @@ describe('Parser Module', function () {
         });
     });
 
+    describe('operator availability', function () {
+        it('should parse logical not (regression: monitool formulas like "(not isNaN(x))/1")', function () {
+            const expr = parser.parse('(not isNaN(x))/1');
+            expect(expr.evaluate({ x: 5 })).toBe(1);
+            expect(expr.evaluate({ x: NaN })).toBe(0);
+        });
+
+        it('should parse logical and / or', function () {
+            expect(parser.parse('a and b').evaluate({ a: 1, b: 1 })).toBe(true);
+            expect(parser.parse('a or b').evaluate({ a: 0, b: 1 })).toBe(true);
+        });
+
+        it('should parse comparison operators', function () {
+            expect(parser.parse('x < 1').evaluate({ x: 0 })).toBe(true);
+            expect(parser.parse('x > 1').evaluate({ x: 0 })).toBe(false);
+            expect(parser.parse('x == 1').evaluate({ x: 1 })).toBe(true);
+        });
+
+        it('should parse conditional expressions', function () {
+            const expr = parser.parse('x < 1 ? x : 1');
+            expect(expr.evaluate({ x: 0.5 })).toBe(0.5);
+            expect(expr.evaluate({ x: 5 })).toBe(1);
+        });
+
+        it('should reject assignment operator', function () {
+            expect(() => parser.parse('x = 1')).toThrow();
+        });
+
+        it('should reject in operator', function () {
+            expect(() => parser.parse('x in arr')).toThrow();
+        });
+    });
+
     describe('edge cases', function () {
         it('should handle zero values', function () {
             const expr = parser.parse('x * 0');

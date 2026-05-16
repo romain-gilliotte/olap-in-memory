@@ -3,8 +3,6 @@ import { Parser } from 'expr-eval';
 export function getParser(): Parser {
     const parser = new Parser({
         operators: {
-            logical: false,
-            comparison: false,
             in: false,
             assignment: false,
         },
