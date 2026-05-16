@@ -170,6 +170,17 @@ describe('Parser Module', function () {
         it('should reject in operator', function () {
             expect(() => parser.parse('x in arr')).toThrow();
         });
+
+        it('should reject member access', function () {
+            expect(() => parser.parse('x.foo')).toThrow();
+            expect(() => parser.parse('x.__proto__')).toThrow();
+            expect(() => parser.parse('x.a.b')).toThrow();
+        });
+
+        it('should reject bracket access', function () {
+            expect(() => parser.parse('x[0]')).toThrow();
+            expect(() => parser.parse('x["foo"]')).toThrow();
+        });
     });
 
     describe('edge cases', function () {

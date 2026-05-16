@@ -1,11 +1,15 @@
-import { Parser } from 'expr-eval';
+import { Parser } from 'expr-eval-fork';
 
 export function getParser(): Parser {
     const parser = new Parser({
+        // `array` disables the `[...]` operator; missing from expr-eval's type
+        // declarations but supported at runtime (see optionNameMap).
         operators: {
             in: false,
             assignment: false,
-        },
+            array: false,
+        } as any,
+        allowMemberAccess: false,
     });
 
     parser.functions = {

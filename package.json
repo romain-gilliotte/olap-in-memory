@@ -8,7 +8,7 @@
     "types": "dist/index.d.ts",
     "repository": "github:romain-gilliotte/olap-in-memory",
     "dependencies": {
-        "expr-eval": "^2.0.2",
+        "expr-eval-fork": "^3.0.3",
         "lodash.clonedeep": "^4.5.0",
         "lodash.merge": "^4.6.2",
         "msgpackr": "^1.11.9",
